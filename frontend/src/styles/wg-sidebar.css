@@ -1,0 +1,309 @@
+.wg-sidebar {
+  width: 190px;
+  height: 100vh;
+  background: white;
+  border-right: 1px solid #eee;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  /* Scroll fino e elegante */
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+/* Webkit scroll (Chrome, Safari, Edge) */
+.wg-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wg-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wg-sidebar::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 6px;
+}
+
+.wg-sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}
+
+.wg-sidebar-logo {
+  font-family: Oswald, sans-serif;
+  font-size: 18px; /* Reduzido de 22px */
+  margin-bottom: 10px; /* Reduzido de 16px */
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Reduzido de 12px */
+}
+
+.wg-sidebar-logo img {
+  height: 5rem; /* Reduzido de h-24 */
+}
+
+.wg-logo-primary {
+  color: #ff6b35;
+  font-weight: bold;
+}
+
+.wg-logo-secondary {
+  margin-left: 4px;
+  color: #555;
+}
+
+.wg-sidebar-section-title {
+  margin-top: 6px;
+  font-size: 9px; /* Reduzido de 11px */
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #888;
+  letter-spacing: 0.4px;
+}
+
+.wg-sidebar-section {
+  margin-top: 2px;
+}
+
+.wg-sidebar-section-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 10px; /* Reduzido de 12px */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 4px 6px; /* Reduzido de 6px 8px */
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.wg-sidebar-section-head:hover {
+  background: #f5f5f5;
+}
+
+.wg-sidebar-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wg-sidebar-head-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+}
+
+.wg-sidebar-items {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px; /* Reduzido de 4px */
+}
+
+.wg-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Reduzido de 10px */
+  padding: 5px 8px; /* Reduzido de 8px 10px */
+  border-radius: 6px;
+  text-decoration: none;
+  color: #444;
+  font-size: 12px; /* Reduzido de 14px */
+  transition: 150ms ease;
+}
+
+.wg-sidebar-item:hover {
+  background: #f5f5f5;
+}
+
+.wg-sidebar-item.active {
+  background: #ffe6db;
+  color: #ff6b35;
+  font-weight: 600;
+}
+
+.wg-sidebar-icon {
+  width: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Mobile off-canvas */
+@media (max-width: 768px) {
+  .wg-sidebar {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    width: 240px;
+    height: 100vh;
+    z-index: 50;
+    transition: left 0.2s ease;
+  }
+  .wg-sidebar.open {
+    left: 0;
+  }
+  .wg-sidebar-logo {
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .wg-sidebar-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #1a1a1a;
+  }
+  .layout-main {
+    margin-left: 0 !important;
+  }
+}
+
+/* Overlay (somente mobile) */
+.sidebar-overlay {
+  display: none;
+}
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    z-index: 40;
+  }
+}
+
+/* ============================================================
+   ESTADOS PREMIUM - Seção Expandida e Subitens
+   ============================================================ */
+
+/* Seção expandida - destaque laranja WG */
+.wg-sidebar-section-head.expanded,
+.wg-sidebar-section-head[aria-expanded="true"] {
+  background: rgba(242, 92, 38, 0.08);
+  border-left: 3px solid #F25C26;
+  color: #F25C26;
+  font-weight: 700;
+  margin-left: -3px;
+  padding-left: 9px;
+}
+
+/* Seção ativa (quando tem path e está na página) */
+.wg-sidebar-section-head.active {
+  background: rgba(242, 92, 38, 0.08);
+  border-left: 3px solid #F25C26;
+  color: #F25C26;
+  font-weight: 700;
+  margin-left: -3px;
+  padding-left: 9px;
+}
+
+.wg-sidebar-section-head.active .wg-sidebar-head-icon {
+  color: #F25C26;
+}
+
+.wg-sidebar-section-head.expanded .wg-sidebar-head-icon,
+.wg-sidebar-section-head[aria-expanded="true"] .wg-sidebar-head-icon {
+  color: #F25C26;
+}
+
+/* Subitens ativos */
+.wg-sidebar-subitem {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #555;
+  text-decoration: none;
+  display: block;
+  transition: all 150ms ease;
+}
+
+.wg-sidebar-subitem:hover {
+  background: #f5f5f5;
+}
+
+.wg-sidebar-subitem.active {
+  background: rgba(242, 92, 38, 0.12);
+  color: #F25C26;
+  font-weight: 600;
+}
+
+/* ============================================================
+   CORES DOS NÚCLEOS - Identidade Visual
+   ============================================================ */
+
+/* Arquitetura - Verde Mineral */
+.wg-sidebar-item[data-nucleo="arquitetura"]:hover,
+.wg-sidebar-subitem[data-nucleo="arquitetura"]:hover {
+  background: rgba(94, 155, 148, 0.1);
+  color: #5E9B94;
+}
+
+.wg-sidebar-item[data-nucleo="arquitetura"].active,
+.wg-sidebar-subitem[data-nucleo="arquitetura"].active {
+  background: rgba(94, 155, 148, 0.15);
+  color: #5E9B94;
+  font-weight: 600;
+}
+
+/* Engenharia - Azul Técnico */
+.wg-sidebar-item[data-nucleo="engenharia"]:hover,
+.wg-sidebar-subitem[data-nucleo="engenharia"]:hover {
+  background: rgba(43, 69, 128, 0.1);
+  color: #2B4580;
+}
+
+.wg-sidebar-item[data-nucleo="engenharia"].active,
+.wg-sidebar-subitem[data-nucleo="engenharia"].active {
+  background: rgba(43, 69, 128, 0.15);
+  color: #2B4580;
+  font-weight: 600;
+}
+
+/* Marcenaria - Marrom Carvalho */
+.wg-sidebar-item[data-nucleo="marcenaria"]:hover,
+.wg-sidebar-subitem[data-nucleo="marcenaria"]:hover {
+  background: rgba(139, 94, 60, 0.1);
+  color: #8B5E3C;
+}
+
+.wg-sidebar-item[data-nucleo="marcenaria"].active,
+.wg-sidebar-subitem[data-nucleo="marcenaria"].active {
+  background: rgba(139, 94, 60, 0.15);
+  color: #8B5E3C;
+  font-weight: 600;
+}
+
+/* ============================================================
+   TRANSIÇÕES SUAVES
+   ============================================================ */
+
+.wg-sidebar-section-head,
+.wg-sidebar-item,
+.wg-sidebar-subitem {
+  transition: all 150ms ease;
+}
+
+/* Chevron rotação suave */
+.wg-sidebar-section-head svg:last-child {
+  transition: transform 200ms ease;
+}
+
+.wg-sidebar-section-head.expanded svg:last-child,
+.wg-sidebar-section-head[aria-expanded="true"] svg:last-child {
+  transform: rotate(180deg);
+}

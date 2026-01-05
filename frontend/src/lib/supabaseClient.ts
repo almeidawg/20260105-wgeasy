@@ -1,0 +1,213 @@
+// ============================================================
+// SUPABASE CLIENT – WG EASY (Custom Wrapper)
+// Este cliente adiciona:
+// - Tratamento de erros
+// - Logs de auditoria
+// - Retry automático
+// - Timeout
+// - Identidade WG Almeida via headers
+// - Wrapper seguro para SELECT / INSERT / UPDATE / DELETE
+// ============================================================
+
+import { createClient, PostgrestError } from "@supabase/supabase-js";
+
+// ------------------------------------------------------------
+// CONFIGURAÇÃO BASE (usa o mesmo supabaseUrl e anonKey do projeto)
+// ------------------------------------------------------------
+export const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  "https://ahlqzzkxuutwoepirpzr.supabase.co";
+const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseAnon) {
+  throw new Error(
+    [
+      "VITE_SUPABASE_ANON_KEY não foi definido.",
+      "Crie ou atualize o arquivo .env com a chave pública do Supabase:",
+      'VITE_SUPABASE_ANON_KEY="sua-chave-publica"',
+      "Em seguida reinicie o servidor (npm run dev).",
+    ].join(" ")
+  );
+}
+
+if (!import.meta.env.VITE_SUPABASE_URL) {
+  console.warn(
+    "VITE_SUPABASE_URL não definido — usando fallback. Verifique variáveis de ambiente."
+  );
+}
+
+export const supabaseRaw = createClient(supabaseUrl, supabaseAnon, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true, // Detecta token OAuth na URL automaticamente
+    flowType: "pkce", // PKCE é mais seguro que implicit (tokens não vazam na URL)
+  },
+  global: {
+    headers: {
+      "X-WG-App": "WGEASY",
+      "X-WG-Version": "1.0.0",
+    },
+  },
+});
+
+// Alias para compatibilidade com imports existentes
+export const supabase = supabaseRaw;
+
+// ------------------------------------------------------------
+// TIMEOUT — garante que requisições travadas nunca bloqueiem a UI
+// ------------------------------------------------------------
+function promiseWithTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs = 8000
+): Promise<T> {
+  let timeout: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => reject(new Error("Request timeout")), timeoutMs);
+  });
+  return Promise.race([
+    promise.finally(() => clearTimeout(timeout)),
+    timeoutPromise,
+  ]);
+}
+
+// ------------------------------------------------------------
+// RETRY INTELIGENTE (3 tentativas, delay progressivo)
+// ------------------------------------------------------------
+async function retry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delay = 300
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (retries === 0) throw err;
+    await new Promise((r) => setTimeout(r, delay));
+    return retry(fn, retries - 1, delay * 1.5);
+  }
+}
+
+// ------------------------------------------------------------
+// HANDLER DE ERROS – Padrão WG
+// ------------------------------------------------------------
+function handleError(error: PostgrestError | null, context: string) {
+  if (error) {
+    console.error(
+      `%c❌ SUPABASE ERROR (${context})`,
+      "background:#ff2d2d;color:white;padding:4px;",
+      error
+    );
+    throw new Error(error.message || "Erro desconhecido");
+  }
+}
+
+// ------------------------------------------------------------
+// WRAPPERS SEGUROS – SELECT / INSERT / UPDATE / DELETE
+// ------------------------------------------------------------
+
+// Type for Supabase query result
+interface QueryResult<T> {
+  data: T | null;
+  error: PostgrestError | null;
+}
+
+export const db = {
+  async select<T = any>(
+    table: string,
+    columns: string = "*",
+    query?: (builder: any) => any
+  ): Promise<T[]> {
+    return retry(async () => {
+      const builder = supabaseRaw.from(table).select(columns);
+
+      const rq = query ? query(builder) : builder;
+      const result = await promiseWithTimeout<QueryResult<T[]>>(rq);
+      const { data, error } = result;
+
+      handleError(error, `SELECT -> ${table}`);
+      return data as T[];
+    });
+  },
+
+  async selectOne<T = any>(
+    table: string,
+    columns: string = "*",
+    query?: (builder: any) => any
+  ): Promise<T | null> {
+    return retry(async () => {
+      const builder = supabaseRaw.from(table).select(columns).single();
+
+      const rq = query ? query(builder) : builder;
+      const result = await promiseWithTimeout<QueryResult<T>>(rq);
+      const { data, error } = result;
+
+      handleError(error, `SELECT ONE -> ${table}`);
+      return data as T;
+    });
+  },
+
+  async insert<T = any>(table: string, payload: any): Promise<T[]> {
+    return retry(async () => {
+      const result = await promiseWithTimeout<QueryResult<T[]>>(
+        supabaseRaw.from(table).insert(payload).select()
+      );
+      const { data, error } = result;
+
+      handleError(error, `INSERT -> ${table}`);
+      return data as T[];
+    });
+  },
+
+  async update<T = any>(
+    table: string,
+    payload: any,
+    query: (builder: any) => any
+  ): Promise<T[]> {
+    return retry(async () => {
+      const builder = supabaseRaw.from(table).update(payload);
+
+      const rq = query(builder).select();
+      const result = await promiseWithTimeout<QueryResult<T[]>>(rq);
+      const { data, error } = result;
+
+      handleError(error, `UPDATE -> ${table}`);
+      return data as T[];
+    });
+  },
+
+  async remove(table: string, query: (builder: any) => any): Promise<boolean> {
+    return retry(async () => {
+      const builder = supabaseRaw.from(table).delete();
+      const rq = query(builder);
+
+      const result = await promiseWithTimeout<QueryResult<null>>(rq);
+      const { error } = result;
+      handleError(error, `DELETE -> ${table}`);
+
+      return true;
+    });
+  },
+};
+
+// ------------------------------------------------------------
+// APA da Autenticação
+// ------------------------------------------------------------
+export const auth = {
+  session: () => supabaseRaw.auth.getSession(),
+  user: () => supabaseRaw.auth.getUser(),
+  login: (email: string, pass: string) =>
+    supabaseRaw.auth.signInWithPassword({ email, password: pass }),
+  logout: () => supabaseRaw.auth.signOut(),
+};
+
+// ------------------------------------------------------------
+// Auditoria WG — loga tudo no console (área Dev)
+// ------------------------------------------------------------
+export function logWG(...params: any[]) {
+  console.log(
+    "%cWG LOG",
+    "background:#000;color:#F25C26;padding:4px",
+    ...params
+  );
+}

@@ -1,0 +1,137 @@
+{
+  "metadata": {
+    "versao": "1.0",
+    "data_criacao": "2024-12-30",
+    "total_clientes": 22,
+    "processados": 2,
+    "pendentes": 20
+  },
+  "clientes": [
+    {
+      "id": 1,
+      "pasta": "20250514 - Marlisson",
+      "status": "PROCESSADO",
+      "conta_tipo": "VIRTUAL",
+      "cliente": {
+        "nome_completo": "Marlisson Fabricio de Oliveira Machado",
+        "cpf": "888.247-87",
+        "rg": "5276671 PC/PA",
+        "email": null,
+        "telefone": null,
+        "endereco_residencial": "Rua Domingos Lopes, 155 - Apartamento 1606 - Campo Belo, São Paulo - SP, 04606-050"
+      },
+      "obra": {
+        "endereco": "Rua Domingos Lopes, 155 - Apartamento 1606 - Campo Belo, São Paulo - SP, 04606-050",
+        "tipo_imovel": "apartamento",
+        "metragem": 40.5,
+        "condominio": "Cyrela Bothanic Apartments"
+      },
+      "contrato": {
+        "numero": "MOMA-2025-MARLISSON",
+        "tipo_servico": "engenharia",
+        "valor_total": 28320.00,
+        "valor_mao_obra": 28320.00,
+        "valor_materiais": 0,
+        "data_assinatura": "2025-06-03",
+        "data_inicio_prevista": "2025-06-06",
+        "data_termino_prevista": null,
+        "prazo_execucao_dias": 30
+      },
+      "pagamento": {
+        "forma": "a_vista",
+        "parcelas": [
+          {"numero": 1, "valor": 28320.00, "vencimento": "2025-06-03", "descricao": "Pagamento à vista - Total"}
+        ]
+      },
+      "itens_descritivos": [
+        {"item": "Demolições e Remoções - Remoção baguete, bancadas cozinha e banheiro", "tipo": "mao_obra"},
+        {"item": "Pisos e Contrapiso - Regularização, nivelamento, piso vinílico, rodapé", "tipo": "mao_obra"},
+        {"item": "Infraestrutura Ar Condicionado - Split 9.000-12.000 BTUs", "tipo": "mao_obra"},
+        {"item": "Bancadas - Cozinha e Banheiro Preto São Gabriel + Espelho 0,85x1,20m", "tipo": "mao_obra"},
+        {"item": "Instalações Hidrossanitárias - 3 pontos na cozinha", "tipo": "mao_obra"},
+        {"item": "Instalações Elétricas e Iluminação - LEDs, spots, luminárias", "tipo": "mao_obra"},
+        {"item": "Box e Espelho - Box correr preto 2,10x0,90m + espelho", "tipo": "mao_obra"}
+      ],
+      "observacoes": "Contrato MOMA Engenharia - Conta VIRTUAL (gerencial). Prazo 30 dias úteis + 10 dias tolerância. Garantia 12 meses.",
+      "arquivos_fonte": ["20250603_Marlisson_CONTRATO PARA EXECUÇÃO DE OBRA 2024_.pdf"]
+    },
+    {
+      "id": 2,
+      "pasta": "20250728 - Thais Fonseca [Leide]",
+      "status": "PROCESSADO",
+      "conta_tipo": "VIRTUAL",
+      "indicacao": "Leide",
+      "cliente": {
+        "nome_completo": "Thais Fonseca",
+        "cpf": null,
+        "rg": null,
+        "email": null,
+        "telefone": null,
+        "endereco_residencial": null
+      },
+      "obra": {
+        "endereco": null,
+        "tipo_imovel": "apartamento",
+        "metragem": 22.0,
+        "condominio": null
+      },
+      "contrato": {
+        "numero": "MOMA-2025-THAIS-FONSECA",
+        "tipo_servico": "turn_key",
+        "valor_total": 44121.87,
+        "valor_mao_obra": 18822.11,
+        "valor_materiais": 25299.76,
+        "desconto_aplicado": 7248.79,
+        "valor_bruto": 51370.65,
+        "data_assinatura": "2025-07-28",
+        "data_inicio_prevista": null,
+        "data_termino_prevista": null,
+        "prazo_execucao_dias": null
+      },
+      "pagamento": {
+        "forma": "parcelado",
+        "detalhamento": {
+          "mao_obra": {
+            "valor": 18822.11,
+            "condicao": "40% Entrada + 4 quinzenais",
+            "entrada": 7528.84,
+            "parcelas": 4
+          },
+          "envidracamento": {
+            "valor": 7239.76,
+            "condicao": "Condição do Fornecedor"
+          },
+          "marcenaria": {
+            "valor": 18060.00,
+            "condicao": "Entrada R$ 10.000 + 5 parcelas",
+            "entrada": 10000.00,
+            "parcelas": 5
+          }
+        }
+      },
+      "itens_descritivos": [
+        {"item": "Projeto Básico e documentação RRT - liberação de Obra", "categoria": "Arquitetura", "valor": 2101.70, "tipo": "mao_obra"},
+        {"item": "Limpeza recorrente", "categoria": "Staff", "valor": 735.60, "tipo": "mao_obra"},
+        {"item": "Medição técnica", "categoria": "Staff", "valor": 262.71, "tipo": "mao_obra"},
+        {"item": "Vistoria", "categoria": "Staff", "valor": 467.10, "tipo": "mao_obra"},
+        {"item": "Remoção de caxilhos e portas", "categoria": "Pré Obra", "valor": 407.00, "tipo": "mao_obra"},
+        {"item": "Equipe para retirada de entulho", "categoria": "Demolições", "valor": 770.00, "tipo": "mao_obra"},
+        {"item": "Acoplamento dos equipamentos AR", "categoria": "Infra Ar", "valor": 477.66, "tipo": "mao_obra"},
+        {"item": "Tubulação para equipamentos 9-12 mil BTUs", "categoria": "Infra Ar", "valor": 2985.38, "tipo": "mao_obra"},
+        {"item": "Instalação de luminárias", "categoria": "Elétrica", "valor": 456.00, "tipo": "mao_obra"},
+        {"item": "Instalações elétricas diversas", "categoria": "Elétrica", "valor": 511.02, "tipo": "mao_obra"},
+        {"item": "Assentamento de revestimentos mosaicos", "categoria": "Paredes", "valor": 679.43, "tipo": "mao_obra"},
+        {"item": "Assentamento de porcelanato até 900x900", "categoria": "Piso", "valor": 3366.00, "tipo": "mao_obra"},
+        {"item": "Contrapiso", "categoria": "Piso", "valor": 899.14, "tipo": "mao_obra"},
+        {"item": "Equipe de pintura fina", "categoria": "Pintura", "valor": 2413.18, "tipo": "mao_obra"},
+        {"item": "Instalações finais (chuveiro, ducha, metais)", "categoria": "Finalização", "valor": 1447.90, "tipo": "mao_obra"},
+        {"item": "Box banheiro", "categoria": "Vidraçaria", "valor": 1958.04, "tipo": "material"},
+        {"item": "Espelho Banheiro e Entrada", "categoria": "Vidraçaria", "valor": 2205.81, "tipo": "material"},
+        {"item": "Envidraçamento de Sacada", "categoria": "Vidraçaria", "valor": 7239.76, "tipo": "material"},
+        {"item": "Marcenaria completa", "categoria": "Marcenaria", "valor": 18060.00, "tipo": "material"}
+      ],
+      "observacoes": "Indicação: Leide. Contrato MOMA Engenharia - Conta VIRTUAL (gerencial). Projeto turn-key com MO + Envidraçamento + Marcenaria.",
+      "arquivos_fonte": ["20250730 - Thais Fonseca_Engenharia REV 02 FINAL.pdf"]
+    }
+  ]
+}

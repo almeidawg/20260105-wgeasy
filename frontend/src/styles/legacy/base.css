@@ -1,0 +1,11 @@
+@tailwind base;
+
+:root {
+  --wg-bg: #f8f9fc;
+  --wg-border: #e5e7eb;
+  --wg-text: #111827;
+}
+
+html, body {
+  @apply bg-[var(--wg-bg)] text-[var(--wg-text)] antialiased;
+}

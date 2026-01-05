@@ -1,0 +1,140 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+/* Layouts */
+import AppLayout from "@/layout/AppLayout";
+import MainLayout from "@/layout/MainLayout";
+
+/* Pessoas – Listagens */
+import ClientesPage from "@/pages/pessoas/ClientesPage";
+import ColaboradoresPage from "@/pages/pessoas/ColaboradoresPage";
+import FornecedoresPage from "@/pages/pessoas/FornecedoresPage";
+import EspecificadoresPage from "@/pages/pessoas/EspecificadoresPage";
+
+/* Pessoas – Novos cadastros */
+import NovoClientePage from "@/pages/pessoas/NovoClientePage";
+import NovoColaboradorPage from "@/pages/pessoas/NovoColaboradorPage";
+import NovoFornecedorPage from "@/pages/pessoas/NovoFornecedorPage";
+import NovoEspecificadorPage from "@/pages/pessoas/NovoEspecificadorPage";
+
+/* Demais seções (placeholders até conectar backend real) */
+const Placeholder = ({ title }: { title: string }) => (
+  <div className="p-8 text-gray-600 text-lg font-poppins">{title}</div>
+);
+
+export default function AppRoutes() {
+  return (
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      <Routes>
+        {/* LAYOUT PRINCIPAL COM SIDEBAR E TOPBAR */}
+        <Route element={<AppLayout />}>
+          {/* Dashboard */}
+          <Route
+            path="/"
+            element={<Placeholder title="Dashboard em construção" />}
+          />
+
+          {/* ========================== */}
+          {/*         PESSOAS            */}
+          {/* ========================== */}
+
+          {/* CLIENTES */}
+          <Route element={<MainLayout />}>
+            <Route
+              path="/pessoas/clientes"
+              element={<ClientesPage />}
+            />
+            <Route
+              path="/pessoas/clientes/novo"
+              element={<NovoClientePage />}
+            />
+          </Route>
+
+          {/* COLABORADORES */}
+          <Route element={<MainLayout />}>
+            <Route
+              path="/pessoas/colaboradores"
+              element={<ColaboradoresPage />}
+            />
+            <Route
+              path="/pessoas/colaboradores/novo"
+              element={<NovoColaboradorPage />}
+            />
+          </Route>
+
+          {/* FORNECEDORES */}
+          <Route element={<MainLayout />}>
+            <Route
+              path="/pessoas/fornecedores"
+              element={<FornecedoresPage />}
+            />
+            <Route
+              path="/pessoas/fornecedores/novo"
+              element={<NovoFornecedorPage />}
+            />
+          </Route>
+
+          {/* ESPECIFICADORES */}
+          <Route element={<MainLayout />}>
+            <Route
+              path="/pessoas/especificadores"
+              element={<EspecificadoresPage />}
+            />
+            <Route
+              path="/pessoas/especificadores/novo"
+              element={<NovoEspecificadorPage />}
+            />
+          </Route>
+
+          {/* ========================== */}
+          {/*        OUTRAS ÁREAS        */}
+          {/* ========================== */}
+
+          <Route
+            path="/projetos"
+            element={<Placeholder title="Projetos" />}
+          />
+
+          <Route
+            path="/arquitetura"
+            element={<Placeholder title="Arquitetura" />}
+          />
+
+          <Route
+            path="/engenharia"
+            element={<Placeholder title="Engenharia" />}
+          />
+
+          <Route
+            path="/marcenaria"
+            element={<Placeholder title="Marcenaria" />}
+          />
+
+          <Route
+            path="/compras"
+            element={<Placeholder title="Compras" />}
+          />
+
+          <Route
+            path="/financeiro"
+            element={<Placeholder title="Financeiro" />}
+          />
+
+          <Route
+            path="/sistema/configuracoes"
+            element={<Placeholder title="Configurações do Sistema" />}
+          />
+
+          <Route
+            path="/logout"
+            element={<Placeholder title="Encerrando sessão..." />}
+          />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}

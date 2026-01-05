@@ -1,0 +1,13 @@
+@tailwind components;
+
+.btn-wg {
+  @apply px-4 py-2 rounded-lg font-medium transition-all;
+}
+
+.btn-wg-primary {
+  @apply bg-violet-600 text-white hover:bg-violet-700;
+}
+
+.btn-wg-outline {
+  @apply border border-violet-600 text-violet-600 hover:bg-violet-50;
+}

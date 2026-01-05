@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.vite/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Secrets and credentials
+*.pem
+*.key
+client_secret*.json
+service_role_key.txt
+service_role_key.zip
+
+# Temporary files
+*.tmp
+*.temp
+nul
+
+# Claude
+.claude/
+
+# Large/generated files
+*.zip
+*.mp4
+*.mov
+*.avi
+*.mkv

@@ -1,0 +1,1979 @@
+[
+  {
+    "pasta": "20250417 - JG",
+    "nome": "JG",
+    "data": "20250417",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20250205 - Uma Uma (Sala Casa Nova)",
+    "nome": "Uma Uma (Sala Casa Nova)",
+    "data": "20250205",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20250114 - Camila Lima",
+    "nome": "Camila Lima",
+    "data": "20250114",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20241203 - Unidas Medical",
+    "nome": "Unidas Medical",
+    "data": "20241203",
+    "cadastrado": false,
+    "arquivos_financeiros": 10,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20241118 - Uma Uma - Sala Ambev",
+    "nome": "Uma Uma - Sala Ambev",
+    "data": "20241118",
+    "cadastrado": false,
+    "arquivos_financeiros": 6,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240828 - Luiz",
+    "nome": "Luiz",
+    "data": "20240828",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 4
+  },
+  {
+    "pasta": "20240727 - Amanda D'Almeida Apto",
+    "nome": "Amanda D'Almeida Apto",
+    "data": "20240727",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240623 - Vitoria & Marcelo",
+    "nome": "Vitoria & Marcelo",
+    "data": "20240623",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240528 - Loja Patio Contagem LM BH",
+    "nome": "Loja Patio Contagem LM BH",
+    "data": "20240528",
+    "cadastrado": false,
+    "arquivos_financeiros": 6,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240522 - UMA UMA",
+    "nome": "UMA UMA",
+    "data": "20240522",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240520 - Camila Guedes",
+    "nome": "Camila Guedes",
+    "data": "20240520",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240430 - Escritório Marcelo",
+    "nome": "Escritório Marcelo",
+    "data": "20240430",
+    "cadastrado": true,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240423 - Victor",
+    "nome": "Victor",
+    "data": "20240423",
+    "cadastrado": true,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 8
+  },
+  {
+    "pasta": "20240416 - Amanda Almeida",
+    "nome": "Amanda Almeida",
+    "data": "20240416",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240415 - Amanda LM Eslaviero",
+    "nome": "Amanda LM Eslaviero",
+    "data": "20240415",
+    "cadastrado": false,
+    "arquivos_financeiros": 17,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240415 - LM SEMINOVOS - BH",
+    "nome": "LM SEMINOVOS - BH",
+    "data": "20240415",
+    "cadastrado": false,
+    "arquivos_financeiros": 22,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240321 - Mara",
+    "nome": "Mara",
+    "data": "20240321",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 12
+  },
+  {
+    "pasta": "20240228 - Skic",
+    "nome": "Skic",
+    "data": "20240228",
+    "cadastrado": false,
+    "arquivos_financeiros": 27,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240215 - Mateus",
+    "nome": "Mateus",
+    "data": "20240215",
+    "cadastrado": false,
+    "arquivos_financeiros": 13,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240207 - Niddy Nysp",
+    "nome": "Niddy Nysp",
+    "data": "20240207",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240131 - Felipe Nysp",
+    "nome": "Felipe Nysp",
+    "data": "20240131",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240129 - André Nysp",
+    "nome": "André Nysp",
+    "data": "20240129",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240124 - Renata Sunega",
+    "nome": "Renata Sunega",
+    "data": "20240124",
+    "cadastrado": false,
+    "arquivos_financeiros": 16,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240122 - Cissa Nysp",
+    "nome": "Cissa Nysp",
+    "data": "20240122",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20231218 - Renato NYSP",
+    "nome": "Renato NYSP",
+    "data": "20231218",
+    "cadastrado": false,
+    "arquivos_financeiros": 9,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20231213 - Renato Nysp 95B",
+    "nome": "Renato Nysp 95B",
+    "data": "20231213",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20231122 - Camila Nysp 102 A",
+    "nome": "Camila Nysp 102 A",
+    "data": "20231122",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20231101 - Bruna",
+    "nome": "Bruna",
+    "data": "20231101",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 4
+  },
+  {
+    "pasta": "20231010 - Tatiana Nysp",
+    "nome": "Tatiana Nysp",
+    "data": "20231010",
+    "cadastrado": false,
+    "arquivos_financeiros": 5,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20231003 - Ana Longhi",
+    "nome": "Ana Longhi",
+    "data": "20231003",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20230808 - Rodrigo",
+    "nome": "Rodrigo",
+    "data": "20230808",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 4
+  },
+  {
+    "pasta": "20230731 - Camila Lima Pintura",
+    "nome": "Camila Lima Pintura",
+    "data": "20230731",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20230406 - Marcelo Menezes",
+    "nome": "Marcelo Menezes",
+    "data": "20230406",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20230217 - Renata Lizas Verpa",
+    "nome": "Renata Lizas Verpa",
+    "data": "20230217",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20221215 - Eduardo e Camila",
+    "nome": "Eduardo e Camila",
+    "data": "20221215",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20221109 - Samara",
+    "nome": "Samara",
+    "data": "20221109",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20221012 - Renata Ricetti",
+    "nome": "Renata Ricetti",
+    "data": "20221012",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20221011 - Adermir Ramos",
+    "nome": "Adermir Ramos",
+    "data": "20221011",
+    "cadastrado": false,
+    "arquivos_financeiros": 5,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220930 - Tamiko e Marcos",
+    "nome": "Tamiko e Marcos",
+    "data": "20220930",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220927 - Mario Mariutti",
+    "nome": "Mario Mariutti",
+    "data": "20220927",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220909 - Ney Roberto Piacentini",
+    "nome": "Ney Roberto Piacentini",
+    "data": "20220909",
+    "cadastrado": false,
+    "arquivos_financeiros": 5,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220830 - Luiza e Sadamu",
+    "nome": "Luiza e Sadamu",
+    "data": "20220830",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220816- João Carlos Aguiar de Oliveira",
+    "nome": "João Carlos Aguiar de Oliveira",
+    "data": "20220816",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220715- Hospital Certa",
+    "nome": "Hospital Certa",
+    "data": "20220715",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220603 - João Edson Amorim",
+    "nome": "João Edson Amorim",
+    "data": "20220603",
+    "cadastrado": false,
+    "arquivos_financeiros": 7,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220525 - Nichollas - Marcenaria",
+    "nome": "Nichollas - Marcenaria",
+    "data": "20220525",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220525 - NYSP Cobertura Estacionamento",
+    "nome": "NYSP Cobertura Estacionamento",
+    "data": "20220525",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220523 - Denis Szejnfeld",
+    "nome": "Denis Szejnfeld",
+    "data": "20220523",
+    "cadastrado": true,
+    "arquivos_financeiros": 11,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220511 - Edgar Albano Alves",
+    "nome": "Edgar Albano Alves",
+    "data": "20220511",
+    "cadastrado": false,
+    "arquivos_financeiros": 11,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220511 - Mauro Frazili  [Clinica]",
+    "nome": "Mauro Frazili  [Clinica]",
+    "data": "20220511",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220423 - NYSP - Tapeçaria",
+    "nome": "NYSP - Tapeçaria",
+    "data": "20220423",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220420 - Red Tatuape",
+    "nome": "Red Tatuape",
+    "data": "20220420",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220408 - Raquel Aquino & Arthur",
+    "nome": "Raquel Aquino & Arthur",
+    "data": "20220408",
+    "cadastrado": false,
+    "arquivos_financeiros": 10,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220322 - NYSP",
+    "nome": "NYSP",
+    "data": "20220322",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220321 - Marlon Ceni - Marcenaria",
+    "nome": "Marlon Ceni - Marcenaria",
+    "data": "20220321",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220307 - Glaucia Boaventura",
+    "nome": "Glaucia Boaventura",
+    "data": "20220307",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220222 - Juliana João",
+    "nome": "Juliana João",
+    "data": "20220222",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220221 - Denis Szejnfeld",
+    "nome": "Denis Szejnfeld",
+    "data": "20220221",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220218 - Bruna Cunha",
+    "nome": "Bruna Cunha",
+    "data": "20220218",
+    "cadastrado": false,
+    "arquivos_financeiros": 11,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220217 - Leo Moura",
+    "nome": "Leo Moura",
+    "data": "20220217",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220209 - José Ricardo",
+    "nome": "José Ricardo",
+    "data": "20220209",
+    "cadastrado": true,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20220117 - Denis Vitti",
+    "nome": "Denis Vitti",
+    "data": "20220117",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20211202 - Vava - Rafaela",
+    "nome": "Vava - Rafaela",
+    "data": "20211202",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210929 - Jessica",
+    "nome": "Jessica",
+    "data": "20210929",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210923 - Paloma Medeiros",
+    "nome": "Paloma Medeiros",
+    "data": "20210923",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210831 - Tereza Lopes",
+    "nome": "Tereza Lopes",
+    "data": "20210831",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210830 - Thatielly de Araújo Badia",
+    "nome": "Thatielly de Araújo Badia",
+    "data": "20210830",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210824 - Cleberson Gomes Bezerra",
+    "nome": "Cleberson Gomes Bezerra",
+    "data": "20210824",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210824 - Iris Cordeiro de Souza",
+    "nome": "Iris Cordeiro de Souza",
+    "data": "20210824",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210824 - Rosilene Moreira dos Santos",
+    "nome": "Rosilene Moreira dos Santos",
+    "data": "20210824",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210813 - Tassia Pereira da Silva",
+    "nome": "Tassia Pereira da Silva",
+    "data": "20210813",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210811 - Roney Alves de Oliveira",
+    "nome": "Roney Alves de Oliveira",
+    "data": "20210811",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210805 - Ana Lucia Ribeiro",
+    "nome": "Ana Lucia Ribeiro",
+    "data": "20210805",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 1
+  },
+  {
+    "pasta": "20210805 - Cleverson",
+    "nome": "Cleverson",
+    "data": "20210805",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210730 -  Luiz Rogério",
+    "nome": "Luiz Rogério",
+    "data": "20210730",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210719 - Michele & Danilo",
+    "nome": "Michele & Danilo",
+    "data": "20210719",
+    "cadastrado": false,
+    "arquivos_financeiros": 9,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210713 - Helio Pereira Rebouças",
+    "nome": "Helio Pereira Rebouças",
+    "data": "20210713",
+    "cadastrado": false,
+    "arquivos_financeiros": 5,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210713 - Silvio Menegon Junior",
+    "nome": "Silvio Menegon Junior",
+    "data": "20210713",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210701 -  Marli Aparecida Feliciano",
+    "nome": "Marli Aparecida Feliciano",
+    "data": "20210701",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210630 - Gabriela Rossini",
+    "nome": "Gabriela Rossini",
+    "data": "20210630",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210626  -  Adriana Priviati",
+    "nome": "Adriana Priviati",
+    "data": "20210626",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210611 - Vagner",
+    "nome": "Vagner",
+    "data": "20210611",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 2
+  },
+  {
+    "pasta": "20210524 - Alessandra",
+    "nome": "Alessandra",
+    "data": "20210524",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210524 - Maria Aparecida",
+    "nome": "Maria Aparecida",
+    "data": "20210524",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 1
+  },
+  {
+    "pasta": "20210517 - Alexandre de Souza Cavalcante",
+    "nome": "Alexandre de Souza Cavalcante",
+    "data": "20210517",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210517 - Rebecca & André",
+    "nome": "Rebecca & André",
+    "data": "20210517",
+    "cadastrado": false,
+    "arquivos_financeiros": 18,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210511 - Diana Zimmer & Rodrigo",
+    "nome": "Diana Zimmer & Rodrigo",
+    "data": "20210511",
+    "cadastrado": false,
+    "arquivos_financeiros": 8,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210503 - André Luis",
+    "nome": "André Luis",
+    "data": "20210503",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210331 - Churrasco do Ju",
+    "nome": "Churrasco do Ju",
+    "data": "20210331",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210309 - Pina Casa Acapulco",
+    "nome": "Pina Casa Acapulco",
+    "data": "20210309",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210303 - Amobeleza",
+    "nome": "Amobeleza",
+    "data": "20210303",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210224 - Felipe Diório",
+    "nome": "Felipe Diório",
+    "data": "20210224",
+    "cadastrado": false,
+    "arquivos_financeiros": 6,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20210219 - Mauricio Barbarulo",
+    "nome": "Mauricio Barbarulo",
+    "data": "20210219",
+    "cadastrado": false,
+    "arquivos_financeiros": 6,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20202810 - Carol & Christian",
+    "nome": "Carol & Christian",
+    "data": "20202810",
+    "cadastrado": false,
+    "arquivos_financeiros": 23,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20201124 - Siquini",
+    "nome": "Siquini",
+    "data": "20201124",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 1
+  },
+  {
+    "pasta": "20201105 - Vincius Pina",
+    "nome": "Vincius Pina",
+    "data": "20201105",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200917 - Pamela & Ricardo",
+    "nome": "Pamela & Ricardo",
+    "data": "20200917",
+    "cadastrado": false,
+    "arquivos_financeiros": 8,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200825 - Marcia e Edu - Churrasqueira Antonio Pena 76",
+    "nome": "Marcia e Edu - Churrasqueira Antonio Pena 76",
+    "data": "20200825",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200810 - Regis & Ana",
+    "nome": "Regis & Ana",
+    "data": "20200810",
+    "cadastrado": false,
+    "arquivos_financeiros": 5,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200713 - Igor - Surubiju 1930",
+    "nome": "Igor - Surubiju 1930",
+    "data": "20200713",
+    "cadastrado": false,
+    "arquivos_financeiros": 16,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200630 - Eduardo Escaleira",
+    "nome": "Eduardo Escaleira",
+    "data": "20200630",
+    "cadastrado": true,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200630 - Pedro Ruiz",
+    "nome": "Pedro Ruiz",
+    "data": "20200630",
+    "cadastrado": true,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200618  - Lumenit",
+    "nome": "Lumenit",
+    "data": "20200618",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200411 - Ana Paula & Claudio",
+    "nome": "Ana Paula & Claudio",
+    "data": "20200411",
+    "cadastrado": false,
+    "arquivos_financeiros": 9,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200402 - Denis Szejnfeld",
+    "nome": "Denis Szejnfeld",
+    "data": "20200402",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200204 - Ronaldo Bueno",
+    "nome": "Ronaldo Bueno",
+    "data": "20200204",
+    "cadastrado": true,
+    "arquivos_financeiros": 13,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200127 - Aninha e Mario",
+    "nome": "Aninha e Mario",
+    "data": "20200127",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20200113 - Monica e Paulo",
+    "nome": "Monica e Paulo",
+    "data": "20200113",
+    "cadastrado": false,
+    "arquivos_financeiros": 17,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20191214 - Stephanie Santana",
+    "nome": "Stephanie Santana",
+    "data": "20191214",
+    "cadastrado": true,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 1
+  },
+  {
+    "pasta": "20191205 - José Carlos",
+    "nome": "José Carlos",
+    "data": "20191205",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20191107 - Obra de  Casa",
+    "nome": "Obra de  Casa",
+    "data": "20191107",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20191105 - Rodrigo Caita",
+    "nome": "Rodrigo Caita",
+    "data": "20191105",
+    "cadastrado": true,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 2
+  },
+  {
+    "pasta": "20191104 - Cielo",
+    "nome": "Cielo",
+    "data": "20191104",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 1
+  },
+  {
+    "pasta": "20191026 - Sara e Rafael",
+    "nome": "Sara e Rafael",
+    "data": "20191026",
+    "cadastrado": false,
+    "arquivos_financeiros": 6,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20191025 - Lumen It - José  Ricardo",
+    "nome": "Lumen It - José  Ricardo",
+    "data": "20191025",
+    "cadastrado": true,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190923 - Roberto Grejo",
+    "nome": "Roberto Grejo",
+    "data": "20190923",
+    "cadastrado": true,
+    "arquivos_financeiros": 23,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190904 - Corporativo  Fábio - OWE",
+    "nome": "Corporativo  Fábio - OWE",
+    "data": "20190904",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190828 - Consultório Dra. Thais - Eliel & Nadia",
+    "nome": "Consultório Dra. Thais - Eliel & Nadia",
+    "data": "20190828",
+    "cadastrado": true,
+    "arquivos_financeiros": 8,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190813 - Squash  Obra",
+    "nome": "Squash  Obra",
+    "data": "20190813",
+    "cadastrado": true,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190709 - Michele Caldeira  (GRAND PNAMBY) 161 ONE",
+    "nome": "Michele Caldeira  (GRAND PNAMBY) 161 ONE",
+    "data": "20190709",
+    "cadastrado": true,
+    "arquivos_financeiros": 13,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190708 - Reinaldo Matos Rocha (Unita 63m²)",
+    "nome": "Reinaldo Matos Rocha (Unita 63m²)",
+    "data": "20190708",
+    "cadastrado": true,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190627 - Elias & Pollyana  (Prince 149m²)",
+    "nome": "Elias & Pollyana  (Prince 149m²)",
+    "data": "20190627",
+    "cadastrado": false,
+    "arquivos_financeiros": 7,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190607 - Rubens e Amanda",
+    "nome": "Rubens e Amanda",
+    "data": "20190607",
+    "cadastrado": true,
+    "arquivos_financeiros": 10,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190424 - Hamburgueria Times Burguer",
+    "nome": "Hamburgueria Times Burguer",
+    "data": "20190424",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190424 - Salão Alongamento de Unhas (Franquia)",
+    "nome": "Salão Alongamento de Unhas (Franquia)",
+    "data": "20190424",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190416 - Lais & João",
+    "nome": "Lais & João",
+    "data": "20190416",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190413 - Bruna & Charles",
+    "nome": "Bruna & Charles",
+    "data": "20190413",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190327 - Squash Life",
+    "nome": "Squash Life",
+    "data": "20190327",
+    "cadastrado": true,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190325 - Edilei e Silene",
+    "nome": "Edilei e Silene",
+    "data": "20190325",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190302 - Sandrine & Andreas",
+    "nome": "Sandrine & Andreas",
+    "data": "20190302",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190219 - Alan & Tati Grand Panamby 214 One",
+    "nome": "Alan & Tati Grand Panamby 214 One",
+    "data": "20190219",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190131 - Diego e Andressa",
+    "nome": "Diego e Andressa",
+    "data": "20190131",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190128 - Fernanda Cazal",
+    "nome": "Fernanda Cazal",
+    "data": "20190128",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190126 - William Alencar & Bruna",
+    "nome": "William Alencar & Bruna",
+    "data": "20190126",
+    "cadastrado": true,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190121 - Vinicius e Joice",
+    "nome": "Vinicius e Joice",
+    "data": "20190121",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20190118 - Celia Raizes",
+    "nome": "Celia Raizes",
+    "data": "20190118",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20181220 - Sabrina Vascocellos & MArllon",
+    "nome": "Sabrina Vascocellos & MArllon",
+    "data": "20181220",
+    "cadastrado": false,
+    "arquivos_financeiros": 5,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20181211 - Douglas & Isa",
+    "nome": "Douglas & Isa",
+    "data": "20181211",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20181207 - Douglas Avellar",
+    "nome": "Douglas Avellar",
+    "data": "20181207",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20181126 - Kaique & Liliane",
+    "nome": "Kaique & Liliane",
+    "data": "20181126",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20181103 - Mauricio",
+    "nome": "Mauricio",
+    "data": "20181103",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 2
+  },
+  {
+    "pasta": "20181103- Daniela e Tidio",
+    "nome": "Daniela e Tidio",
+    "data": "20181103",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20181009 - Roberta Lusko",
+    "nome": "Roberta Lusko",
+    "data": "20181009",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180808 - Jaime Cerqueira",
+    "nome": "Jaime Cerqueira",
+    "data": "20180808",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180729  - Joana - Filha Diva",
+    "nome": "Joana - Filha Diva",
+    "data": "20180729",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180518 - Maximo Pinheiro",
+    "nome": "Maximo Pinheiro",
+    "data": "20180518",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180515 - Renato Perroni",
+    "nome": "Renato Perroni",
+    "data": "20180515",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180508 - Amelia (Salão)",
+    "nome": "Amelia (Salão)",
+    "data": "20180508",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180327 - Carlos Alberto",
+    "nome": "Carlos Alberto",
+    "data": "20180327",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 23
+  },
+  {
+    "pasta": "20180327 - Escritório Choco",
+    "nome": "Escritório Choco",
+    "data": "20180327",
+    "cadastrado": true,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180323 - Becafe",
+    "nome": "Becafe",
+    "data": "20180323",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180313 - Diva",
+    "nome": "Diva",
+    "data": "20180313",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180313 - Luciane e Marcio",
+    "nome": "Luciane e Marcio",
+    "data": "20180313",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180310 - Luciana e Anderson",
+    "nome": "Luciana e Anderson",
+    "data": "20180310",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180228 - Luciana",
+    "nome": "Luciana",
+    "data": "20180228",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20180112 - Cris NySP",
+    "nome": "Cris NySP",
+    "data": "20180112",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20171227 - José Ricardo Cobertura",
+    "nome": "José Ricardo Cobertura",
+    "data": "20171227",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20171031 - Akira",
+    "nome": "Akira",
+    "data": "20171031",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20170725 - KAREN KLABUNDE",
+    "nome": "KAREN KLABUNDE",
+    "data": "20170725",
+    "cadastrado": false,
+    "arquivos_financeiros": 7,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20170710 - JOSÉ RICARDO",
+    "nome": "JOSÉ RICARDO",
+    "data": "20170710",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20170517 - LUIZ ROBERTO QUEROZ",
+    "nome": "LUIZ ROBERTO QUEROZ",
+    "data": "20170517",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 2
+  },
+  {
+    "pasta": "20170224 - DANI PETRI",
+    "nome": "DANI PETRI",
+    "data": "20170224",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20170213 - FRANCISCO ANTONIO LOZANO PEREZ",
+    "nome": "FRANCISCO ANTONIO LOZANO PEREZ",
+    "data": "20170213",
+    "cadastrado": false,
+    "arquivos_financeiros": 14,
+    "lancamentos_sistema": 5
+  },
+  {
+    "pasta": "20170201 -  MAURO LAGE BERKOWITZ",
+    "nome": "MAURO LAGE BERKOWITZ",
+    "data": "20170201",
+    "cadastrado": false,
+    "arquivos_financeiros": 16,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20170109 - PROPEG COMUNICAÇÃO SA",
+    "nome": "PROPEG COMUNICAÇÃO SA",
+    "data": "20170109",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20170102 - Regis Lima & Gizele",
+    "nome": "Regis Lima & Gizele",
+    "data": "20170102",
+    "cadastrado": false,
+    "arquivos_financeiros": 5,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20161005 - Carlos Eduardo Rodrigues Nascimento",
+    "nome": "Carlos Eduardo Rodrigues Nascimento",
+    "data": "20161005",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160817 - Bruno & Bruna",
+    "nome": "Bruno & Bruna",
+    "data": "20160817",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160808 - Edson Dutra Calefi",
+    "nome": "Edson Dutra Calefi",
+    "data": "20160808",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160726 - Andressa & João",
+    "nome": "Andressa & João",
+    "data": "20160726",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160721 - Sabrina & Ricardo",
+    "nome": "Sabrina & Ricardo",
+    "data": "20160721",
+    "cadastrado": false,
+    "arquivos_financeiros": 8,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160718 - Nathalia Kuroda Assumpção",
+    "nome": "Nathalia Kuroda Assumpção",
+    "data": "20160718",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160711 - Antonio e Luana",
+    "nome": "Antonio e Luana",
+    "data": "20160711",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160710 - Luciano Rocha de Almeida",
+    "nome": "Luciano Rocha de Almeida",
+    "data": "20160710",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160709 - Vera e Dias",
+    "nome": "Vera e Dias",
+    "data": "20160709",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160709 - Virissimo e Nadia Marques",
+    "nome": "Virissimo e Nadia Marques",
+    "data": "20160709",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160704 - Carlos Eduardo de Souza",
+    "nome": "Carlos Eduardo de Souza",
+    "data": "20160704",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160703 - Carlos Cesar Rodrigues e Denise",
+    "nome": "Carlos Cesar Rodrigues e Denise",
+    "data": "20160703",
+    "cadastrado": false,
+    "arquivos_financeiros": 5,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160630 - Selma Goreth Jurça",
+    "nome": "Selma Goreth Jurça",
+    "data": "20160630",
+    "cadastrado": false,
+    "arquivos_financeiros": 5,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160623 - Paula Araujo",
+    "nome": "Paula Araujo",
+    "data": "20160623",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160506 - Michel Lemons e Aline",
+    "nome": "Michel Lemons e Aline",
+    "data": "20160506",
+    "cadastrado": false,
+    "arquivos_financeiros": 19,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160427 - Fernando Henrique Ogawa",
+    "nome": "Fernando Henrique Ogawa",
+    "data": "20160427",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160427 - Rachel Garcia e Alison da Rocha Alves",
+    "nome": "Rachel Garcia e Alison da Rocha Alves",
+    "data": "20160427",
+    "cadastrado": false,
+    "arquivos_financeiros": 9,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160419 - Roberto e Danusa",
+    "nome": "Roberto e Danusa",
+    "data": "20160419",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160417 - Gilmar Gundim das Neves",
+    "nome": "Gilmar Gundim das Neves",
+    "data": "20160417",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160412 - Bruno Bergamin",
+    "nome": "Bruno Bergamin",
+    "data": "20160412",
+    "cadastrado": false,
+    "arquivos_financeiros": 16,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160412 - Dirce Soares Cocuzzi Gonzalez",
+    "nome": "Dirce Soares Cocuzzi Gonzalez",
+    "data": "20160412",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160411 - Laércio Guedes da Silva",
+    "nome": "Laércio Guedes da Silva",
+    "data": "20160411",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160402 - Rodrigo Alves da Silva",
+    "nome": "Rodrigo Alves da Silva",
+    "data": "20160402",
+    "cadastrado": false,
+    "arquivos_financeiros": 6,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160402 - Rogério Zinco Froner",
+    "nome": "Rogério Zinco Froner",
+    "data": "20160402",
+    "cadastrado": false,
+    "arquivos_financeiros": 13,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160327 - Silvia e Marcos (Edificio Maria Eugenia - 72)",
+    "nome": "Silvia e Marcos (Edificio Maria Eugenia - 72)",
+    "data": "20160327",
+    "cadastrado": false,
+    "arquivos_financeiros": 11,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160314 - Michely Belich",
+    "nome": "Michely Belich",
+    "data": "20160314",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160307 - Tatiana Wilchenscki Lacerda",
+    "nome": "Tatiana Wilchenscki Lacerda",
+    "data": "20160307",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20160210 - Claudia e Emerson",
+    "nome": "Claudia e Emerson",
+    "data": "20160210",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20151210 - Andreia e Luciano",
+    "nome": "Andreia e Luciano",
+    "data": "20151210",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20151104 - LumenIt",
+    "nome": "LumenIt",
+    "data": "20151104",
+    "cadastrado": false,
+    "arquivos_financeiros": 11,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150905 - José Ricardo (Cozinha)",
+    "nome": "José Ricardo (Cozinha)",
+    "data": "20150905",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150826 - Angelica Moura",
+    "nome": "Angelica Moura",
+    "data": "20150826",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150826 - Kelly Moura",
+    "nome": "Kelly Moura",
+    "data": "20150826",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150718 - EsCritório Anália Franco",
+    "nome": "EsCritório Anália Franco",
+    "data": "20150718",
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150715 - Etelsiqueira",
+    "nome": "Etelsiqueira",
+    "data": "20150715",
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150710 - Priscilla e Carlos Eduardo",
+    "nome": "Priscilla e Carlos Eduardo",
+    "data": "20150710",
+    "cadastrado": false,
+    "arquivos_financeiros": 6,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150622 - Ovidio Creche",
+    "nome": "Ovidio Creche",
+    "data": "20150622",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150604 - Gislene",
+    "nome": "Gislene",
+    "data": "20150604",
+    "cadastrado": false,
+    "arquivos_financeiros": 7,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150514 - Alexandre",
+    "nome": "Alexandre",
+    "data": "20150514",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150307 - Leticia e Carol",
+    "nome": "Leticia e Carol",
+    "data": "20150307",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150214 - Kendra & Luiz Gustavo",
+    "nome": "Kendra & Luiz Gustavo",
+    "data": "20150214",
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150202 - José Ricardo NY_SP",
+    "nome": "José Ricardo NY_SP",
+    "data": "20150202",
+    "cadastrado": true,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150202 - Mariana Esteves e Daniel Mano",
+    "nome": "Mariana Esteves e Daniel Mano",
+    "data": "20150202",
+    "cadastrado": false,
+    "arquivos_financeiros": 11,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20150201 - Débora e Gabriel",
+    "nome": "Débora e Gabriel",
+    "data": "20150201",
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20141224 - Flávia e André (Mais Altos 154)",
+    "nome": "Flávia e André (Mais Altos 154)",
+    "data": "20141224",
+    "cadastrado": false,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Amobeleza",
+    "nome": "Amobeleza",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "André Albuquerque",
+    "nome": "André Albuquerque",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Barbara",
+    "nome": "Barbara",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 2
+  },
+  {
+    "pasta": "Carlos Assis",
+    "nome": "Carlos Assis",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Cleber Picirili",
+    "nome": "Cleber Picirili",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Clodoaldo",
+    "nome": "Clodoaldo",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Danilo e Renata (Stellato 138 m² Orion 212)",
+    "nome": "Danilo e Renata (Stellato 138 m² Orion 212)",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Davi Beck e Fabiana Beck",
+    "nome": "Davi Beck e Fabiana Beck",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "David Beck e Fabiana",
+    "nome": "David Beck e Fabiana",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Denise Coelho Vianna",
+    "nome": "Denise Coelho Vianna",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "edilson e valdete",
+    "nome": "edilson e valdete",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Escirtório NOVO",
+    "nome": "Escirtório NOVO",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Escritório WG_RR",
+    "nome": "Escritório WG_RR",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Fernando Cunha",
+    "nome": "Fernando Cunha",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 2,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Fernando Macedo e Andreia",
+    "nome": "Fernando Macedo e Andreia",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "FTPI Representacão Publicidade e Marketing Ltda",
+    "nome": "FTPI Representacão Publicidade e Marketing Ltda",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 3,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Fábio Luiz e Priscila (Stellato 138 m² Orion 22)",
+    "nome": "Fábio Luiz e Priscila (Stellato 138 m² Orion 22)",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 4,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Galpão",
+    "nome": "Galpão",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "girlane coz",
+    "nome": "girlane coz",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "iris closet imagens",
+    "nome": "iris closet imagens",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Laerson Borre e Lucimara",
+    "nome": "Laerson Borre e Lucimara",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "leia cliente marcenaria",
+    "nome": "leia cliente marcenaria",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Loja Favorita Pompeia",
+    "nome": "Loja Favorita Pompeia",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 9,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Mara",
+    "nome": "Mara",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 12
+  },
+  {
+    "pasta": "Nathalia Cristina",
+    "nome": "Nathalia Cristina",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Oficina Portobello",
+    "nome": "Oficina Portobello",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Ovidio - Terreno Guapiaçu",
+    "nome": "Ovidio - Terreno Guapiaçu",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Pelotas",
+    "nome": "Pelotas",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Pompeia Obra",
+    "nome": "Pompeia Obra",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Portobello",
+    "nome": "Portobello",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Regina",
+    "nome": "Regina",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 9
+  },
+  {
+    "pasta": "Restaurante Mate Doce",
+    "nome": "Restaurante Mate Doce",
+    "data": null,
+    "cadastrado": true,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 12
+  },
+  {
+    "pasta": "Restaurante Ricco Sabor",
+    "nome": "Restaurante Ricco Sabor",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 12
+  },
+  {
+    "pasta": "Rodrigo Siqueira",
+    "nome": "Rodrigo Siqueira",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 1,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "Square",
+    "nome": "Square",
+    "data": null,
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0
+  },
+  {
+    "pasta": "20240626 - Marina Wikbold",
+    "nome": "Marina Wikbold",
+    "data": "20240626",
+    "cadastrado": false,
+    "arquivos_financeiros": 0,
+    "lancamentos_sistema": 0,
+    "origem": "Projetos Fechados"
+  }
+]
