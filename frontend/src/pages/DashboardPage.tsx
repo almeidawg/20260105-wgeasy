@@ -144,9 +144,6 @@ interface Mencao {
 }
 
 export default function DashboardPage() {
-  // VERSÃO 2.0 - Layout com 3 colunas e Dashboard Financeiro
-  console.log("[DashboardPage] VERSÃO 2.0 - NOVO LAYOUT CARREGADO");
-
   const navigate = useNavigate();
   const { usuario, loading: loadingUsuario } = useUsuarioLogado();
   const [loading, setLoading] = useState(true);
