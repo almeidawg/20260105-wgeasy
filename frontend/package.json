@@ -16,6 +16,7 @@
     "analyze": "vite build --mode analyze",
     "test:supabase": "tsx src/testSupabase.ts",
     "test:cronograma": "tsx auditarCronograma.ts",
+    "test:colaborador": "node tests/colaborador-smoke.js",
     "tunel": "node ./tunel.js"
   },
   "dependencies": {
@@ -86,6 +87,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "pg": "^8.16.3",
+    "playwright-chromium": "^1.57.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.13",
     "ts-node": "^10.9.2",

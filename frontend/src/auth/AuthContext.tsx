@@ -7,7 +7,7 @@ import {
   useRef,
 } from "react";
 import { supabaseRaw as supabase } from "@/lib/supabaseClient";
-import { User } from "@supabase/supabase-js";
+import { Session, User } from "@supabase/supabase-js";
 
 // Função para registrar acesso ao sistema (desativada para evitar 400 por RLS)
 async function registrarAcessoSistema(_user: User) {
@@ -40,6 +40,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [usuarioCompleto, setUsuarioCompleto] =
     useState<UsuarioCompleto | null>(null);
+  const testSessionApplied = useRef(false);
+
+  const TEST_SESSION_KEY = "sb-test-auth-token";
+
+  async function aplicarSessaoDeTeste() {
+    if (testSessionApplied.current) return;
+    try {
+      const raw = localStorage.getItem(TEST_SESSION_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as {
+        access_token?: string;
+        refresh_token?: string;
+      };
+      if (parsed?.access_token && parsed?.refresh_token) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: parsed.access_token,
+          refresh_token: parsed.refresh_token,
+        });
+        if (!error && data?.session) {
+          testSessionApplied.current = true;
+          console.log("[Auth] Sessão de teste aplicada");
+        }
+      }
+    } catch (err) {
+      console.warn("[Auth] Falha ao aplicar sessão de teste", err);
+    }
+  }
 
   // Função de logout
   const logout = async () => {
@@ -77,6 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadSession() {
       try {
+        await aplicarSessaoDeTeste();
+
         // Primeiro, verifica se há um hash na URL (retorno do OAuth)
         const hashParams = window.location.hash;
         if (hashParams && hashParams.includes("access_token")) {

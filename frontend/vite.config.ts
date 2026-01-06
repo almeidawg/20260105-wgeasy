@@ -21,11 +21,18 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: false,
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover"],
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("pdfjs") || id.includes("jspdf")) return "pdf";
+            if (id.includes("xlsx") || id.includes("jszip")) return "xlsx";
+            if (id.includes("react-router")) return "router";
+            if (id.includes("radix-ui")) return "ui";
+            if (id.includes("lucide-react")) return "icons";
+            return "vendor";
+          }
         },
       },
     },

@@ -36,6 +36,9 @@ yarn-error.log*
 client_secret*.json
 service_role_key.txt
 service_role_key.zip
+wg-easy.env
+data/
+DockerDesktopWSL/
 
 # Temporary files
 *.tmp
