@@ -5,6 +5,7 @@
 // ============================================================
 
 import { useState, useMemo, useEffect } from "react";
+import styles from "./NovoPedidoPage.module.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -28,7 +29,10 @@ import { supabase } from "@/lib/supabaseClient";
 // Componentes
 import { StepIndicator, type Step } from "./components/wizard/StepIndicator";
 import { StepCliente, type ClienteObra } from "./components/wizard/StepCliente";
-import { ItemMaterialCard, type ItemMaterial } from "./components/shared/ItemMaterialCard";
+import {
+  ItemMaterialCard,
+  type ItemMaterial,
+} from "./components/shared/ItemMaterialCard";
 import { ResumoTotais } from "./components/shared/ResumoTotais";
 import ImportarPedidoFornecedor from "./components/wizard/ImportarPedidoFornecedor";
 
@@ -38,7 +42,10 @@ import {
   buscarComposicaoCompleta,
   type ModeloComposicao,
 } from "@/lib/composicoesApi";
-import { listarItensComFiltros, type PricelistItemCompleto } from "@/lib/pricelistApi";
+import {
+  listarItensComFiltros,
+  type PricelistItemCompleto,
+} from "@/lib/pricelistApi";
 
 // ============================================================
 // CONSTANTES
@@ -65,10 +72,12 @@ export default function NovoPedidoPage() {
   // Estados do wizard
   const [passoAtual, setPassoAtual] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [carregandoClienteInicial, setCarregandoClienteInicial] = useState(false);
+  const [carregandoClienteInicial, setCarregandoClienteInicial] =
+    useState(false);
 
   // Passo 1: Cliente
-  const [clienteSelecionado, setClienteSelecionado] = useState<ClienteObra | null>(null);
+  const [clienteSelecionado, setClienteSelecionado] =
+    useState<ClienteObra | null>(null);
 
   // Carregar cliente pré-selecionado da URL (para Pedidos Rápidos)
   useEffect(() => {
@@ -80,7 +89,10 @@ export default function NovoPedidoPage() {
     }
   }, [searchParams]);
 
-  async function carregarClienteInicial(clienteId: string | null, analiseId: string | null) {
+  async function carregarClienteInicial(
+    clienteId: string | null,
+    analiseId: string | null
+  ) {
     try {
       setCarregandoClienteInicial(true);
 
@@ -88,7 +100,8 @@ export default function NovoPedidoPage() {
         // Buscar análise de projeto
         const { data: analise, error } = await supabase
           .from("analises_projeto")
-          .select(`
+          .select(
+            `
             id,
             titulo,
             cliente_id,
@@ -97,7 +110,8 @@ export default function NovoPedidoPage() {
             total_ambientes,
             total_area_piso,
             pessoas!cliente_id(id, nome)
-          `)
+          `
+          )
           .eq("id", analiseId)
           .single();
 
@@ -135,7 +149,10 @@ export default function NovoPedidoPage() {
           });
           // Avançar para próximo passo automaticamente
           setPassoAtual(2);
-          toast({ title: "Cliente pré-selecionado", description: cliente.nome });
+          toast({
+            title: "Cliente pré-selecionado",
+            description: cliente.nome,
+          });
         }
       }
     } catch (error) {
@@ -146,17 +163,22 @@ export default function NovoPedidoPage() {
   }
 
   // Passo 2: Materiais
-  const [fonteSelecionada, setFonteSelecionada] = useState<FonteMaterial>("catalogo");
+  const [fonteSelecionada, setFonteSelecionada] =
+    useState<FonteMaterial>("catalogo");
   const [itensPedido, setItensPedido] = useState<ItemMaterial[]>([]);
 
   // Busca catálogo
   const [buscaCatalogo, setBuscaCatalogo] = useState("");
-  const [itensCatalogo, setItensCatalogo] = useState<PricelistItemCompleto[]>([]);
+  const [itensCatalogo, setItensCatalogo] = useState<PricelistItemCompleto[]>(
+    []
+  );
   const [loadingCatalogo, setLoadingCatalogo] = useState(false);
 
   // Kits/Composições
   const [kits, setKits] = useState<ModeloComposicao[]>([]);
-  const [kitsSelecionados, setKitsSelecionados] = useState<Set<string>>(new Set());
+  const [kitsSelecionados, setKitsSelecionados] = useState<Set<string>>(
+    new Set()
+  );
   const [loadingKits, setLoadingKits] = useState(false);
 
   // Envio
@@ -234,7 +256,8 @@ export default function NovoPedidoPage() {
         quantidade: item.coeficiente || 1,
         unidade: item.unidade,
         preco_unitario: item.pricelist_item?.preco || 0,
-        valor_total: (item.coeficiente || 1) * (item.pricelist_item?.preco || 0),
+        valor_total:
+          (item.coeficiente || 1) * (item.pricelist_item?.preco || 0),
         categoria: item.categoria_material,
         origem: "kit",
         composicao_nome: composicao.nome,
@@ -430,9 +453,13 @@ export default function NovoPedidoPage() {
               <ShoppingCart className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Novo Pedido de Materiais</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Novo Pedido de Materiais
+              </h1>
               <p className="text-gray-600 text-sm">
-                {clienteSelecionado ? clienteSelecionado.nome : "Selecione um cliente para começar"}
+                {clienteSelecionado
+                  ? clienteSelecionado.nome
+                  : "Selecione um cliente para começar"}
               </p>
             </div>
           </div>
@@ -442,7 +469,10 @@ export default function NovoPedidoPage() {
             <div className="text-right">
               <p className="text-sm text-gray-500">{totais.totalItens} itens</p>
               <p className="text-xl font-bold text-green-600">
-                {totais.valorTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                {totais.valorTotal.toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })}
               </p>
             </div>
           )}
@@ -548,7 +578,7 @@ export default function NovoPedidoPage() {
                             buscarNoCatalogo(e.target.value);
                           }}
                           placeholder="Busque por nome, código..."
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                          className={`w-full pl-10 pr-4 ${styles.inputBox}`}
                         />
                       </div>
 
@@ -564,15 +594,21 @@ export default function NovoPedidoPage() {
                               className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 hover:border-blue-200 transition-colors"
                             >
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-gray-900 truncate">{item.nome}</p>
+                                <p className="font-medium text-gray-900 truncate">
+                                  {item.nome}
+                                </p>
                                 <p className="text-sm text-gray-500">
-                                  {item.unidade} • {(item.preco || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                  {item.unidade} •{" "}
+                                  {(item.preco || 0).toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
                                 </p>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => adicionarItemDoCatalogo(item)}
-                                className="ml-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                className={`ml-2 ${styles.buttonPrimary}`}
                               >
                                 <Package className="w-4 h-4" />
                               </button>
@@ -580,9 +616,13 @@ export default function NovoPedidoPage() {
                           ))}
                         </div>
                       ) : buscaCatalogo.length >= 2 ? (
-                        <p className="text-center text-gray-500 py-4">Nenhum item encontrado</p>
+                        <p className="text-center text-gray-500 py-4">
+                          Nenhum item encontrado
+                        </p>
                       ) : (
-                        <p className="text-center text-gray-400 py-4">Digite para buscar...</p>
+                        <p className="text-center text-gray-400 py-4">
+                          Digite para buscar...
+                        </p>
                       )}
                     </div>
                   )}
@@ -607,12 +647,16 @@ export default function NovoPedidoPage() {
                               className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 hover:border-purple-200 transition-colors"
                             >
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-gray-900">{kit.nome}</p>
+                                <p className="font-medium text-gray-900">
+                                  {kit.nome}
+                                </p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
                                     {kit.codigo}
                                   </span>
-                                  <span className="text-xs text-gray-500">{kit.disciplina}</span>
+                                  <span className="text-xs text-gray-500">
+                                    {kit.disciplina}
+                                  </span>
                                 </div>
                               </div>
                               <button
@@ -626,7 +670,9 @@ export default function NovoPedidoPage() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-center text-gray-500 py-4">Nenhum kit encontrado</p>
+                        <p className="text-center text-gray-500 py-4">
+                          Nenhum kit encontrado
+                        </p>
                       )}
                     </div>
                   )}
@@ -635,13 +681,20 @@ export default function NovoPedidoPage() {
                   {fonteSelecionada === "automatico" && (
                     <div className="bg-blue-50 rounded-xl p-6 border border-blue-200 text-center">
                       <Sparkles className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                      <h3 className="font-semibold text-gray-900 mb-2">Cálculo Automático</h3>
+                      <h3 className="font-semibold text-gray-900 mb-2">
+                        Cálculo Automático
+                      </h3>
                       <p className="text-sm text-gray-600 mb-4">
-                        Calcule materiais automaticamente com base na análise de projeto.
+                        Calcule materiais automaticamente com base na análise de
+                        projeto.
                       </p>
                       <button
                         type="button"
-                        onClick={() => navigate(`/planejamento/orcamentos/materiais?analise=${clienteSelecionado?.analise_id}`)}
+                        onClick={() =>
+                          navigate(
+                            `/planejamento/orcamentos/materiais?analise=${clienteSelecionado?.analise_id}`
+                          )
+                        }
                         className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700"
                       >
                         Ir para Cálculo Automático
@@ -658,7 +711,9 @@ export default function NovoPedidoPage() {
                           ...prev,
                           ...itensImportados.map((item) => ({
                             ...item,
-                            id: `imp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            id: `imp_${Date.now()}_${Math.random()
+                              .toString(36)
+                              .substr(2, 9)}`,
                           })),
                         ]);
                         toast({
@@ -723,7 +778,9 @@ export default function NovoPedidoPage() {
           {/* ========== PASSO 3: REVISAR ========== */}
           {passoAtual === 3 && (
             <div className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Revisar Pedido</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Revisar Pedido
+              </h2>
 
               <div className="mb-6">
                 <ResumoTotais
@@ -735,7 +792,9 @@ export default function NovoPedidoPage() {
 
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="p-4 border-b border-gray-200 bg-gray-50">
-                  <h3 className="font-medium text-gray-900">Lista de Materiais</h3>
+                  <h3 className="font-medium text-gray-900">
+                    Lista de Materiais
+                  </h3>
                 </div>
                 <div className="max-h-[400px] overflow-y-auto divide-y divide-gray-100">
                   {itensPedido
@@ -764,7 +823,9 @@ export default function NovoPedidoPage() {
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Send className="w-10 h-10 text-green-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Finalizar Pedido</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Finalizar Pedido
+                </h2>
                 <p className="text-gray-600 mb-8">
                   Revise as informações e confirme o envio do orçamento.
                 </p>
@@ -774,16 +835,23 @@ export default function NovoPedidoPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Cliente:</span>
-                      <span className="font-medium text-gray-900">{clienteSelecionado?.nome}</span>
+                      <span className="font-medium text-gray-900">
+                        {clienteSelecionado?.nome}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Itens:</span>
-                      <span className="font-medium text-gray-900">{totais.totalItens}</span>
+                      <span className="font-medium text-gray-900">
+                        {totais.totalItens}
+                      </span>
                     </div>
                     <div className="flex justify-between border-t border-gray-200 pt-3">
                       <span className="text-gray-600">Valor Total:</span>
                       <span className="text-xl font-bold text-green-600">
-                        {totais.valorTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        {totais.valorTotal.toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
                       </span>
                     </div>
                   </div>
@@ -796,7 +864,11 @@ export default function NovoPedidoPage() {
                     disabled={enviando}
                     className="px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
                   >
-                    {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    {enviando ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Save className="w-5 h-5" />
+                    )}
                     Salvar Rascunho
                   </button>
                   <button
@@ -805,7 +877,11 @@ export default function NovoPedidoPage() {
                     disabled={enviando}
                     className="px-8 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
                   >
-                    {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                    {enviando ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
                     Enviar para Aprovação
                   </button>
                 </div>
@@ -819,7 +895,10 @@ export default function NovoPedidoPage() {
               type="button"
               onClick={voltarPasso}
               disabled={passoAtual === 1}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className={
+                styles.buttonSecondary +
+                " disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              }
             >
               <ArrowLeft className="w-4 h-4" />
               Voltar
@@ -829,7 +908,7 @@ export default function NovoPedidoPage() {
               <button
                 type="button"
                 onClick={avancarPasso}
-                className="px-6 py-2 bg-[#F25C26] text-white rounded-lg hover:bg-[#e04a1a] flex items-center gap-2"
+                className={styles.buttonPrimary + " flex items-center gap-2"}
               >
                 Continuar
                 <ChevronRight className="w-4 h-4" />

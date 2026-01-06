@@ -1,0 +1,27 @@
+.kpiSaldoAtual {
+  background: linear-gradient(to bottom right, #c2410c, #ea580c);
+}
+.kpiReceitas {
+  background: linear-gradient(to bottom right, #ea580c, #f25c26);
+}
+.kpiCustosTotais {
+  background: linear-gradient(to bottom right, #f25c26, #fb923c);
+}
+.kpiContratosAtivos {
+  background: linear-gradient(to bottom right, #fb923c, #fdba74);
+}
+.kpiConcluidos {
+  background: linear-gradient(to bottom right, #fdba74, #fed7aa);
+}
+.categoriaIconBg {
+  /* Usar via style ou classe dinâmica para cor */
+}
+.categoriaIconColor {
+  /* Usar via style ou classe dinâmica para cor */
+}
+.nucleoBar {
+  /* Usar via style para cor dinâmica */
+}
+.margemBar {
+  /* Usar via style para cor dinâmica */
+}

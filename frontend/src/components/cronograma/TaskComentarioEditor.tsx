@@ -10,6 +10,7 @@ import {
   extrairMencoes,
   type TaskComentario,
 } from "@/lib/taskComentariosApi";
+import MentionInput from "@/components/common/MentionInput";
 
 // ============================================================
 // TIPOS
@@ -48,8 +49,8 @@ const TaskComentarioEditor: React.FC<TaskComentarioEditorProps> = ({
     }
   }, [comentarioEditando]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
 
     if (!comentario.trim()) {
       setErro("Digite um comentário");
@@ -96,23 +97,23 @@ const TaskComentarioEditor: React.FC<TaskComentarioEditorProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      {/* Campo de texto */}
+      {/* Campo de texto com menções */}
       <div className="relative">
-        <textarea
+        <MentionInput
           value={comentario}
-          onChange={(e) => setComentario(e.target.value)}
+          onChange={setComentario}
           placeholder={placeholder}
           rows={3}
           autoFocus={autoFocus}
           disabled={loading}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F25C26] focus:border-transparent resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+          onSubmit={handleSubmit}
         />
 
         {/* Botão de dicas */}
         <button
           type="button"
           onClick={() => setMostrandoDicas(!mostrandoDicas)}
-          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 rounded"
+          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 rounded z-10"
           title="Dicas de formatação"
         >
           <svg
@@ -139,9 +140,9 @@ const TaskComentarioEditor: React.FC<TaskComentarioEditorProps> = ({
           </p>
           <ul className="space-y-1 text-blue-700">
             <li>
-              • Use <code className="bg-blue-100 px-1 rounded">@[usuario_id]</code>{" "}
-              para mencionar alguém
+              • Digite <code className="bg-blue-100 px-1 rounded">@</code> para mencionar alguém
             </li>
+            <li>• Use <code className="bg-blue-100 px-1 rounded">Ctrl+Enter</code> para enviar rapidamente</li>
             <li>• Quebras de linha são preservadas</li>
             <li>• Comentários editados são marcados como "(editado)"</li>
           </ul>

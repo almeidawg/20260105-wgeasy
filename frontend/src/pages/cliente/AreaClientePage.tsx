@@ -216,17 +216,28 @@ export default function AreaClientePage() {
       if (contrato?.id) {
         const { data: etapas } = await supabase
           .from('cronograma_etapas')
-          .select('status, nome')
-          .eq('contrato_id', contrato.id);
+          .select('status, nome, data_fim_prevista')
+          .eq('projeto_id', contrato.id)
+          .order('ordem', { ascending: true });
 
-        if (etapas) {
+        if (etapas && etapas.length > 0) {
           const concluidas = etapas.filter(e => e.status === 'concluido').length;
           const proxima = etapas.find(e => e.status === 'em_andamento' || e.status === 'pendente');
+
+          // Calcular dias restantes baseado na data de fim prevista da última etapa
+          let diasRestantes = 0;
+          const ultimaEtapa = etapas.filter(e => e.data_fim_prevista).pop();
+          if (ultimaEtapa?.data_fim_prevista) {
+            const dataFim = new Date(ultimaEtapa.data_fim_prevista);
+            const hoje = new Date();
+            diasRestantes = Math.max(0, Math.ceil((dataFim.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)));
+          }
+
           setStats({
             totalEtapas: etapas.length,
             etapasConcluidas: concluidas,
             proximaEtapa: proxima?.nome || 'Projeto finalizado',
-            diasRestantes: Math.floor(Math.random() * 30) + 5,
+            diasRestantes,
           });
         }
       }

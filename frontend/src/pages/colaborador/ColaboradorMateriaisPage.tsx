@@ -400,11 +400,27 @@ export default function ColaboradorMateriaisPage() {
 
     try {
       // Buscar projeto ativo do cliente (se existir)
-      const projetoId = projetos.length > 0 ? projetos[0].id : null;
+      // Se não houver projeto, usa o cliente_id diretamente via a tabela contratos
+      let projetoId = projetos.length > 0 ? projetos[0].id : null;
+
+      // Se não há projeto vinculado, criar um pedido vinculado ao contrato do cliente
+      // A tabela pedidos_materiais usa projeto_id que referencia contratos
+      if (!projetoId && clienteSelecionado) {
+        // Buscar qualquer contrato do cliente (mesmo inativo) para vincular o pedido
+        const { data: contrato } = await supabase
+          .from("contratos")
+          .select("id")
+          .eq("cliente_id", clienteSelecionado)
+          .limit(1)
+          .single();
+
+        if (contrato) {
+          projetoId = contrato.id;
+        }
+      }
 
       const { error } = await supabase.from("pedidos_materiais").insert({
         projeto_id: projetoId,
-        cliente_id: clienteSelecionado,
         descricao:
           novoPedido.descricao || `Pedido de ${itensValidos.length} item(ns)`,
         prioridade: novoPedido.prioridade,

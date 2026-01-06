@@ -67,15 +67,8 @@ export default function InfoContratoCliente({
           titulo,
           status,
           data_inicio,
-          data_termino,
-          valor_total,
-          endereco_obra,
-          responsavel:usuarios!contratos_responsavel_id_fkey (
-            nome,
-            cargo,
-            telefone,
-            email
-          )
+          data_previsao_termino,
+          valor_total
         `);
 
       if (contratoId) {
@@ -94,13 +87,36 @@ export default function InfoContratoCliente({
       }
 
       if (data) {
-        // Buscar núcleos do contrato
+        // Buscar núcleos do contrato com responsável
         const { data: nucleosData } = await supabase
           .from("contratos_nucleos")
-          .select("nucleo")
+          .select(`
+            nucleo,
+            responsavel_id,
+            responsavel:pessoas!contratos_nucleos_responsavel_id_fkey (
+              nome,
+              email,
+              telefone
+            )
+          `)
           .eq("contrato_id", data.id);
 
-        const responsavel = data.responsavel as any;
+        // Buscar endereço da obra (se existir relação com obras)
+        let enderecoObra = null;
+        const { data: obraData } = await supabase
+          .from("obras")
+          .select("endereco, cidade, estado")
+          .eq("contrato_id", data.id)
+          .maybeSingle();
+
+        if (obraData) {
+          const partes = [obraData.endereco, obraData.cidade, obraData.estado].filter(Boolean);
+          enderecoObra = partes.join(", ");
+        }
+
+        // Pegar o primeiro responsável encontrado
+        const primeiroNucleo = nucleosData?.find((n: any) => n.responsavel);
+        const responsavel = primeiroNucleo?.responsavel as any;
 
         setContrato({
           id: data.id,
@@ -108,13 +124,13 @@ export default function InfoContratoCliente({
           titulo: data.titulo,
           status: data.status,
           data_inicio: data.data_inicio,
-          data_termino: data.data_termino,
+          data_termino: data.data_previsao_termino,
           valor_total: data.valor_total,
           responsavel_nome: responsavel?.nome || null,
-          responsavel_cargo: responsavel?.cargo || null,
+          responsavel_cargo: null, // Campo não existe em pessoas
           responsavel_telefone: responsavel?.telefone || null,
           responsavel_email: responsavel?.email || null,
-          endereco_obra: data.endereco_obra,
+          endereco_obra: enderecoObra,
           nucleos: nucleosData?.map((n: any) => n.nucleo) || [],
         });
       }

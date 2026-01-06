@@ -24,6 +24,7 @@ import {
   CheckCircle,
   Clock,
   TrendingUp,
+  Trash2,
 } from "lucide-react";
 import { supabaseRaw as supabase } from "@/lib/supabaseClient";
 import type { Pessoa } from "@/types/pessoas";
@@ -168,6 +169,27 @@ export default function JuridicoDashboardPage() {
 
   const formatarData = (data: string) => {
     return new Date(data).toLocaleDateString("pt-BR");
+  };
+
+  const excluirContrato = async (contrato: ContratoAtivo) => {
+    const confirmado = window.confirm(
+      `Excluir o contrato ${contrato.numero}? Isso vai marcar como cancelado e remover do dashboard.`
+    );
+    if (!confirmado) return;
+
+    try {
+      const { error } = await supabase
+        .from("contratos")
+        .update({ status: "cancelado" })
+        .eq("id", contrato.id);
+
+      if (error) throw error;
+
+      await carregarDados();
+    } catch (error: any) {
+      console.error("Erro ao excluir contrato:", error);
+      window.alert(`Erro ao excluir contrato: ${error.message}`);
+    }
   };
 
   if (loading) {
@@ -470,6 +492,18 @@ export default function JuridicoDashboardPage() {
                           >
                             {statusConfig.label}
                           </span>
+
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              excluirContrato(contrato);
+                            }}
+                            className="p-1 text-red-500 hover:text-red-600 transition-colors"
+                            title="Excluir contrato"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
 
                           <ChevronRight className="h-4 w-4 text-gray-400" />
                         </div>

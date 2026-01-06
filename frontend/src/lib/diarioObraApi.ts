@@ -118,8 +118,7 @@ export async function criarRegistroDiario(
     .select(
       `
       *,
-      cliente:cliente_id (id, nome),
-      colaborador:colaborador_id (id, nome, avatar_url),
+      colaborador:pessoas!obra_registros_colaborador_id_fkey (id, nome, avatar_url),
       obra_registros_fotos (*)
     `
     )
@@ -162,8 +161,7 @@ export async function atualizarRegistroDiario(
     .select(
       `
       *,
-      cliente:cliente_id (id, nome),
-      colaborador:colaborador_id (id, nome, avatar_url),
+      colaborador:pessoas!obra_registros_colaborador_id_fkey (id, nome, avatar_url),
       obra_registros_fotos (*)
     `
     )
@@ -190,7 +188,7 @@ export async function excluirRegistroDiario(diarioId: string): Promise<void> {
   // Remover fotos do Supabase Storage
   if (fotos && fotos.length > 0) {
     const filePaths = fotos
-      .map((f) => {
+      .map((f: { arquivo_url: string }) => {
         const url = f.arquivo_url;
         // Extrair path do arquivo da URL do Supabase
         const match = url.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
@@ -227,8 +225,7 @@ export async function listarDiariosPorColaborador(
     .select(
       `
       *,
-      cliente:cliente_id (id, nome),
-      colaborador:colaborador_id (id, nome, avatar_url),
+      colaborador:pessoas!obra_registros_colaborador_id_fkey (id, nome, avatar_url),
       obra_registros_fotos (*)
     `
     )
@@ -266,8 +263,7 @@ export async function buscarDiario(diarioId: string): Promise<DiarioObra> {
     .select(
       `
       *,
-      cliente:cliente_id (id, nome),
-      colaborador:colaborador_id (id, nome, avatar_url),
+      colaborador:pessoas!obra_registros_colaborador_id_fkey (id, nome, avatar_url),
       obra_registros_fotos (*)
     `
     )
@@ -489,7 +485,52 @@ export async function listarObrasParaDiario(
 export const listarOportunidadesParaDiario = listarObrasParaDiario;
 
 /**
+ * Extrai o ID da pasta do Google Drive de um link
+ * Suporta formatos:
+ * - https://drive.google.com/drive/folders/ABC123
+ * - https://drive.google.com/drive/u/0/folders/ABC123
+ * - ABC123 (apenas ID)
+ */
+function extrairDriveFolderId(driveLink: string): string | null {
+  if (!driveLink) return null;
+
+  // Se já é apenas o ID (sem URL)
+  if (!driveLink.includes('/')) {
+    return driveLink;
+  }
+
+  // Extrair ID do formato URL
+  const regex = /folders\/([a-zA-Z0-9_-]+)/;
+  const match = driveLink.match(regex);
+  return match ? match[1] : null;
+}
+
+/**
+ * Busca o link do Google Drive do cliente na tabela pessoas
+ */
+async function buscarDriveLinkCliente(clienteId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from("pessoas")
+      .select("drive_link")
+      .eq("id", clienteId)
+      .single();
+
+    if (error || !data) {
+      console.warn("Cliente não encontrado ou sem drive_link:", clienteId);
+      return null;
+    }
+
+    return data.drive_link || null;
+  } catch (error) {
+    console.error("Erro ao buscar drive_link do cliente:", error);
+    return null;
+  }
+}
+
+/**
  * Busca a pasta "04 . Diário de Obra" do cliente no Google Drive
+ * @param clienteFolderId ID da pasta do cliente no Google Drive
  */
 export async function buscarPastaDiarioObra(
   clienteFolderId: string
@@ -504,6 +545,54 @@ export async function buscarPastaDiarioObra(
     return pastaDiario?.id || null;
   } catch (error) {
     console.warn("Erro ao buscar pasta Diário de Obra:", error);
+    return null;
+  }
+}
+
+/**
+ * Busca a pasta "04 . Diário de Obra" do cliente usando o ID do cliente
+ * Automaticamente busca o drive_link e extrai o folder ID
+ * @param clienteId ID da pessoa/cliente na tabela pessoas
+ */
+export async function buscarPastaDiarioObraDoCliente(
+  clienteId: string
+): Promise<string | null> {
+  try {
+    // 1. Buscar drive_link do cliente
+    const driveLink = await buscarDriveLinkCliente(clienteId);
+    if (!driveLink) {
+      console.warn("Cliente não tem drive_link configurado:", clienteId);
+      return null;
+    }
+
+    // 2. Extrair ID da pasta do link
+    const clienteFolderId = extrairDriveFolderId(driveLink);
+    if (!clienteFolderId) {
+      console.warn("Não foi possível extrair ID da pasta do drive_link:", driveLink);
+      return null;
+    }
+
+    // 3. Buscar pasta "04 . Diário de Obra" dentro da pasta do cliente
+    const subpastas = await googleDriveBrowserService.listarSubpastas(clienteFolderId);
+
+    // Tentar encontrar a pasta de diário de obra (pode ter variações de nome)
+    const pastaDiario = subpastas.find((p) => {
+      const nome = p.name.toLowerCase();
+      return nome.includes("diário de obra") ||
+             nome.includes("diario de obra") ||
+             nome.includes("04 . diário") ||
+             nome.includes("04 . diario");
+    });
+
+    if (pastaDiario) {
+      console.log("✅ Pasta Diário de Obra encontrada:", pastaDiario.name);
+      return pastaDiario.id;
+    }
+
+    console.warn("Pasta Diário de Obra não encontrada na estrutura do cliente");
+    return null;
+  } catch (error) {
+    console.warn("Erro ao buscar pasta Diário de Obra do cliente:", error);
     return null;
   }
 }
