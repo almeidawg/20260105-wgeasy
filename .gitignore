@@ -47,6 +47,7 @@ nul
 
 # Claude
 .claude/
+codex-max.ps1
 
 # Large/generated files
 *.zip
