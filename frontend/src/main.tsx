@@ -20,8 +20,9 @@ declare global {
 }
 window.mesclarPessoas = mesclarPessoas;
 
-import "@fontsource/oswald";
-import "@fontsource/poppins";
+// Fonts carregadas via Google Fonts (index.html). Removido @fontsource para evitar erros 404/OTS.
+// import "@fontsource/oswald";
+// import "@fontsource/poppins";
 
 // Tailwind
 import "@/index.css";
