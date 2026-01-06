@@ -53,39 +53,78 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
     try {
       setLoading(true);
 
-      // Tentar buscar fotos do diário de obra
-      const { data, error } = await supabase
-        .from("diario_obra_fotos")
-        .select("*")
-        .eq("contrato_id", contratoId)
-        .order("created_at", { ascending: false });
+      // Buscar registros da obra com suas fotos
+      // A estrutura é: contratos -> obra_registros (via projeto_id) -> obra_registros_fotos (via registro_id)
+      const { data: registros, error } = await supabase
+        .from("obra_registros")
+        .select(`
+          id,
+          titulo,
+          descricao,
+          data_registro,
+          criado_em,
+          obra_registros_fotos (
+            id,
+            arquivo_url,
+            descricao,
+            ordem,
+            criado_em
+          )
+        `)
+        .eq("projeto_id", contratoId)
+        .order("data_registro", { ascending: false });
 
-      if (error || !data || data.length === 0) {
+      if (error) {
+        console.error("Erro ao buscar registros:", error);
         setGrupos([]);
         return;
       }
 
-      // Agrupar fotos por semana
-      const gruposMap = new Map<string, Foto[]>();
-      data.forEach((foto: any) => {
-        const dataFoto = new Date(foto.created_at);
-        const semana = foto.semana || `SEMANA ${Math.ceil((Date.now() - dataFoto.getTime()) / (7 * 86400000))}`;
+      if (!registros || registros.length === 0) {
+        setGrupos([]);
+        return;
+      }
 
-        if (!gruposMap.has(semana)) {
-          gruposMap.set(semana, []);
+      // Agrupar fotos por semana baseado na data do registro
+      const gruposMap = new Map<string, Foto[]>();
+
+      registros.forEach((registro: any) => {
+        const fotos = registro.obra_registros_fotos || [];
+        if (fotos.length === 0) return;
+
+        const dataRegistro = new Date(registro.data_registro || registro.criado_em);
+        const hoje = new Date();
+        const diffDias = Math.floor((hoje.getTime() - dataRegistro.getTime()) / (1000 * 60 * 60 * 24));
+        const numSemana = Math.floor(diffDias / 7) + 1;
+
+        // Usar título do registro ou semana calculada
+        const semanaLabel = registro.titulo || `SEMANA ${numSemana}`;
+
+        if (!gruposMap.has(semanaLabel)) {
+          gruposMap.set(semanaLabel, []);
         }
-        gruposMap.get(semana)!.push({
-          id: foto.id,
-          url: foto.url || foto.arquivo_url,
-          nome: foto.descricao || foto.nome,
-          data: foto.created_at,
-          semana,
+
+        fotos.forEach((foto: any) => {
+          gruposMap.get(semanaLabel)!.push({
+            id: foto.id,
+            url: foto.arquivo_url,
+            nome: foto.descricao || registro.descricao || "Foto da obra",
+            data: foto.criado_em || registro.data_registro,
+            semana: semanaLabel,
+          });
         });
       });
 
       const gruposArray: GrupoSemana[] = [];
       gruposMap.forEach((fotos, semana) => {
         gruposArray.push({ semana, fotos });
+      });
+
+      // Ordenar por data mais recente primeiro
+      gruposArray.sort((a, b) => {
+        const dataA = new Date(a.fotos[0]?.data || 0);
+        const dataB = new Date(b.fotos[0]?.data || 0);
+        return dataB.getTime() - dataA.getTime();
       });
 
       setGrupos(gruposArray);

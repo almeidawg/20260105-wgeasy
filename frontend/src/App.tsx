@@ -643,6 +643,7 @@ export default function App() {
             <Route index element={<AreaClientePage />} />
             <Route path="cronograma" element={<CronogramaClientePage />} />
             <Route path="financeiro" element={<FinanceiroClientePage />} />
+            <Route path="arquivos" element={<ClienteArquivosPage />} />
             <Route path="assistencia" element={<AssistenciaPage />} />
             <Route path="termos" element={<TermoAceitePage />} />
             <Route path="garantia" element={<GarantiaPage />} />

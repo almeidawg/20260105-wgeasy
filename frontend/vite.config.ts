@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -9,15 +8,25 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       // Força entrada CommonJS do framer-motion (bundle não-UMD)
-      "framer-motion": path.resolve(__dirname, "node_modules/framer-motion/dist/cjs/index.js"),
-      "@supabase/supabase-js": path.resolve(__dirname, "node_modules/@supabase/supabase-js/dist/module/index.js"),
-      "react-hook-form": path.resolve(__dirname, "node_modules/react-hook-form/dist/index.cjs.js"),
+      "framer-motion": path.resolve(
+        __dirname,
+        "node_modules/framer-motion/dist/cjs/index.js"
+      ),
+      "@supabase/supabase-js": path.resolve(
+        __dirname,
+        "node_modules/@supabase/supabase-js/dist/module/index.js"
+      ),
+      "react-hook-form": path.resolve(
+        __dirname,
+        "node_modules/react-hook-form/dist/index.cjs.js"
+      ),
     },
   },
   server: {
     port: 5173,
     strictPort: false,
     host: true,
+    allowedHosts: true, // ← ADICIONADO: permite acesso de qualquer host
   },
   build: {
     outDir: "dist",

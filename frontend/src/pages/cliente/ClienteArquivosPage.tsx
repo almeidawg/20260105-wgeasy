@@ -1,13 +1,23 @@
 // src/pages/cliente/ClienteArquivosPage.tsx
-// Página de arquivos da área do cliente
+// Página de arquivos da área do cliente com iframe do Google Drive
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FolderOpen, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabaseClient';
 import ClienteArquivos from '@/components/cliente/ClienteArquivos';
 import { useImpersonation, ImpersonationBar } from '@/hooks/useImpersonation';
+
+// Função para extrair ID de pasta do Google Drive a partir de um link
+function extractDriveFolderId(driveLink: string | null | undefined): string | null {
+  if (!driveLink) return null;
+  // Padrões comuns de links do Drive:
+  // https://drive.google.com/drive/folders/FOLDER_ID?...
+  // https://drive.google.com/drive/u/0/folders/FOLDER_ID
+  const match = driveLink.match(/folders\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
 
 export default function ClienteArquivosPage() {
   const navigate = useNavigate();
@@ -25,6 +35,8 @@ export default function ClienteArquivosPage() {
     clienteNome: string;
     oportunidadeId: string;
     podeUpload: boolean;
+    driveLink: string | null;
+    driveFolderId: string | null;
   } | null>(null);
 
   // ID do cliente passado na URL (para acesso master)
@@ -75,10 +87,10 @@ export default function ClienteArquivosPage() {
         return;
       }
 
-      // Buscar pessoa (cliente)
+      // Buscar pessoa (cliente) incluindo drive_link
       const { data: pessoa, error: erroPessoa } = await supabase
         .from('pessoas')
-        .select('id, nome, tipo')
+        .select('id, nome, tipo, drive_link')
         .eq('id', pessoaId)
         .maybeSingle();
 
@@ -86,6 +98,10 @@ export default function ClienteArquivosPage() {
         console.error('Erro ao buscar pessoa:', erroPessoa);
         return;
       }
+
+      // Extrair folder ID do drive_link
+      const driveLink = pessoa.drive_link || null;
+      const driveFolderId = extractDriveFolderId(driveLink);
 
       // Buscar oportunidade/contrato do cliente
       const { data: oportunidade, error: erroOportunidade } = await supabase
@@ -103,12 +119,16 @@ export default function ClienteArquivosPage() {
           clienteNome: pessoa.nome,
           oportunidadeId: `CLIENTE-${pessoa.id}`,
           podeUpload: true,
+          driveLink,
+          driveFolderId,
         });
       } else {
         setClienteInfo({
           clienteNome: pessoa.nome,
           oportunidadeId: oportunidade.id,
           podeUpload: true, // Cliente sempre pode fazer upload
+          driveLink,
+          driveFolderId,
         });
       }
     } catch (error) {
@@ -144,8 +164,8 @@ export default function ClienteArquivosPage() {
 
   // URL de voltar (preservando cliente_id se impersonando)
   const voltarUrl = isImpersonating && clienteIdParam
-    ? `/area-cliente?cliente_id=${clienteIdParam}`
-    : '/area-cliente';
+    ? `/wgx?cliente_id=${clienteIdParam}`
+    : '/wgx';
 
   return (
     <>
@@ -179,7 +199,78 @@ export default function ClienteArquivosPage() {
           </div>
         </div>
 
-        {/* Componente de Arquivos */}
+        {/* Iframe do Google Drive - se pasta configurada */}
+        {clienteInfo.driveFolderId ? (
+          <div className="space-y-4">
+            {/* Card com informações e link externo */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <FolderOpen className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Pasta do Projeto</h2>
+                    <p className="text-sm text-gray-600">
+                      Acesse todos os arquivos do seu projeto WG Almeida
+                    </p>
+                  </div>
+                </div>
+                {clienteInfo.driveLink && (
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(clienteInfo.driveLink!, '_blank')}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Abrir no Google Drive
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Iframe do Google Drive */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+              <iframe
+                src={`https://drive.google.com/embeddedfolderview?id=${clienteInfo.driveFolderId}#grid`}
+                className="w-full h-[600px] border-0"
+                title="Arquivos do Projeto - Google Drive"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+
+            {/* Dica */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-amber-800">
+                <p className="font-medium">Dica:</p>
+                <p>Clique em "Abrir no Google Drive" para ter acesso completo aos arquivos, incluindo download e visualização em tela cheia.</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Fallback quando não há pasta configurada */
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FolderOpen className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Pasta não configurada
+            </h3>
+            <p className="text-gray-600 mb-4 max-w-md mx-auto">
+              A pasta do Google Drive ainda não foi configurada para o seu projeto.
+              Entre em contato com a equipe WG Almeida para mais informações.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => window.open('https://wa.me/5511999999999', '_blank')}
+            >
+              Falar com a WG Almeida
+            </Button>
+          </div>
+        )}
+
+        {/* Componente de Upload de Arquivos */}
         <ClienteArquivos
           clienteNome={clienteInfo.clienteNome}
           oportunidadeId={clienteInfo.oportunidadeId}

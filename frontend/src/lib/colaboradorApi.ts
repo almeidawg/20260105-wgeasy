@@ -698,7 +698,7 @@ export async function listarRegistrosObra(
     .select(
       `
       *,
-      colaborador:pessoas(nome),
+      colaborador:pessoas!obra_registros_colaborador_id_fkey(nome),
       fotos:obra_registros_fotos(*)
     `
     )

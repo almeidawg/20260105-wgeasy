@@ -90,13 +90,13 @@ export default function ComentariosCliente({
 
     // Subscrever a mudancas em tempo real
     const channel = supabase
-      .channel('comentarios_notificacoes_changes')
+      .channel('solicitacoes_cliente_changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'comentarios_notificacoes',
+          table: 'solicitacoes_cliente',
           filter: `pessoa_id=eq.${clienteId}`
         },
         () => {
@@ -112,23 +112,23 @@ export default function ComentariosCliente({
 
   const carregarComentarios = async () => {
     try {
-      // Tentar buscar da tabela comentarios_notificacoes ou criar estrutura vazia
+      // Buscar da tabela solicitacoes_cliente
       let query = supabase
-        .from("comentarios_notificacoes")
+        .from("solicitacoes_cliente")
         .select("*")
         .eq("pessoa_id", clienteId)
         .order("created_at", { ascending: false });
 
       if (contratoId) {
-        query = query.eq("referencia_id", contratoId);
+        query = query.eq("contrato_id", contratoId);
       }
 
       const { data, error } = await query;
 
       if (error) {
         // Se a tabela não existe, mostrar lista vazia sem erro
-        if (error.code === 'PGRST205' || error.code === '42P01') {
-          console.log("Tabela de comentários não configurada - mostrando vazio");
+        if (error.code === 'PGRST205' || error.code === '42P01' || error.message?.includes('does not exist')) {
+          console.log("Tabela solicitacoes_cliente não encontrada - execute a migration");
           setComentarios([]);
           return;
         }
@@ -139,15 +139,15 @@ export default function ComentariosCliente({
       const comentariosMapeados = (data || []).map((item: any) => ({
         id: item.id,
         cliente_id: item.pessoa_id,
-        contrato_id: item.referencia_id,
-        texto: item.mensagem || item.texto || '',
+        contrato_id: item.contrato_id,
+        texto: item.mensagem || '',
         status: item.status || 'pendente',
         nucleo: item.nucleo || 'geral',
         prioridade: item.prioridade || 'normal',
         resposta_equipe: item.resposta,
         respondido_por: item.respondido_por,
         respondido_em: item.respondido_em,
-        criado_em: item.created_at || item.criado_em,
+        criado_em: item.created_at,
         atualizado_em: item.updated_at,
       }));
 
@@ -166,27 +166,29 @@ export default function ComentariosCliente({
 
     setEnviando(true);
     try {
-      // Inserir comentário na tabela comentarios_notificacoes
+      // Inserir solicitação na tabela solicitacoes_cliente
       const { data: comentarioData, error } = await supabase
-        .from("comentarios_notificacoes")
+        .from("solicitacoes_cliente")
         .insert({
           pessoa_id: clienteId,
-          referencia_id: contratoId || null,
-          referencia_tipo: contratoId ? 'contrato' : 'cliente',
+          contrato_id: contratoId || null,
+          projeto_id: projetoId || null,
           mensagem: novoComentario.trim(),
           nucleo: nucleoSelecionado,
           status: "pendente",
-          prioridade: "normal"
+          prioridade: "normal",
+          referencia_tipo: contratoId ? 'contrato' : (projetoId ? 'projeto' : 'cliente'),
+          referencia_id: contratoId || projetoId || clienteId
         })
         .select()
         .single();
 
       if (error) {
         // Se a tabela não existe, informar ao usuário
-        if (error.code === 'PGRST205' || error.code === '42P01') {
+        if (error.code === 'PGRST205' || error.code === '42P01' || error.message?.includes('does not exist')) {
           toast({
             title: "Funcionalidade em configuração",
-            description: "O sistema de comentários está sendo configurado. Tente novamente mais tarde.",
+            description: "O sistema de solicitações está sendo configurado. Execute a migration no banco de dados.",
             variant: "destructive",
           });
           return;

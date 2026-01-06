@@ -291,6 +291,18 @@ Equipe WG Almeida`
     }
   };
 
+  // Função utilitária para extrair o ano de cadastro
+  const getAnoCadastro = (
+    cliente:
+      | ClienteAreaInfo
+      | (ClienteDisponivel & { criado_em?: string | null })
+  ) => {
+    // Tenta pegar do campo criado_em, se não, retorna vazio
+    const data = (cliente as any).criado_em || (cliente as any).data_inicio_wg;
+    if (!data) return "";
+    return new Date(data).getFullYear();
+  };
+
   return (
     <div className="space-y-10">
       <header className="rounded-3xl bg-gradient-to-r from-[#0f172a] via-[#1f2937] to-[#111827] text-white p-8 shadow-xl">
@@ -376,6 +388,12 @@ Equipe WG Almeida`
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
                     {cliente.nome}
+                    {((cliente as any).criado_em ||
+                      (cliente as any).data_inicio_wg) && (
+                      <span className="ml-2 text-xs text-gray-400">
+                        ({getAnoCadastro(cliente)})
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-500">
                     Contratos: {cliente.contratos.length} • Status:{" "}
@@ -522,6 +540,12 @@ Equipe WG Almeida`
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-900 truncate">
                               {cliente.nome}
+                              {/* Ano de cadastro, se disponível */}
+                              {(cliente as any).criado_em && (
+                                <span className="ml-2 text-xs text-gray-400">
+                                  ({getAnoCadastro(cliente)})
+                                </span>
+                              )}
                             </p>
                             <p className="text-xs text-gray-500 truncate">
                               {cliente.email || "Sem e-mail"}

@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Building2, Loader2, Save } from "lucide-react";
+import { Building2, Loader2, Save, Upload, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +21,8 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   criarRegistroDiario,
   uploadFotoDiario,
-  buscarPastaDiarioObra,
+  buscarPastaDiarioObraDoCliente,
+  obterPastaDiarioPorData,
 } from "@/lib/diarioObraApi";
 import type { FotoCapturaPreview } from "@/types/diarioObra";
 
@@ -42,6 +43,7 @@ interface FormData {
 interface Cliente {
   id: string;
   nome: string;
+  drive_link: string | null;
 }
 
 function DiarioObraForm({
@@ -82,7 +84,7 @@ function DiarioObraForm({
       try {
         const { data, error } = await supabase
           .from("pessoas")
-          .select("id, nome")
+          .select("id, nome, drive_link")
           .eq("tipo", "CLIENTE")
           .eq("ativo", true)
           .order("nome");
@@ -93,6 +95,10 @@ function DiarioObraForm({
     }
     loadClientes();
   }, []);
+
+  // Verificar se o cliente selecionado tem Google Drive configurado
+  const clienteSelecionadoObj = clientes.find(c => c.id === selectedClienteId);
+  const temDriveConfigurado = !!clienteSelecionadoObj?.drive_link;
 
   // Handler de submit
   async function onSubmit(data: FormData) {
@@ -113,10 +119,26 @@ function DiarioObraForm({
         equipe_presente: data.equipe_presente || undefined,
       });
 
-      // 2. Buscar pasta do Google Drive do cliente para salvar fotos/comprovantes
+      // 2. Buscar pasta "04 . Diário de Obra" do cliente no Google Drive
       let driveFolderId: string | null = null;
       try {
-        driveFolderId = await buscarPastaDiarioObra(data.cliente_id);
+        const pastaDiarioObra = await buscarPastaDiarioObraDoCliente(data.cliente_id);
+        if (pastaDiarioObra) {
+          console.log("📁 Pasta Diário de Obra encontrada no Drive:", pastaDiarioObra);
+
+          // 2.1 Criar/obter subpasta com a data de hoje para organização
+          const hoje = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+          try {
+            driveFolderId = await obterPastaDiarioPorData(pastaDiarioObra, hoje);
+            console.log("📁 Subpasta de data criada/encontrada:", hoje);
+          } catch (e) {
+            // Se falhar criar subpasta, usa a pasta principal
+            driveFolderId = pastaDiarioObra;
+            console.warn("⚠️ Usando pasta principal do Diário de Obra (sem subpasta de data)");
+          }
+        } else {
+          console.warn("⚠️ Cliente não tem pasta Google Drive configurada ou pasta Diário de Obra não existe");
+        }
       } catch (e) {
         console.warn(
           "Não foi possível localizar a pasta do cliente no Drive.",
@@ -188,6 +210,27 @@ function DiarioObraForm({
         </Select>
         {errors.cliente_id && (
           <p className="text-sm text-red-600">{errors.cliente_id.message}</p>
+        )}
+
+        {/* Indicador de Google Drive */}
+        {selectedClienteId && (
+          <div className={`flex items-center gap-2 text-xs mt-2 p-2 rounded-lg ${
+            temDriveConfigurado
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+          }`}>
+            {temDriveConfigurado ? (
+              <>
+                <Upload className="h-4 w-4" />
+                <span>Fotos serão enviadas para o Google Drive do cliente</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-4 w-4" />
+                <span>Cliente sem Google Drive. Fotos serão salvas apenas no sistema.</span>
+              </>
+            )}
+          </div>
         )}
       </div>
 

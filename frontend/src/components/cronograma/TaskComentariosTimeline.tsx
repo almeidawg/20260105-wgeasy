@@ -10,6 +10,7 @@ import {
   calcularTempoDecorrido,
   type TaskComentario,
 } from "@/lib/taskComentariosApi";
+import { supabase } from "@/lib/supabaseClient";
 
 // ============================================================
 // TIPOS
@@ -25,6 +26,11 @@ interface TaskComentariosTimelineProps {
 // COMPONENTE
 // ============================================================
 
+interface UsuarioMencao {
+  id: string;
+  nome: string;
+}
+
 const TaskComentariosTimeline: React.FC<TaskComentariosTimelineProps> = ({
   task_id,
   onNovoComentario,
@@ -33,10 +39,48 @@ const TaskComentariosTimeline: React.FC<TaskComentariosTimelineProps> = ({
   const [comentarios, setComentarios] = useState<TaskComentario[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletandoId, setDeletandoId] = useState<string | null>(null);
+  const [usuariosMencoes, setUsuariosMencoes] = useState<UsuarioMencao[]>([]);
 
   useEffect(() => {
     carregarComentarios();
   }, [task_id]);
+
+  // Carregar dados dos usuários mencionados
+  useEffect(() => {
+    async function carregarUsuariosMencoes() {
+      // Coletar todos os IDs de menções únicos
+      const todosIds = new Set<string>();
+      comentarios.forEach(c => {
+        if (c.mencoes) {
+          c.mencoes.forEach(id => todosIds.add(id));
+        }
+      });
+
+      if (todosIds.size === 0) return;
+
+      try {
+        const { data } = await supabase
+          .from("usuarios")
+          .select(`
+            id,
+            pessoa:pessoas!usuarios_pessoa_id_fkey (nome)
+          `)
+          .in("id", Array.from(todosIds));
+
+        if (data) {
+          const usuarios = data.map((u: any) => ({
+            id: u.id,
+            nome: u.pessoa?.nome || "Usuário",
+          }));
+          setUsuariosMencoes(usuarios);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar usuários mencionados:", err);
+      }
+    }
+
+    carregarUsuariosMencoes();
+  }, [comentarios]);
 
   async function carregarComentarios() {
     try {
@@ -48,6 +92,49 @@ const TaskComentariosTimeline: React.FC<TaskComentariosTimelineProps> = ({
     } finally {
       setLoading(false);
     }
+  }
+
+  // Renderizar texto com menções destacadas
+  function renderizarTextoComMencoes(texto: string): React.ReactNode[] {
+    const parts: React.ReactNode[] = [];
+    const regex = /@\[([^\]]+)\]/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(texto)) !== null) {
+      // Texto antes da menção
+      if (match.index > lastIndex) {
+        parts.push(
+          <span key={`text-${lastIndex}`}>
+            {texto.substring(lastIndex, match.index)}
+          </span>
+        );
+      }
+
+      // Menção
+      const userId = match[1];
+      const usuario = usuariosMencoes.find((u) => u.id === userId);
+
+      parts.push(
+        <span
+          key={`mention-${match.index}`}
+          className="inline-flex items-center px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium text-xs"
+        >
+          @{usuario?.nome || "usuário"}
+        </span>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Texto restante
+    if (lastIndex < texto.length) {
+      parts.push(
+        <span key={`text-end`}>{texto.substring(lastIndex)}</span>
+      );
+    }
+
+    return parts.length > 0 ? parts : [texto];
   }
 
   async function handleDeletar(id: string) {
@@ -247,33 +334,8 @@ const TaskComentariosTimeline: React.FC<TaskComentariosTimelineProps> = ({
               {/* Conteúdo */}
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                  {comentario.comentario}
+                  {renderizarTextoComMencoes(comentario.comentario)}
                 </p>
-
-                {/* Menções */}
-                {comentario.mencoes && comentario.mencoes.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-gray-200">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <svg
-                        className="w-3.5 h-3.5 text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                      <span className="text-xs text-gray-500">
-                        Mencionou {comentario.mencoes.length} pessoa
-                        {comentario.mencoes.length > 1 ? "s" : ""}
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
