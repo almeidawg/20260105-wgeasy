@@ -33,6 +33,7 @@ import ItensContratados from "@/components/cliente/ItensContratados";
 import InfoContratoCliente from "@/components/cliente/InfoContratoCliente";
 import ComentariosCliente from "@/components/cliente/ComentariosCliente";
 import DiarioObra from "@/components/cliente/DiarioObra";
+import PastasClienteDrive from "@/components/cliente/PastasClienteDrive";
 import ControleCobrancas from "@/components/cliente/ControleCobrancas";
 import SpotifyPlayer, { SpotifyFloatingButton } from "@/components/cliente/SpotifyPlayer";
 
@@ -517,13 +518,16 @@ export default function AreaClientePage() {
           </section>
 
           {/* ============================================================ */}
-          {/* SEÇÃO 1: DIÁRIO DE OBRA (Fotos) - PRIORITÁRIO */}
+          {/* SEÇÃO 1: DIÁRIO DE OBRA E PASTA DO PROJETO (Grid lado a lado) */}
           {/* ============================================================ */}
-          <DiarioObra
-            clienteId={clienteInfo.pessoaId}
-            contratoId={clienteInfo.contratoId || undefined}
-            oportunidadeId={clienteInfo.oportunidadeId}
-          />
+          <section className="grid gap-6 lg:grid-cols-2">
+            <DiarioObra
+              clienteId={clienteInfo.pessoaId}
+              contratoId={clienteInfo.contratoId || undefined}
+              oportunidadeId={clienteInfo.oportunidadeId}
+            />
+            <PastasClienteDrive clienteId={clienteInfo.pessoaId} />
+          </section>
 
           {/* ============================================================ */}
           {/* SEÇÃO 2: CONTRATO E PAGAMENTOS (Grid lado a lado) */}

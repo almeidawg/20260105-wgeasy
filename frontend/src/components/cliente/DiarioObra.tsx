@@ -50,8 +50,8 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
   }, [clienteId, contratoId, oportunidadeId]);
 
   async function carregarFotos() {
-    // Validar se temos um contratoId antes de fazer a query
-    if (!contratoId) {
+    // Validar se temos um clienteId antes de fazer a query
+    if (!clienteId) {
       setGrupos([]);
       setLoading(false);
       return;
@@ -61,7 +61,7 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
       setLoading(true);
 
       // Buscar registros da obra com suas fotos
-      // A estrutura é: contratos -> obra_registros (via projeto_id) -> obra_registros_fotos (via registro_id)
+      // A estrutura é: pessoas (cliente) -> obra_registros (via cliente_id) -> obra_registros_fotos (via registro_id)
       const { data: registros, error } = await supabase
         .from("obra_registros")
         .select(`
@@ -78,7 +78,7 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
             criado_em
           )
         `)
-        .eq("projeto_id", contratoId)
+        .eq("cliente_id", clienteId)
         .order("data_registro", { ascending: false });
 
       if (error) {
