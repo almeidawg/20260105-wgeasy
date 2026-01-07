@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: .
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -52,4 +52,4 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up --service 84e511cd-18c1-49df-84e6-d524fe200274 --detach
+          railway up ./backend --service 84e511cd-18c1-49df-84e6-d524fe200274 --detach --path-as-root
