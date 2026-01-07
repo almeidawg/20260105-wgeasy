@@ -22,7 +22,7 @@ const config = {
   user: process.env.FTP_USER || 'u968231423.easy.wgalmeida.com.br',
   password: process.env.FTP_PASS || 'WGEasy2026!',
   remotePath: process.env.FTP_PATH || '/public_html',
-  localPath: 'E:/sistema/20260105-wgeasy/frontend/dist', // Pasta local para upload
+  localPath: process.env.LOCAL_DIST_PATH || './dist', // Usa caminho relativo por padrão
   secure: false,                          // true para FTPS
 };
 

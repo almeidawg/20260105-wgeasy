@@ -29,6 +29,20 @@ jobs:
         run: npm install
 
       - name: Build do projeto
+        env:
+          VITE_SUPABASE_URL: https://ahlqzzkxuutwoepirpzr.supabase.co
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_BACKEND_URL: https://wgeasy-production.up.railway.app
+          VITE_INTERNAL_API_KEY: ${{ secrets.VITE_INTERNAL_API_KEY }}
+          VITE_USE_BACKEND_PROXY: true
+          VITE_AI_PROVIDER: openai
+          VITE_OPENAI_MODEL: gpt-4o
+          VITE_ANTHROPIC_MODEL: claude-sonnet-4-20250514
+          VITE_GEMINI_MODEL: gemini-2.0-flash
+          VITE_APP_URL: https://easy.wgalmeida.com.br
+          VITE_APP_NAME: WG Easy
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
         run: npm run build
 
       - name: Instalar dependências do deploy
