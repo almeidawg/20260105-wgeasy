@@ -11,6 +11,7 @@ import ClienteProtectedRoute, {
 } from "@/auth/ClienteProtectedRoute";
 import PublicRoute from "@/auth/PublicRoute";
 import { Loader2 } from "lucide-react";
+import GoogleKeepChecklist from "./components/GoogleKeepChecklist";
 
 /* ===================== LOADING COMPONENT ===================== */
 const PageLoader = () => (
@@ -729,9 +730,9 @@ export default function App() {
                 <MainLayout />
               </ClienteProtectedRoute>
             }
-            >
-              <Route index element={<DashboardPage />} />
-              <Route path="/dashboard/executivo" element={<DashboardPage />} />
+          >
+            <Route index element={<DashboardPage />} />
+            <Route path="/dashboard/executivo" element={<DashboardPage />} />
 
             {/* PESSOAS */}
             <Route
@@ -1288,6 +1289,7 @@ export default function App() {
           </Route>
         </Routes>
       </Suspense>
+      <GoogleKeepChecklist />
     </BrowserRouter>
   );
 }
