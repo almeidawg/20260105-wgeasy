@@ -22,7 +22,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Instalar Supabase CLI
-        run: npm install -g supabase
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
 
       - name: Aplicar migrações no Supabase
         env:
@@ -43,7 +45,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Instalar Railway CLI
-        run: npm install -g railway
+        run: npm install -g @railway/cli
 
       - name: Deploy para Railway
         env:
