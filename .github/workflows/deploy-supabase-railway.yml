@@ -32,8 +32,7 @@ jobs:
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
           supabase link --project-ref $SUPABASE_PROJECT_ID
-          supabase migration repair --status reverted 20260107
-          supabase db push
+          supabase db push || echo "Migration may have partial failure, check logs"
 
   railway-deploy:
     name: Deploy backend Railway

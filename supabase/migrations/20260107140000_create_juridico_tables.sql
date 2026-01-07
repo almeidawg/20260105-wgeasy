@@ -2,55 +2,38 @@
 -- MIGRATION: Criar tabelas do módulo Jurídico
 -- Sistema WG Easy - Grupo WG Almeida
 -- Data: 2026-01-07
+-- NOTA: FKs opcionais para evitar erros de dependência
 -- =============================================
 
 -- =============================================
 -- 1. TABELA: assistencia_juridica
--- Solicitações de assistência/intermediação jurídica
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS assistencia_juridica (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    -- Solicitante
     tipo_solicitante VARCHAR(20) NOT NULL CHECK (tipo_solicitante IN ('CLIENTE', 'COLABORADOR', 'FORNECEDOR')),
-    solicitante_id UUID REFERENCES pessoas(id),
-
-    -- Tipo e detalhes do processo
+    solicitante_id UUID,
     tipo_processo VARCHAR(30) NOT NULL CHECK (tipo_processo IN ('TRABALHISTA', 'CLIENTE_CONTRA_EMPRESA', 'EMPRESA_CONTRA_CLIENTE', 'INTERMEDIACAO', 'OUTRO')),
     titulo VARCHAR(255) NOT NULL,
     descricao TEXT,
-
-    -- Status e prioridade
     status VARCHAR(20) NOT NULL DEFAULT 'PENDENTE' CHECK (status IN ('PENDENTE', 'EM_ANALISE', 'EM_ANDAMENTO', 'RESOLVIDO', 'ARQUIVADO')),
     prioridade VARCHAR(10) NOT NULL DEFAULT 'MEDIA' CHECK (prioridade IN ('BAIXA', 'MEDIA', 'ALTA', 'URGENTE')),
-
-    -- Dados do processo (quando houver)
     numero_processo VARCHAR(50),
     vara VARCHAR(100),
     comarca VARCHAR(100),
     advogado_responsavel VARCHAR(255),
-
-    -- Valores envolvidos
     valor_causa DECIMAL(15,2) DEFAULT 0,
     valor_acordo DECIMAL(15,2),
-
-    -- Datas importantes
     data_abertura DATE DEFAULT CURRENT_DATE,
     data_audiencia DATE,
     data_encerramento DATE,
-
-    -- Observações e histórico
     observacoes TEXT,
-
-    -- Auditoria
-    criado_por UUID REFERENCES usuarios(id),
-    atualizado_por UUID REFERENCES usuarios(id),
+    criado_por UUID,
+    atualizado_por UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_assistencia_juridica_solicitante ON assistencia_juridica(solicitante_id);
 CREATE INDEX IF NOT EXISTS idx_assistencia_juridica_tipo ON assistencia_juridica(tipo_processo);
 CREATE INDEX IF NOT EXISTS idx_assistencia_juridica_status ON assistencia_juridica(status);
@@ -72,20 +55,15 @@ CREATE TRIGGER trigger_assistencia_juridica_updated_at
 
 -- =============================================
 -- 2. TABELA: assistencia_juridica_historico
--- Histórico de movimentações/atualizações
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS assistencia_juridica_historico (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assistencia_id UUID NOT NULL REFERENCES assistencia_juridica(id) ON DELETE CASCADE,
-
     tipo_movimentacao VARCHAR(50) NOT NULL,
     descricao TEXT NOT NULL,
-
-    -- Dados de quem fez a movimentação
-    usuario_id UUID REFERENCES usuarios(id),
+    usuario_id UUID,
     usuario_nome VARCHAR(255),
-
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -93,63 +71,39 @@ CREATE INDEX IF NOT EXISTS idx_assistencia_historico_assistencia ON assistencia_
 
 -- =============================================
 -- 3. TABELA: financeiro_juridico
--- Lançamentos financeiros do departamento jurídico
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS financeiro_juridico (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    -- Referência (pode ser assistência, contrato, ou avulso)
     assistencia_id UUID REFERENCES assistencia_juridica(id),
-    contrato_id UUID REFERENCES contratos(id),
-
-    -- Tipo de lançamento
+    contrato_id UUID,
     tipo VARCHAR(30) NOT NULL CHECK (tipo IN ('HONORARIO', 'CUSTAS', 'TAXA', 'ACORDO', 'MULTA', 'OUTROS', 'MENSALIDADE')),
     natureza VARCHAR(10) NOT NULL CHECK (natureza IN ('RECEITA', 'DESPESA')),
-
-    -- Descrição
     descricao VARCHAR(500) NOT NULL,
     observacoes TEXT,
-
-    -- Valores
     valor DECIMAL(15,2) NOT NULL,
     valor_pago DECIMAL(15,2) DEFAULT 0,
-
-    -- Datas
     data_competencia DATE NOT NULL,
     data_vencimento DATE NOT NULL,
     data_pagamento DATE,
-
-    -- Status
     status VARCHAR(20) NOT NULL DEFAULT 'PENDENTE' CHECK (status IN ('PENDENTE', 'PAGO', 'PARCIAL', 'CANCELADO', 'ATRASADO')),
-
-    -- Parcelamento
     parcela_atual INT DEFAULT 1,
     total_parcelas INT DEFAULT 1,
-
-    -- Beneficiário/Pagador
-    pessoa_id UUID REFERENCES pessoas(id),
+    pessoa_id UUID,
     empresa_id UUID,
-
-    -- Sincronização com financeiro geral (opcional)
     sincronizado_financeiro BOOLEAN DEFAULT FALSE,
     financeiro_lancamento_id UUID,
-
-    -- Auditoria
-    criado_por UUID REFERENCES usuarios(id),
-    atualizado_por UUID REFERENCES usuarios(id),
+    criado_por UUID,
+    atualizado_por UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Índices
 CREATE INDEX IF NOT EXISTS idx_financeiro_juridico_assistencia ON financeiro_juridico(assistencia_id);
-CREATE INDEX IF NOT EXISTS idx_financeiro_juridico_contrato ON financeiro_juridico(contrato_id);
 CREATE INDEX IF NOT EXISTS idx_financeiro_juridico_tipo ON financeiro_juridico(tipo);
 CREATE INDEX IF NOT EXISTS idx_financeiro_juridico_status ON financeiro_juridico(status);
 CREATE INDEX IF NOT EXISTS idx_financeiro_juridico_vencimento ON financeiro_juridico(data_vencimento);
 CREATE INDEX IF NOT EXISTS idx_financeiro_juridico_competencia ON financeiro_juridico(data_competencia);
-CREATE INDEX IF NOT EXISTS idx_financeiro_juridico_pessoa ON financeiro_juridico(pessoa_id);
 
 -- Trigger para updated_at
 CREATE OR REPLACE FUNCTION update_financeiro_juridico_updated_at()
@@ -169,51 +123,7 @@ CREATE TRIGGER trigger_financeiro_juridico_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_financeiro_juridico_updated_at();
 
 -- =============================================
--- 4. VIEW: Resumo Financeiro Jurídico
--- =============================================
-
-CREATE OR REPLACE VIEW vw_financeiro_juridico_resumo AS
-SELECT
-    DATE_TRUNC('month', data_competencia) AS mes,
-    COUNT(*) AS total_lancamentos,
-    SUM(CASE WHEN natureza = 'RECEITA' THEN valor ELSE 0 END) AS total_receitas,
-    SUM(CASE WHEN natureza = 'DESPESA' THEN valor ELSE 0 END) AS total_despesas,
-    SUM(CASE WHEN natureza = 'RECEITA' THEN valor ELSE -valor END) AS saldo,
-    SUM(CASE WHEN status = 'PAGO' THEN valor_pago ELSE 0 END) AS total_pago,
-    SUM(CASE WHEN status IN ('PENDENTE', 'ATRASADO') THEN valor - COALESCE(valor_pago, 0) ELSE 0 END) AS total_a_receber,
-    SUM(CASE WHEN status = 'ATRASADO' THEN valor - COALESCE(valor_pago, 0) ELSE 0 END) AS total_atrasado,
-    COUNT(CASE WHEN status = 'ATRASADO' THEN 1 END) AS qtd_atrasados
-FROM financeiro_juridico
-WHERE status != 'CANCELADO'
-GROUP BY DATE_TRUNC('month', data_competencia)
-ORDER BY mes DESC;
-
--- =============================================
--- 5. VIEW: Lançamentos detalhados com pessoa
--- =============================================
-
-CREATE OR REPLACE VIEW vw_financeiro_juridico_detalhado AS
-SELECT
-    fj.*,
-    p.nome AS pessoa_nome,
-    p.tipo AS pessoa_tipo,
-    p.cpf AS pessoa_cpf,
-    p.cnpj AS pessoa_cnpj,
-    aj.titulo AS assistencia_titulo,
-    aj.numero_processo,
-    c.numero AS contrato_numero,
-    CASE
-        WHEN fj.status IN ('PENDENTE', 'ATRASADO') AND fj.data_vencimento < CURRENT_DATE
-        THEN CURRENT_DATE - fj.data_vencimento
-        ELSE 0
-    END AS dias_atraso
-FROM financeiro_juridico fj
-LEFT JOIN pessoas p ON p.id = fj.pessoa_id
-LEFT JOIN assistencia_juridica aj ON aj.id = fj.assistencia_id
-LEFT JOIN contratos c ON c.id = fj.contrato_id;
-
--- =============================================
--- 6. RLS (Row Level Security)
+-- 4. RLS (Row Level Security)
 -- =============================================
 
 ALTER TABLE assistencia_juridica ENABLE ROW LEVEL SECURITY;
@@ -221,6 +131,7 @@ ALTER TABLE assistencia_juridica_historico ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financeiro_juridico ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para assistencia_juridica
+DROP POLICY IF EXISTS "assistencia_juridica_select" ON assistencia_juridica;
 CREATE POLICY "assistencia_juridica_select" ON assistencia_juridica
     FOR SELECT TO authenticated
     USING (
@@ -232,6 +143,7 @@ CREATE POLICY "assistencia_juridica_select" ON assistencia_juridica
         )
     );
 
+DROP POLICY IF EXISTS "assistencia_juridica_insert" ON assistencia_juridica;
 CREATE POLICY "assistencia_juridica_insert" ON assistencia_juridica
     FOR INSERT TO authenticated
     WITH CHECK (
@@ -243,6 +155,7 @@ CREATE POLICY "assistencia_juridica_insert" ON assistencia_juridica
         )
     );
 
+DROP POLICY IF EXISTS "assistencia_juridica_update" ON assistencia_juridica;
 CREATE POLICY "assistencia_juridica_update" ON assistencia_juridica
     FOR UPDATE TO authenticated
     USING (
@@ -254,6 +167,7 @@ CREATE POLICY "assistencia_juridica_update" ON assistencia_juridica
         )
     );
 
+DROP POLICY IF EXISTS "assistencia_juridica_delete" ON assistencia_juridica;
 CREATE POLICY "assistencia_juridica_delete" ON assistencia_juridica
     FOR DELETE TO authenticated
     USING (
@@ -266,6 +180,7 @@ CREATE POLICY "assistencia_juridica_delete" ON assistencia_juridica
     );
 
 -- Políticas para financeiro_juridico
+DROP POLICY IF EXISTS "financeiro_juridico_select" ON financeiro_juridico;
 CREATE POLICY "financeiro_juridico_select" ON financeiro_juridico
     FOR SELECT TO authenticated
     USING (
@@ -277,6 +192,7 @@ CREATE POLICY "financeiro_juridico_select" ON financeiro_juridico
         )
     );
 
+DROP POLICY IF EXISTS "financeiro_juridico_insert" ON financeiro_juridico;
 CREATE POLICY "financeiro_juridico_insert" ON financeiro_juridico
     FOR INSERT TO authenticated
     WITH CHECK (
@@ -288,6 +204,7 @@ CREATE POLICY "financeiro_juridico_insert" ON financeiro_juridico
         )
     );
 
+DROP POLICY IF EXISTS "financeiro_juridico_update" ON financeiro_juridico;
 CREATE POLICY "financeiro_juridico_update" ON financeiro_juridico
     FOR UPDATE TO authenticated
     USING (
@@ -299,6 +216,7 @@ CREATE POLICY "financeiro_juridico_update" ON financeiro_juridico
         )
     );
 
+DROP POLICY IF EXISTS "financeiro_juridico_delete" ON financeiro_juridico;
 CREATE POLICY "financeiro_juridico_delete" ON financeiro_juridico
     FOR DELETE TO authenticated
     USING (
@@ -311,6 +229,7 @@ CREATE POLICY "financeiro_juridico_delete" ON financeiro_juridico
     );
 
 -- Políticas para histórico
+DROP POLICY IF EXISTS "assistencia_juridica_historico_select" ON assistencia_juridica_historico;
 CREATE POLICY "assistencia_juridica_historico_select" ON assistencia_juridica_historico
     FOR SELECT TO authenticated
     USING (
@@ -322,6 +241,7 @@ CREATE POLICY "assistencia_juridica_historico_select" ON assistencia_juridica_hi
         )
     );
 
+DROP POLICY IF EXISTS "assistencia_juridica_historico_insert" ON assistencia_juridica_historico;
 CREATE POLICY "assistencia_juridica_historico_insert" ON assistencia_juridica_historico
     FOR INSERT TO authenticated
     WITH CHECK (
@@ -332,18 +252,6 @@ CREATE POLICY "assistencia_juridica_historico_insert" ON assistencia_juridica_hi
             AND u.ativo = true
         )
     );
-
--- =============================================
--- 7. Comentários nas tabelas
--- =============================================
-
-COMMENT ON TABLE assistencia_juridica IS 'Solicitações de assistência e intermediação jurídica';
-COMMENT ON TABLE assistencia_juridica_historico IS 'Histórico de movimentações das assistências jurídicas';
-COMMENT ON TABLE financeiro_juridico IS 'Lançamentos financeiros do departamento jurídico';
-
-COMMENT ON COLUMN financeiro_juridico.tipo IS 'HONORARIO, CUSTAS, TAXA, ACORDO, MULTA, OUTROS, MENSALIDADE';
-COMMENT ON COLUMN financeiro_juridico.natureza IS 'RECEITA (entrada) ou DESPESA (saída)';
-COMMENT ON COLUMN financeiro_juridico.sincronizado_financeiro IS 'Indica se foi criado lançamento no financeiro geral';
 
 -- =============================================
 -- FIM DA MIGRATION
