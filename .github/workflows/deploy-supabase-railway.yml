@@ -52,4 +52,4 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up backend --service 84e511cd-18c1-49df-84e6-d524fe200274 --detach --path-as-root
+          railway up backend --service 84e511cd-18c1-49df-84e6-d524fe200274 --detach --path-as-root /backend
