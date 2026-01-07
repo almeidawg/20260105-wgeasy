@@ -7,7 +7,7 @@ echo.
 set FTP_HOST=147.93.151.64
 set FTP_USER=u968231423.wgalmeida-com-br-238673.hostingersite.com
 set FTP_PASS=130300@$Wg
-set LOCAL_PATH=C:\Users\Atendimento\Documents\01VISUALSTUDIO_OFICIAL\sistema\wgeasy\frontend\dist
+set LOCAL_PATH=E:\sistema\20260105-wgeasy\frontend\dist
 set REMOTE_PATH=/domains/easy.wgalmeida.com.br/public_html
 
 echo Host: %FTP_HOST%

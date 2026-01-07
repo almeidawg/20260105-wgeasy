@@ -17,7 +17,7 @@ FTP_PASS = "130300@$Wg"
 
 # Caminhos
 SITE_DIST = r"C:\Users\Atendimento\Documents\01VISUALSTUDIO_OFICIAL\site\dist"
-SISTEMA_DIST = r"C:\Users\Atendimento\Documents\01VISUALSTUDIO_OFICIAL\sistema\wgeasy\frontend\dist"
+SISTEMA_DIST = r"E:\sistema\20260105-wgeasy\frontend\dist"
 
 # Extensoes essenciais para o site funcionar
 EXTENSOES_ESSENCIAIS = {'.html', '.js', '.css', '.json', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot'}

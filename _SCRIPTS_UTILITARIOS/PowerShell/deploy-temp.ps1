@@ -2,7 +2,7 @@
 $ftpHost = "ftp://147.93.64.151"
 $ftpUser = "u968231423.wgalmeida-com-br-238673.hostingersite.com"
 $ftpPass = '130300@$Wg'
-$localPath = "C:\Users\Atendimento\Documents\01VISUALSTUDIO_OFICIAL\sistema\wgeasy\frontend\dist"
+$localPath = "E:\sistema\20260105-wgeasy\frontend\dist"
 $remoteBasePath = "/domains/easy.wgalmeida.com.br/public_html"
 
 Write-Host "Iniciando deploy para easy.wgalmeida.com.br..." -ForegroundColor Cyan

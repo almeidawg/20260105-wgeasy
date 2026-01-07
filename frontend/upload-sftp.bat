@@ -34,7 +34,7 @@ if %errorlevel% neq 0 (
 set SFTP_HOST=147.93.151.64
 set SFTP_USER=u968231423.wgalmeida-com-br-238673.hostingersite.com
 set SFTP_PASS=130300@$Wg
-set LOCAL_PATH=%~dp0dist
+set LOCAL_PATH=E:\sistema\20260105-wgeasy\frontend\dist
 set REMOTE_PATH=/domains
 
 echo Conectando via SFTP...

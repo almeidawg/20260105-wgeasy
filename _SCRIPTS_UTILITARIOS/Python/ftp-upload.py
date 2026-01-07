@@ -8,7 +8,7 @@ from pathlib import Path
 FTP_HOST = "147.93.64.151"
 FTP_USER = "u968231423.easy.wgalmeida.com.br"
 FTP_PASS = "WGEasy2026!"
-LOCAL_PATH = Path(r"C:\Users\Atendimento\Documents\01VISUALSTUDIO_OFICIAL\sistema\wgeasy\frontend\dist")
+LOCAL_PATH = Path(r"E:\sistema\20260105-wgeasy\frontend\dist")
 REMOTE_PATH = "/public_html"
 
 def ensure_remote_dir(ftp, path):

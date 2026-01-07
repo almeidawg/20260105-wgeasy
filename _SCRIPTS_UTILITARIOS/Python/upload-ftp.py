@@ -16,7 +16,7 @@ FTP_PASS = "130300@$Wg"
 
 # Caminhos
 SITE_DIST = r"C:\Users\Atendimento\Documents\01VISUALSTUDIO_OFICIAL\site\dist"
-SISTEMA_DIST = r"C:\Users\Atendimento\Documents\01VISUALSTUDIO_OFICIAL\sistema\wgeasy\frontend\dist"
+SISTEMA_DIST = r"E:\sistema\20260105-wgeasy\frontend\dist"
 
 def upload_directory(ftp, local_path, remote_path=""):
     """Upload de um diretorio recursivamente"""

@@ -4,7 +4,7 @@
 $ftpHost = "ftp://147.93.64.151"
 $ftpUser = "u968231423.easy.wgalmeida.com.br"
 $ftpPass = "WGEasy2026!"
-$localPath = "C:\Users\Atendimento\Documents\01VISUALSTUDIO_OFICIAL\sistema\wgeasy\frontend\dist"
+$localPath = "E:\sistema\20260105-wgeasy\frontend\dist"
 $remotePath = "/public_html"
 
 Write-Host "========================================" -ForegroundColor Cyan

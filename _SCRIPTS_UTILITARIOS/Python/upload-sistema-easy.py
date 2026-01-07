@@ -12,7 +12,7 @@ FTP_HOST = "147.93.64.151"
 FTP_USER = "u968231423.wgalmeida.com.br"
 FTP_PASS = "130300@" + "$" + "Wg"
 
-SISTEMA_DIST = r"C:\Users\Atendimento\Documents\01VISUALSTUDIO_OFICIAL\sistema\wgeasy\frontend\dist"
+SISTEMA_DIST = r"E:\sistema\20260105-wgeasy\frontend\dist"
 REMOTE_PATH = "/public_html/easy"
 
 def conectar():
