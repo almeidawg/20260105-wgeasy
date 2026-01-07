@@ -97,26 +97,26 @@ export default function NovoPedidoPage() {
       setCarregandoClienteInicial(true);
 
       if (analiseId) {
-        // Buscar análise de projeto
+        // Buscar análise de projeto (sem join - evita erro de FK)
         const { data: analise, error } = await supabase
           .from("analises_projeto")
-          .select(
-            `
-            id,
-            titulo,
-            cliente_id,
-            endereco_obra,
-            status,
-            total_ambientes,
-            total_area_piso,
-            pessoas!cliente_id(id, nome)
-          `
-          )
+          .select("id, titulo, cliente_id, endereco_obra, status, total_ambientes, total_area_piso")
           .eq("id", analiseId)
           .single();
 
         if (!error && analise) {
-          const clienteNome = (analise.pessoas as any)?.nome || analise.titulo;
+          // Buscar nome do cliente separadamente
+          let clienteNome = analise.titulo;
+          if (analise.cliente_id) {
+            const { data: cliente } = await supabase
+              .from("pessoas")
+              .select("nome")
+              .eq("id", analise.cliente_id)
+              .single();
+            if (cliente?.nome) {
+              clienteNome = cliente.nome;
+            }
+          }
           setClienteSelecionado({
             id: analise.id,
             nome: clienteNome,
@@ -136,15 +136,16 @@ export default function NovoPedidoPage() {
         // Buscar cliente direto
         const { data: cliente, error } = await supabase
           .from("pessoas")
-          .select("id, nome, endereco")
+          .select("id, nome, logradouro, cidade, estado")
           .eq("id", clienteId)
           .single();
 
         if (!error && cliente) {
+          const enderecoFormatado = [cliente.logradouro, cliente.cidade, cliente.estado].filter(Boolean).join(", ");
           setClienteSelecionado({
             id: cliente.id,
             nome: cliente.nome,
-            endereco: cliente.endereco,
+            endereco: enderecoFormatado || undefined,
             origem: "cliente",
           });
           // Avançar para próximo passo automaticamente
@@ -361,7 +362,7 @@ export default function NovoPedidoPage() {
   // SALVAR
   // ============================================================
 
-  async function salvarOrcamento() {
+  async function salvarOrcamento(statusDestino: "rascunho" | "enviado") {
     if (!clienteSelecionado || itensPedido.length === 0) {
       toast({
         title: "Atenção",
@@ -382,7 +383,8 @@ export default function NovoPedidoPage() {
           cliente_id: clienteSelecionado.id,
           cliente_nome: clienteSelecionado.nome,
           endereco_obra: clienteSelecionado.endereco,
-          status: "rascunho",
+          status: statusDestino,
+          enviado_em: statusDestino === "enviado" ? new Date().toISOString() : null,
           valor_total: totais.valorTotal,
           margem: 15,
           tipo: "MATERIAIS_OBRA",
@@ -419,7 +421,7 @@ export default function NovoPedidoPage() {
         description: `${itensParaSalvar.length} itens salvos com sucesso.`,
       });
 
-      navigate("/planejamento");
+      navigate(`/planejamento/orcamentos?status=${statusDestino}`);
     } catch (error: any) {
       console.error("Erro ao salvar:", error);
       toast({
@@ -860,7 +862,7 @@ export default function NovoPedidoPage() {
                 <div className="flex items-center justify-center gap-4">
                   <button
                     type="button"
-                    onClick={salvarOrcamento}
+                    onClick={() => salvarOrcamento("rascunho")}
                     disabled={enviando}
                     className="px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
                   >
@@ -873,7 +875,7 @@ export default function NovoPedidoPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={salvarOrcamento}
+                    onClick={() => salvarOrcamento("enviado")}
                     disabled={enviando}
                     className="px-8 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
                   >

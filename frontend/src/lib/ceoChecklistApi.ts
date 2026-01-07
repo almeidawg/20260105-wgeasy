@@ -107,9 +107,9 @@ export async function obterChecklistDiario(usuarioId: string): Promise<CEOCheckl
     }
   }
 
-  // Ordenar itens por ordem
+  // Ordenar itens por ordem (mais recente primeiro)
   if (checklist?.itens) {
-    checklist.itens.sort((a: CEOChecklistItem, b: CEOChecklistItem) => a.ordem - b.ordem);
+    checklist.itens.sort((a: CEOChecklistItem, b: CEOChecklistItem) => b.ordem - a.ordem);
   }
 
   return checklist;
@@ -190,23 +190,23 @@ export async function adicionarItem(
   checklistId: string,
   item: NovoItemInput
 ): Promise<CEOChecklistItem> {
-  // Buscar próxima ordem (não usar .single() pois pode não haver itens)
+  // Buscar menor ordem (não usar .single() pois pode não haver itens)
   const { data: itensOrdem } = await supabase
     .from("ceo_checklist_itens")
     .select("ordem")
     .eq("checklist_id", checklistId)
-    .order("ordem", { ascending: false })
+    .order("ordem", { ascending: true })
     .limit(1);
 
-  const ultimoItem = itensOrdem?.[0];
-  const proximaOrdem = (ultimoItem?.ordem || 0) + 1;
+  const primeiroItem = itensOrdem?.[0];
+  const ordemInicial = typeof primeiroItem?.ordem === "number" ? primeiroItem.ordem - 1 : 1;
 
   // Montar objeto de insert (criado_por é opcional pois a coluna pode não existir)
   const insertData: Record<string, any> = {
     checklist_id: checklistId,
     texto: item.texto,
     prioridade: item.prioridade || "media",
-    ordem: item.ordem ?? proximaOrdem,
+    ordem: item.ordem ?? ordemInicial,
     fonte: item.fonte || "manual",
     referencia_id: item.referencia_id || null,
   };
@@ -359,19 +359,33 @@ export interface ChecklistMencao {
 }
 
 /**
- * Extrair menções (@nome) do texto
- * Retorna array de nomes mencionados (sem o @)
+ * Extrair menções do texto
+ * Suporta dois formatos:
+ * - @[uuid] - formato do MentionInput (ID direto)
+ * - @nome - formato manual (nome do usuário)
  */
-export function extrairMencoes(texto: string): string[] {
-  const regex = /@([a-zA-ZÀ-ÿ]+(?:\s+[a-zA-ZÀ-ÿ]+)?)/gi;
-  const matches = texto.matchAll(regex);
-  const mencoes: string[] = [];
+export function extrairMencoes(texto: string): { ids: string[]; nomes: string[] } {
+  const ids: string[] = [];
+  const nomes: string[] = [];
 
-  for (const match of matches) {
-    mencoes.push(match[1].toLowerCase());
+  // Formato 1: @[uuid] - ID direto do MentionInput
+  const idRegex = /@\[([^\]]+)\]/g;
+  let match;
+  while ((match = idRegex.exec(texto)) !== null) {
+    ids.push(match[1]);
   }
 
-  return [...new Set(mencoes)]; // Remove duplicatas
+  // Formato 2: @nome - nome manual (excluindo os que já são @[...])
+  const textoSemIds = texto.replace(/@\[[^\]]+\]/g, ""); // Remove @[uuid] para não duplicar
+  const nomeRegex = /@([a-zA-ZÀ-ÿ]+(?:\s+[a-zA-ZÀ-ÿ]+)?)/gi;
+  while ((match = nomeRegex.exec(textoSemIds)) !== null) {
+    nomes.push(match[1].toLowerCase());
+  }
+
+  return {
+    ids: [...new Set(ids)],
+    nomes: [...new Set(nomes)],
+  };
 }
 
 /**
@@ -417,9 +431,13 @@ export async function buscarUsuariosParaMencao(termo: string): Promise<UsuarioPa
 
 /**
  * Buscar usuário por nome (para resolver @menção)
+ * Busca primeiro em usuarios, depois em pessoas (para permitir menções de qualquer pessoa)
  */
 export async function buscarUsuarioPorNome(nome: string): Promise<UsuarioParaMencao | null> {
-  const { data, error } = await supabase
+  const nomeLower = nome.toLowerCase().trim();
+
+  // 1. Primeiro buscar em usuarios (tem login)
+  const { data: usuariosData } = await supabase
     .from("usuarios")
     .select(`
       id,
@@ -432,25 +450,52 @@ export async function buscarUsuarioPorNome(nome: string): Promise<UsuarioParaMen
     `)
     .eq("ativo", true);
 
-  if (error || !data) return null;
+  if (usuariosData && usuariosData.length > 0) {
+    const usuario = usuariosData.find((u: any) => {
+      const nomeUsuario = u.pessoas?.nome?.toLowerCase() || "";
+      const primeiroNome = nomeUsuario.split(" ")[0];
+      // Match primeiro nome, nome parcial ou nome completo
+      return primeiroNome === nomeLower ||
+             nomeUsuario.includes(nomeLower) ||
+             nomeUsuario.startsWith(nomeLower);
+    });
 
-  // Buscar por nome similar (case insensitive, parcial)
-  const nomeLower = nome.toLowerCase();
-  const usuario = data.find((u: any) => {
-    const nomeUsuario = u.pessoas?.nome?.toLowerCase() || "";
-    // Primeiro nome ou nome completo
-    const primeiroNome = nomeUsuario.split(" ")[0];
-    return primeiroNome === nomeLower || nomeUsuario.includes(nomeLower);
-  });
+    if (usuario) {
+      return {
+        id: (usuario as any).id,
+        nome: (usuario as any).pessoas?.nome || "Sem nome",
+        tipo_usuario: (usuario as any).tipo_usuario,
+        avatar_url: (usuario as any).pessoas?.avatar_url || (usuario as any).pessoas?.foto_url || null,
+      };
+    }
+  }
 
-  if (!usuario) return null;
+  // 2. Se não encontrou em usuarios, buscar em pessoas (qualquer pessoa do sistema)
+  const { data: pessoasData } = await supabase
+    .from("pessoas")
+    .select("id, nome, avatar_url, foto_url")
+    .eq("ativo", true);
 
-  return {
-    id: (usuario as any).id,
-    nome: (usuario as any).pessoas?.nome || "Sem nome",
-    tipo_usuario: (usuario as any).tipo_usuario,
-    avatar_url: (usuario as any).pessoas?.avatar_url || (usuario as any).pessoas?.foto_url || null,
-  };
+  if (pessoasData && pessoasData.length > 0) {
+    const pessoa = pessoasData.find((p: any) => {
+      const nomePessoa = p.nome?.toLowerCase() || "";
+      const primeiroNome = nomePessoa.split(" ")[0];
+      return primeiroNome === nomeLower ||
+             nomePessoa.includes(nomeLower) ||
+             nomePessoa.startsWith(nomeLower);
+    });
+
+    if (pessoa) {
+      return {
+        id: pessoa.id,
+        nome: pessoa.nome || "Sem nome",
+        tipo_usuario: "PESSOA" as any, // Marca como pessoa sem login
+        avatar_url: pessoa.avatar_url || pessoa.foto_url || null,
+      };
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -462,31 +507,124 @@ export async function criarMencoesDoItem(
   texto: string,
   autorId: string
 ): Promise<void> {
-  const nomesMencionados = extrairMencoes(texto);
+  const { usuarios, invalidas } = await validarMencoesDoTexto(texto, autorId);
+  if (invalidas.length > 0) {
+    console.warn("[criarMencoesDoItem] Menções inválidas:", invalidas);
+  }
+  await criarMencoesParaUsuarios(itemId, usuarios, texto, autorId);
+}
 
-  if (nomesMencionados.length === 0) return;
+/**
+ * Buscar usuário por ID (para menções @[uuid])
+ */
+async function buscarUsuarioPorId(id: string): Promise<UsuarioParaMencao | null> {
+  // 1. Buscar em usuarios
+  const { data: usuarioData } = await supabase
+    .from("usuarios")
+    .select(`
+      id,
+      tipo_usuario,
+      pessoas:pessoa_id (
+        nome,
+        avatar_url,
+        foto_url
+      )
+    `)
+    .eq("id", id)
+    .eq("ativo", true)
+    .maybeSingle();
 
-  // Resolver cada @nome para um usuário
-  for (const nome of nomesMencionados) {
-    const usuario = await buscarUsuarioPorNome(nome);
+  if (usuarioData) {
+    return {
+      id: usuarioData.id,
+      nome: (usuarioData as any).pessoas?.nome || "Sem nome",
+      tipo_usuario: usuarioData.tipo_usuario,
+      avatar_url: (usuarioData as any).pessoas?.avatar_url || (usuarioData as any).pessoas?.foto_url || null,
+    };
+  }
 
-    if (usuario && usuario.id !== autorId) {
-      // Criar registro de menção
-      const { error } = await supabase
-        .from("ceo_checklist_mencoes")
-        .insert({
-          item_id: itemId,
-          usuario_mencionado_id: usuario.id,
-          usuario_autor_id: autorId,
-        });
+  // 2. Buscar em pessoas
+  const { data: pessoaData } = await supabase
+    .from("pessoas")
+    .select("id, nome, avatar_url, foto_url")
+    .eq("id", id)
+    .eq("ativo", true)
+    .maybeSingle();
 
-      if (error && error.code !== "23505") { // Ignora duplicatas
-        console.error("[criarMencoesDoItem] Erro ao criar menção:", error);
-      }
+  if (pessoaData) {
+    return {
+      id: pessoaData.id,
+      nome: pessoaData.nome || "Sem nome",
+      tipo_usuario: "PESSOA" as any,
+      avatar_url: pessoaData.avatar_url || pessoaData.foto_url || null,
+    };
+  }
 
-      // Criar a tarefa no checklist do usuário mencionado também
-      await criarTarefaParaMencionado(usuario.id, texto, autorId, itemId);
+  return null;
+}
+
+async function validarMencoesDoTexto(
+  texto: string,
+  autorId: string
+): Promise<{ usuarios: UsuarioParaMencao[]; invalidas: string[] }> {
+  const mencoes = extrairMencoes(texto);
+  const usuarios: UsuarioParaMencao[] = [];
+  const invalidas: string[] = [];
+
+  // Se não tem menções, retornar vazio
+  if (mencoes.ids.length === 0 && mencoes.nomes.length === 0) {
+    return { usuarios, invalidas };
+  }
+
+  // 1. Processar menções por ID (@[uuid] do MentionInput)
+  for (const id of mencoes.ids) {
+    if (id === autorId) continue; // Não mencionar a si mesmo
+    const usuario = await buscarUsuarioPorId(id);
+    if (usuario) {
+      usuarios.push(usuario);
+    } else {
+      invalidas.push(`ID:${id.substring(0, 8)}`);
     }
+  }
+
+  // 2. Processar menções por nome (@nome manual)
+  for (const nome of mencoes.nomes) {
+    const usuario = await buscarUsuarioPorNome(nome);
+    if (!usuario || usuario.id === autorId) {
+      if (!usuario) invalidas.push(nome);
+      continue;
+    }
+    // Evitar duplicatas (caso mesmo usuário mencionado por ID e nome)
+    if (!usuarios.some(u => u.id === usuario.id)) {
+      usuarios.push(usuario);
+    }
+  }
+
+  return { usuarios, invalidas };
+}
+
+async function criarMencoesParaUsuarios(
+  itemId: string,
+  usuarios: UsuarioParaMencao[],
+  texto: string,
+  autorId: string
+): Promise<void> {
+  if (usuarios.length === 0) return;
+
+  for (const usuario of usuarios) {
+    const { error } = await supabase
+      .from("ceo_checklist_mencoes")
+      .insert({
+        item_id: itemId,
+        usuario_mencionado_id: usuario.id,
+        usuario_autor_id: autorId,
+      });
+
+    if (error && error.code !== "23505") {
+      console.error("[criarMencoesDoItem] Erro ao criar menção:", error);
+    }
+
+    await criarTarefaParaMencionado(usuario.id, texto, autorId, itemId);
   }
 }
 
@@ -501,7 +639,7 @@ async function criarTarefaParaMencionado(
 ): Promise<void> {
   const hoje = new Date().toISOString().split("T")[0];
 
-  // Buscar ou criar checklist do usuário mencionado
+  // Buscar ou criar checklist do usuario mencionado
   let { data: checklist } = await supabase
     .from("ceo_checklist_diario")
     .select("id")
@@ -510,7 +648,7 @@ async function criarTarefaParaMencionado(
     .single();
 
   if (!checklist) {
-    // Criar checklist para o usuário
+    // Criar checklist para o usuario
     const { data: novoChecklist, error } = await supabase
       .from("ceo_checklist_diario")
       .insert({ data: hoje, usuario_id: usuarioMencionadoId })
@@ -531,21 +669,18 @@ async function criarTarefaParaMencionado(
     .eq("id", autorId)
     .single();
 
-  const autorNome = (autorData as any)?.pessoas?.nome || "Alguém";
+  const autorNome = (autorData as any)?.pessoas?.nome || "Alguem";
 
   // Criar o item no checklist do mencionado
-  const { error } = await supabase
-    .from("ceo_checklist_itens")
-    .insert({
-      checklist_id: checklist!.id,
-      texto: `📌 ${autorNome}: ${texto}`,
+  try {
+    await adicionarItem(checklist!.id, {
+      texto: `[Alerta] ${autorNome}: ${texto}`,
       prioridade: "alta",
       fonte: "mencao",
       referencia_id: itemOriginalId,
       criado_por: autorId,
     });
-
-  if (error) {
+  } catch (error) {
     console.error("[criarTarefaParaMencionado] Erro ao criar item:", error);
   }
 }
@@ -596,20 +731,34 @@ export async function marcarMencaoComoLida(mencaoId: string): Promise<void> {
 /**
  * Adicionar item com suporte a menções
  * Wrapper do adicionarItem que processa @menções
+ * Menções não encontradas são ignoradas (não bloqueiam a criação)
  */
 export async function adicionarItemComMencoes(
   checklistId: string,
   item: NovoItemInput,
   autorId: string
 ): Promise<CEOChecklistItem> {
+  if (!autorId) {
+    throw new Error("Autor não identificado para validar menções.");
+  }
+
+  const { usuarios, invalidas } = await validarMencoesDoTexto(item.texto, autorId);
+
+  // Apenas log de aviso, não bloqueia a criação
+  if (invalidas.length > 0) {
+    console.warn(`[adicionarItemComMencoes] Menções não encontradas (ignoradas): ${invalidas.join(", ")}`);
+  }
+
   // Criar o item com criado_por incluído diretamente
   const novoItem = await adicionarItem(checklistId, {
     ...item,
     criado_por: autorId,
   });
 
-  // Processar menções no texto
-  await criarMencoesDoItem(novoItem.id, item.texto, autorId);
+  // Processar menções válidas no texto
+  if (usuarios.length > 0) {
+    await criarMencoesParaUsuarios(novoItem.id, usuarios, item.texto, autorId);
+  }
 
   return novoItem;
 }

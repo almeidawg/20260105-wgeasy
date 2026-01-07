@@ -3,23 +3,9 @@
 
 import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import {
-  Package,
-  Truck,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  FileText,
-  Calendar,
-  Phone,
-  MessageSquare,
-  ArrowLeft,
-  ChevronRight,
-  Star,
-  ThumbsUp,
-  Settings,
-} from "lucide-react";
+import { Package, Truck, CheckCircle2, Clock, AlertCircle, FileText, Calendar, Phone, MessageSquare, ArrowLeft, ChevronRight, ThumbsUp, Settings } from "lucide-react";
 import { useImpersonation, ImpersonationBar } from "@/hooks/useImpersonation";
+import WGStarIcon from "@/components/icons/WGStarIcon";
 
 // Dados simulados de entregas/pedidos
 const pedidosEntrega = [
@@ -193,7 +179,7 @@ export default function PosVendasPage() {
               }`}
             >
               <div className="flex items-center gap-2">
-                <Star className="w-4 h-4" />
+                <WGStarIcon className="w-4 h-4" />
                 Avaliações
               </div>
             </button>
@@ -312,7 +298,7 @@ export default function PosVendasPage() {
                           {pedido.avaliacao ? (
                             <div className="flex items-center gap-1">
                               {[...Array(5)].map((_, i) => (
-                                <Star
+                                <WGStarIcon
                                   key={i}
                                   className={`w-4 h-4 ${
                                     i < pedido.avaliacao!
@@ -451,7 +437,7 @@ export default function PosVendasPage() {
                   <p className="text-4xl font-bold text-gray-900">4.8</p>
                   <div className="flex items-center gap-1 mt-1">
                     {[...Array(5)].map((_, i) => (
-                      <Star
+                      <WGStarIcon
                         key={i}
                         className={`w-4 h-4 ${
                           i < 5 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
@@ -534,7 +520,7 @@ export default function PosVendasPage() {
                           <p className="text-xs text-gray-500 mb-2">{pedido.nucleo}</p>
                           <div className="flex items-center gap-1">
                             {[...Array(5)].map((_, i) => (
-                              <Star
+                              <WGStarIcon
                                 key={i}
                                 className={`w-4 h-4 ${
                                   i < pedido.avaliacao!

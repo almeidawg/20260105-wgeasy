@@ -50,6 +50,13 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
   }, [clienteId, contratoId, oportunidadeId]);
 
   async function carregarFotos() {
+    // Validar se temos um contratoId antes de fazer a query
+    if (!contratoId) {
+      setGrupos([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 

@@ -173,14 +173,34 @@ export default function JuridicoDashboardPage() {
 
   const excluirContrato = async (contrato: ContratoAtivo) => {
     const confirmado = window.confirm(
-      `Excluir o contrato ${contrato.numero}? Isso vai marcar como cancelado e remover do dashboard.`
+      `Excluir o contrato ${contrato.numero}? Isso remove o contrato e seus vinculos no juridico.`
     );
     if (!confirmado) return;
 
     try {
+      await supabase
+        .from("juridico_memorial_executivo")
+        .delete()
+        .eq("contrato_id", contrato.id);
+
+      await supabase
+        .from("solicitacoes_cliente")
+        .delete()
+        .eq("contrato_id", contrato.id);
+
+      await supabase
+        .from("notificacoes")
+        .delete()
+        .eq("referencia_id", contrato.id);
+
+      await supabase
+        .from("cobrancas")
+        .delete()
+        .eq("contrato_id", contrato.id);
+
       const { error } = await supabase
         .from("contratos")
-        .update({ status: "cancelado" })
+        .delete()
         .eq("id", contrato.id);
 
       if (error) throw error;

@@ -12,9 +12,9 @@ const WG_COLORS = {
   laranja: "#F25C26",
 
   // Cores por Unidade de Negócio
-  arquitetura: "#5E9B94",  // Verde Mineral
-  engenharia: "#2B4580",   // Azul Técnico
-  marcenaria: "#8B5E3C",   // Marrom Carvalho
+  arquitetura: "#5E9B94", // Verde Mineral
+  engenharia: "#2B4580", // Azul Técnico
+  marcenaria: "#8B5E3C", // Marrom Carvalho
 
   // Cores Neutras Institucionais
   preto: "#2E2E2E",
@@ -25,11 +25,11 @@ const WG_COLORS = {
 
 // Array de cores da marca para as partículas (ordem da jornada)
 const BRAND_COLORS = [
-  WG_COLORS.laranja,      // Ideia
-  WG_COLORS.arquitetura,  // Concepção
-  WG_COLORS.engenharia,   // Estrutura
-  WG_COLORS.marcenaria,   // Materialização
-  WG_COLORS.preto,        // Elegância
+  WG_COLORS.laranja, // Ideia
+  WG_COLORS.arquitetura, // Concepção
+  WG_COLORS.engenharia, // Estrutura
+  WG_COLORS.marcenaria, // Materialização
+  WG_COLORS.preto, // Elegância
 ];
 
 // Componente de partículas animadas com cores da marca
@@ -277,11 +277,12 @@ export default function LoginPage() {
         cpf = cpfDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 
         // Buscar email pelo CPF para garantir login correto
+        // Usa email_contato e ativo (colunas que existem na tabela)
         let usuarioData = null;
 
         const result1 = await supabase
           .from("usuarios")
-          .select("email, email_confirmed, account_status")
+          .select("email_contato, ativo")
           .eq("cpf", cpf)
           .maybeSingle();
 
@@ -290,7 +291,7 @@ export default function LoginPage() {
         } else {
           const result2 = await supabase
             .from("usuarios")
-            .select("email, email_confirmed, account_status")
+            .select("email_contato, ativo")
             .eq("cpf", cpfDigits)
             .maybeSingle();
           usuarioData = result2.data;
@@ -300,32 +301,36 @@ export default function LoginPage() {
           throw new Error("CPF não encontrado no sistema");
         }
 
-        if (!usuarioData.email) {
-          throw new Error("Este CPF não possui email cadastrado. Use o email para entrar.");
+        if (!usuarioData.email_contato) {
+          throw new Error(
+            "Este CPF não possui email cadastrado. Use o email para entrar."
+          );
         }
 
-        if (!usuarioData.email_confirmed) {
-          throw new Error("Email não confirmado. Verifique sua caixa de entrada.");
+        if (!usuarioData.ativo) {
+          throw new Error(
+            "Conta inativa. Entre em contato com o administrador."
+          );
         }
 
-        if (usuarioData.account_status !== "active") {
-          throw new Error("Conta inativa. Entre em contato com o administrador.");
-        }
-
-        email = usuarioData.email;
+        email = usuarioData.email_contato;
       }
 
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password: rawPassword,
-      });
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password: rawPassword,
+        });
 
       if (authError) {
         const invalidCred = authError.message === "Invalid login credentials";
-        throw new Error(invalidCred ? "Email/CPF ou senha incorretos" : authError.message);
+        throw new Error(
+          invalidCred ? "Email/CPF ou senha incorretos" : authError.message
+        );
       }
 
-      const effectiveUser = authData.user || (await supabase.auth.getUser()).data.user;
+      const effectiveUser =
+        authData.user || (await supabase.auth.getUser()).data.user;
 
       if (!effectiveUser?.id) {
         throw new Error("Falha na autenticação");
@@ -333,7 +338,7 @@ export default function LoginPage() {
 
       const { data: usuario, error: usuarioError } = await supabase
         .from("usuarios")
-        .select("id, tipo_usuario, pessoa_id, email, cpf, account_status, email_confirmed")
+        .select("id, tipo_usuario, pessoa_id, email_contato, cpf, ativo")
         .eq("auth_user_id", effectiveUser.id)
         .maybeSingle();
 
@@ -341,42 +346,66 @@ export default function LoginPage() {
         console.error("Erro ao buscar usuario:", usuarioError);
       }
 
-      if (!usuario || usuario.account_status !== "active" || !usuario.email_confirmed) {
+      if (!usuario || !usuario.ativo) {
         await supabase.auth.signOut();
-        throw new Error("Perfil não encontrado ou inativo. Contate o administrador.");
+        throw new Error(
+          "Perfil não encontrado ou inativo. Contate o administrador."
+        );
       }
 
       let redirectUrl = "/";
+      let welcomeMessage = `Bem-vindo! Você é um ${usuario.tipo_usuario}`;
+
       switch (usuario.tipo_usuario) {
         case "MASTER":
-        case "ADMIN":
+          // Founder & CEO - Acesso total + dashboard executivo
           redirectUrl = "/";
+          welcomeMessage = "Bem-vindo, Founder & CEO! 🎯";
+          break;
+        case "ADMIN":
+          // Administrador - Acesso administrativo
+          redirectUrl = "/";
+          welcomeMessage = "Bem-vindo, Administrador!";
+          break;
+        case "COMERCIAL":
+          redirectUrl = "/oportunidades";
+          welcomeMessage = "Bem-vindo ao Comercial!";
+          break;
+        case "ATENDIMENTO":
+          redirectUrl = "/";
+          welcomeMessage = "Bem-vindo ao Atendimento!";
           break;
         case "JURIDICO":
           redirectUrl = "/juridico";
+          welcomeMessage = "Bem-vindo ao Jurídico!";
           break;
         case "FINANCEIRO":
           redirectUrl = "/financeiro";
+          welcomeMessage = "Bem-vindo ao Financeiro!";
           break;
         case "CLIENTE":
           redirectUrl = usuario.pessoa_id
             ? `/wgx?cliente_id=${usuario.pessoa_id}`
             : "/wgx";
+          welcomeMessage = "Bem-vindo à Área do Cliente!";
           break;
         case "FORNECEDOR":
           redirectUrl = "/fornecedor";
+          welcomeMessage = "Bem-vindo, Fornecedor!";
           break;
         case "COLABORADOR":
           redirectUrl = "/colaborador";
+          welcomeMessage = "Bem-vindo, Colaborador!";
           break;
         case "ESPECIFICADOR":
           redirectUrl = "/especificador";
+          welcomeMessage = "Bem-vindo, Especificador!";
           break;
         default:
           redirectUrl = "/";
       }
 
-      setSuccessMessage(`Bem-vindo! Você é um ${usuario.tipo_usuario}`);
+      setSuccessMessage(welcomeMessage);
 
       await new Promise((resolve) => setTimeout(resolve, 1200));
       navigate(redirectUrl);
@@ -399,8 +428,8 @@ export default function LoginPage() {
         options: {
           redirectTo: window.location.origin,
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
+            access_type: "offline",
+            prompt: "consent",
           },
         },
       });
@@ -417,9 +446,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <AnimatePresence>
-        {isLoading && <AuthLoadingScreen />}
-      </AnimatePresence>
+      <AnimatePresence>{isLoading && <AuthLoadingScreen />}</AnimatePresence>
 
       <div
         className="min-h-screen flex items-center justify-center relative overflow-hidden"
@@ -510,7 +537,8 @@ export default function LoginPage() {
                 <motion.div
                   className="absolute inset-0"
                   style={{
-                    background: "linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%)",
+                    background:
+                      "linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%)",
                   }}
                   animate={{
                     x: ["-150%", "150%"],
@@ -526,7 +554,10 @@ export default function LoginPage() {
 
               <h1
                 className="text-2xl font-bold mb-2"
-                style={{ color: WG_COLORS.preto, fontFamily: "Oswald, sans-serif" }}
+                style={{
+                  color: WG_COLORS.preto,
+                  fontFamily: "Oswald, sans-serif",
+                }}
               >
                 Bem-vindo ao WGEasy
               </h1>
@@ -585,19 +616,24 @@ export default function LoginPage() {
                   className={`relative rounded-xl transition-all duration-300`}
                   style={{
                     background: WG_COLORS.cinzaClaro,
-                    border: focusedField === "emailOrCpf"
-                      ? `2px solid ${WG_COLORS.laranja}`
-                      : `1px solid rgba(0, 0, 0, 0.08)`,
-                    boxShadow: focusedField === "emailOrCpf"
-                      ? `0 0 0 3px ${WG_COLORS.laranja}20`
-                      : "none",
+                    border:
+                      focusedField === "emailOrCpf"
+                        ? `2px solid ${WG_COLORS.laranja}`
+                        : `1px solid rgba(0, 0, 0, 0.08)`,
+                    boxShadow:
+                      focusedField === "emailOrCpf"
+                        ? `0 0 0 3px ${WG_COLORS.laranja}20`
+                        : "none",
                   }}
                 >
                   <div className="absolute left-4 top-1/2 -translate-y-1/2">
                     <User
                       className="w-5 h-5 transition-colors duration-300"
                       style={{
-                        color: focusedField === "emailOrCpf" ? WG_COLORS.laranja : WG_COLORS.cinza
+                        color:
+                          focusedField === "emailOrCpf"
+                            ? WG_COLORS.laranja
+                            : WG_COLORS.cinza,
                       }}
                     />
                   </div>
@@ -628,15 +664,6 @@ export default function LoginPage() {
               </motion.div>
 
               {/* Ajuda sobre Email/CPF */}
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.35 }}
-                className="text-[10px] text-center whitespace-nowrap"
-                style={{ color: WG_COLORS.cinza }}
-              >
-                Use seu email ou CPF para entrar (ex: 123.456.789-00)
-              </motion.p>
 
               {/* Campo Senha */}
               <motion.div
@@ -648,19 +675,24 @@ export default function LoginPage() {
                   className={`relative rounded-xl transition-all duration-300`}
                   style={{
                     background: WG_COLORS.cinzaClaro,
-                    border: focusedField === "password"
-                      ? `2px solid ${WG_COLORS.laranja}`
-                      : `1px solid rgba(0, 0, 0, 0.08)`,
-                    boxShadow: focusedField === "password"
-                      ? `0 0 0 3px ${WG_COLORS.laranja}20`
-                      : "none",
+                    border:
+                      focusedField === "password"
+                        ? `2px solid ${WG_COLORS.laranja}`
+                        : `1px solid rgba(0, 0, 0, 0.08)`,
+                    boxShadow:
+                      focusedField === "password"
+                        ? `0 0 0 3px ${WG_COLORS.laranja}20`
+                        : "none",
                   }}
                 >
                   <div className="absolute left-4 top-1/2 -translate-y-1/2">
                     <Lock
                       className="w-5 h-5 transition-colors duration-300"
                       style={{
-                        color: focusedField === "password" ? WG_COLORS.laranja : WG_COLORS.cinza
+                        color:
+                          focusedField === "password"
+                            ? WG_COLORS.laranja
+                            : WG_COLORS.cinza,
                       }}
                     />
                   </div>
@@ -681,7 +713,11 @@ export default function LoginPage() {
                     className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
                     style={{ color: WG_COLORS.cinza }}
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </motion.div>
@@ -693,7 +729,10 @@ export default function LoginPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                whileHover={{ scale: 1.02, boxShadow: `0 15px 40px ${WG_COLORS.laranja}40` }}
+                whileHover={{
+                  scale: 1.02,
+                  boxShadow: `0 15px 40px ${WG_COLORS.laranja}40`,
+                }}
                 whileTap={{ scale: 0.98 }}
                 className="w-full py-4 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50"
                 style={{
@@ -721,12 +760,18 @@ export default function LoginPage() {
             >
               <div
                 className="flex-1 h-px"
-                style={{ background: `linear-gradient(to right, transparent, ${WG_COLORS.cinza}40, transparent)` }}
+                style={{
+                  background: `linear-gradient(to right, transparent, ${WG_COLORS.cinza}40, transparent)`,
+                }}
               />
-              <span style={{ color: WG_COLORS.cinza }} className="text-sm">ou</span>
+              <span style={{ color: WG_COLORS.cinza }} className="text-sm">
+                ou
+              </span>
               <div
                 className="flex-1 h-px"
-                style={{ background: `linear-gradient(to right, transparent, ${WG_COLORS.cinza}40, transparent)` }}
+                style={{
+                  background: `linear-gradient(to right, transparent, ${WG_COLORS.cinza}40, transparent)`,
+                }}
               />
             </motion.div>
 

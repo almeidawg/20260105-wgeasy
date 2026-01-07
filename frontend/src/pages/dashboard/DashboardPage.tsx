@@ -21,6 +21,7 @@ import {
 } from "@/lib/ceoChecklistApi";
 import { obterFraseDoDiaComFallback, type FraseMotivacional } from "@/lib/frasesMotivacionaisApi";
 import GoogleCalendarWidget from "@/components/dashboard/GoogleCalendarWidget";
+import MentionInput from "@/components/common/MentionInput";
 import { useDashboardPessoal } from "@/modules/financeiro-pessoal/hooks";
 import {
   AreaChart,
@@ -36,52 +37,8 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Users,
-  Briefcase,
-  Calendar,
-  ArrowUpRight,
-  ArrowDownRight,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Building2,
-  Hammer,
-  Ruler,
-  FileText,
-  Target,
-  Zap,
-  Star,
-  Bell,
-  ChevronRight,
-  Plus,
-  MoreHorizontal,
-  Activity,
-  Crown,
-  Sparkles,
-  Coffee,
-  Sun,
-  Moon,
-  Sunset,
-  CircleDot,
-  Check,
-  Circle,
-  Loader2,
-  Trash2,
-  Quote,
-  X,
-  AtSign,
-  MessageSquare,
-  ArrowRight,
-  Wallet,
-  CreditCard,
-  PiggyBank,
-  ArrowUpCircle,
-  ArrowDownCircle,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Users, Briefcase, Calendar, ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Building2, Hammer, Ruler, FileText, Target, Zap, Bell, ChevronRight, Plus, MoreHorizontal, Activity, Crown, Sparkles, Coffee, Sun, Moon, Sunset, CircleDot, Check, Circle, Loader2, Trash2, Quote, X, AtSign, MessageSquare, ArrowRight, Wallet, CreditCard, PiggyBank, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import WGStarIcon from "@/components/icons/WGStarIcon";
 
 // Redirecionamento por tipo de usuário
 const REDIRECT_POR_TIPO: Record<string, string> = {
@@ -170,7 +127,9 @@ interface Mencao {
 
 export default function DashboardPage() {
   // VERSÃO 2.0 - Layout com 3 colunas e Dashboard Financeiro
-  console.log('[DashboardPage] VERSÃO 2.0 - NOVO LAYOUT CARREGADO');
+  useEffect(() => {
+    console.log('[DashboardPage] VERSÃO 2.0 - NOVO LAYOUT CARREGADO');
+  }, []);
 
   const navigate = useNavigate();
   const { usuario, loading: loadingUsuario } = useUsuarioLogado();
@@ -311,7 +270,7 @@ export default function DashboardPage() {
             )
           `),
           // Projetos
-          supabase.from("projetos").select("id, status, nucleo, criado_em"),
+          supabase.from("projetos").select("id, status, nucleo, created_at"),
           // Receitas do mês
           supabase.from("financeiro_lancamentos")
             .select("valor")
@@ -397,7 +356,7 @@ export default function DashboardPage() {
         ).length;
         const projetosConcluidos = projetos.filter(p => p.status === 'concluido').length;
         const projetosNovos = projetos.filter(p =>
-          p.criado_em && new Date(p.criado_em) >= new Date(inicioMes)
+          p.created_at && new Date(p.created_at) >= new Date(inicioMes)
         ).length;
 
         // Financeiro
@@ -480,8 +439,8 @@ export default function DashboardPage() {
                 .lt("data_vencimento", fim),
               supabase.from("projetos")
                 .select("id", { count: "exact" })
-                .gte("criado_em", inicio)
-                .lt("criado_em", fim),
+                .gte("created_at", inicio)
+                .lt("created_at", fim),
             ]);
             const receitasMes = (receitasMesResult.data || [])
               .reduce((acc, r) => acc + (r.valor || 0), 0);
@@ -615,7 +574,8 @@ export default function DashboardPage() {
     }
 
     carregarDados();
-  }, [usuario, loadingUsuario]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario?.id, loadingUsuario]);
 
   // Toggle checklist item (persistente)
   const toggleChecklist = useCallback(async (itemId: string) => {
@@ -637,26 +597,31 @@ export default function DashboardPage() {
 
   // Adicionar novo item ao checklist
   const handleAdicionarItem = useCallback(async () => {
-    if (!ceoChecklist?.id || !novoItemTexto.trim()) return;
+    if (!ceoChecklist?.id || !novoItemTexto.trim() || !usuario?.id) return;
 
     setSalvandoItem(true);
     try {
-      const novoItem = await adicionarItemComMencoes(ceoChecklist.id, {
-        texto: novoItemTexto.trim(),
-        prioridade: "media",
-      });
+      const novoItem = await adicionarItemComMencoes(
+        ceoChecklist.id,
+        {
+          texto: novoItemTexto.trim(),
+          prioridade: "media",
+        },
+        usuario.id
+      );
       setCeoChecklist(prev => prev ? {
         ...prev,
-        itens: [...(prev.itens || []), novoItem]
+        itens: [novoItem, ...(prev.itens || [])]
       } : null);
       setNovoItemTexto("");
       setAdicionandoItem(false);
     } catch (err) {
       console.error("Erro ao adicionar item:", err);
+      window.alert(err instanceof Error ? err.message : "Erro ao adicionar item.");
     } finally {
       setSalvandoItem(false);
     }
-  }, [ceoChecklist?.id, novoItemTexto]);
+  }, [ceoChecklist?.id, novoItemTexto, usuario?.id]);
 
   // Remover item do checklist
   const handleRemoverItem = useCallback(async (itemId: string) => {
@@ -686,7 +651,7 @@ export default function DashboardPage() {
       const novoItem = await importarMencaoParaChecklist(ceoChecklist.id, mencao.id, textoTarefa);
       setCeoChecklist(prev => prev ? {
         ...prev,
-        itens: [...(prev.itens || []), novoItem]
+        itens: [novoItem, ...(prev.itens || [])]
       } : null);
 
       // Remover da lista de menções exibidas
@@ -980,35 +945,38 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Input para novo item */}
+            {/* Input para novo item com suporte a menções @ */}
             {adicionandoItem && (
-              <div className="mb-4 flex gap-2">
-                <input
-                  type="text"
+              <div className="mb-4 space-y-2">
+                <MentionInput
                   value={novoItemTexto}
-                  onChange={(e) => setNovoItemTexto(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAdicionarItem()}
-                  placeholder="@eliana fazer entrega... (use @nome)"
-                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-emerald-500"
+                  onChange={setNovoItemTexto}
+                  placeholder="Digite uma tarefa... Use @ para mencionar alguém"
+                  rows={2}
                   autoFocus
+                  onSubmit={handleAdicionarItem}
+                  className="bg-gray-50 border-gray-200 focus:border-emerald-500"
                 />
-                <button
-                  type="button"
-                  onClick={handleAdicionarItem}
-                  disabled={salvandoItem || !novoItemTexto.trim()}
-                  className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 disabled:opacity-50 transition-colors"
-                  title="Salvar tarefa"
-                >
-                  {salvandoItem ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAdicionandoItem(false); setNovoItemTexto(""); }}
-                  className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                  title="Cancelar"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setAdicionandoItem(false); setNovoItemTexto(""); }}
+                    className="px-3 py-1.5 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                    title="Cancelar"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAdicionarItem}
+                    disabled={salvandoItem || !novoItemTexto.trim()}
+                    className="px-3 py-1.5 text-sm bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                    title="Salvar tarefa (Ctrl+Enter)"
+                  >
+                    {salvandoItem ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    Salvar
+                  </button>
+                </div>
               </div>
             )}
 

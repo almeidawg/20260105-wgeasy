@@ -171,7 +171,7 @@ export default function FinanceiroDashboardNew() {
       // Buscar contratos ativos
       const { data: contratos, error: contratosError } = await supabase
         .from("contratos")
-        .select("id, status, valor_total, unidade_negocio, titulo, cliente_id")
+        .select("id, status, valor_total, unidade_negocio, numero, cliente_id")
         .in("status", ["ativo", "em_andamento", "Em Andamento"]);
 
       // Buscar clientes cadastrados (histórico = contratos concluídos antes do sistema)
@@ -355,7 +355,7 @@ export default function FinanceiroDashboardNew() {
 
       // Top projetos
       const topProjetos = (contratos || []).slice(0, 5).map((c) => ({
-        nome: c.titulo || "Projeto",
+        nome: c.numero || "Projeto",
         valor: Number(c.valor_total || 0),
         nucleo: c.unidade_negocio || "Geral",
       }));

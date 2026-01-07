@@ -97,7 +97,6 @@ export async function listarFinanceiro(): Promise<LancamentoFinanceiro[]> {
       .select(`
         *,
         projeto:projetos(nome),
-        contrato:contratos(numero, titulo, unidade_negocio),
         pessoa:pessoas!financeiro_lancamentos_pessoa_id_fkey(nome, tipo),
         cliente_centro_custo:pessoas!financeiro_lancamentos_cliente_centro_custo_id_fkey(id, nome)
       `)
@@ -129,7 +128,6 @@ export async function buscarLancamento(id: string): Promise<LancamentoFinanceiro
     .select(`
       *,
       projeto:projetos(nome),
-      contrato:contratos(numero, titulo),
       pessoa:pessoas!financeiro_lancamentos_pessoa_id_fkey(nome, tipo),
       cliente_centro_custo:pessoas!financeiro_lancamentos_cliente_centro_custo_id_fkey(id, nome)
     `)
@@ -227,7 +225,6 @@ export async function listarFinanceiroPorContrato(contratoId: string): Promise<L
     .select(`
       *,
       projeto:projetos(nome),
-      contrato:contratos(numero, titulo),
       pessoa:pessoas!financeiro_lancamentos_pessoa_id_fkey(nome, tipo)
     `)
     .eq("contrato_id", contratoId)
@@ -250,7 +247,6 @@ export async function listarFinanceiroPorProjeto(projetoId: string): Promise<Lan
     .select(`
       *,
       projeto:projetos(nome),
-      contrato:contratos(numero, titulo),
       pessoa:pessoas!financeiro_lancamentos_pessoa_id_fkey(nome, tipo)
     `)
     .eq("projeto_id", projetoId)

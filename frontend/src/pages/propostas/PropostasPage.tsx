@@ -169,7 +169,7 @@ export default function PropostasPage() {
 
       // Deletar itens da proposta primeiro (por causa da FK)
       const { error: erroItens } = await supabase
-        .from("propostas_itens")
+        .from("proposta_itens")
         .delete()
         .eq("proposta_id", propostaId);
 

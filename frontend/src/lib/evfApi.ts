@@ -82,25 +82,40 @@ export async function atualizarCategoriaConfig(
  * Lista todos os estudos EVF
  */
 export async function listarEstudos(): Promise<EVFEstudoCompleto[]> {
+  // Buscar estudos sem join (evita erro de FK)
   const { data, error } = await supabase
     .from("evf_estudos")
-    .select(`
-      *,
-      analise_projeto:analises_projeto(id, titulo),
-      cliente:pessoas(id, nome)
-    `)
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(`Erro ao listar estudos: ${error.message}`);
+    // Tabela pode não existir - retorna vazio
+    console.warn("EVF: Tabela evf_estudos não disponível:", error.message);
+    return [];
+  }
+
+  if (!data || data.length === 0) return [];
+
+  // Buscar nomes de clientes separadamente
+  const clienteIds = [...new Set(data.map(e => e.cliente_id).filter(Boolean))];
+  let clientesMap: Record<string, string> = {};
+  if (clienteIds.length > 0) {
+    const { data: clientes } = await supabase
+      .from("pessoas")
+      .select("id, nome")
+      .in("id", clienteIds);
+    if (clientes) {
+      clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+    }
   }
 
   // Buscar itens de cada estudo
   const estudosComItens = await Promise.all(
-    (data || []).map(async (estudo) => {
+    data.map(async (estudo) => {
       const itens = await buscarItensEstudo(estudo.id);
       return {
         ...estudo,
+        cliente: estudo.cliente_id ? { id: estudo.cliente_id, nome: clientesMap[estudo.cliente_id] || null } : null,
         itens,
       } as EVFEstudoCompleto;
     })
@@ -558,7 +573,14 @@ export async function buscarEstatisticasEVF(): Promise<{
     .select("valor_total, valor_m2_medio, padrao_acabamento");
 
   if (error) {
-    throw new Error(`Erro ao buscar estatísticas: ${error.message}`);
+    // Tabela pode não existir - retorna valores zerados
+    console.warn("EVF: Tabela evf_estudos não disponível para estatísticas");
+    return {
+      totalEstudos: 0,
+      valorMedioTotal: 0,
+      valorMedioM2: 0,
+      distribuicaoPadrao: { economico: 0, medio_alto: 0, alto_luxo: 0 },
+    };
   }
 
   const estudos = data || [];

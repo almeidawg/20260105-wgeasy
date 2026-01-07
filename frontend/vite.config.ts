@@ -14,7 +14,7 @@ export default defineConfig({
       ),
       "@supabase/supabase-js": path.resolve(
         __dirname,
-        "node_modules/@supabase/supabase-js/dist/module/index.js"
+        "node_modules/@supabase/supabase-js/dist/index.mjs"
       ),
       "react-hook-form": path.resolve(
         __dirname,

@@ -8,7 +8,7 @@ export interface MenuItem {
   path: string;
   icon?: string;
   hoverColor?: string; // Cor personalizada para hover (núcleos)
-  restrictTo?: string; // Restringir item a tipo de usuário específico (ex: "MASTER")
+  restrictTo?: string | string[]; // Restringir item a tipo(s) de usuário específico(s) (ex: "MASTER" ou ["MASTER", "ADMIN"])
 }
 
 export interface MenuSection {
@@ -25,7 +25,8 @@ const wgMenus: MenuSection[] = [
     icon: "📊",
     path: "/", // Clique no título navega direto para o Dashboard
     items: [
-      { label: "Meu Financeiro", path: "/meu-financeiro", icon: "💳", restrictTo: "MASTER" } // Apenas para Founder & CEO
+      { label: "Meu Financeiro", path: "/meu-financeiro", icon: "💳", restrictTo: "MASTER" }, // Apenas para Founder & CEO
+      { label: "Visão Executiva", path: "/dashboard/executivo", icon: "📈", restrictTo: "MASTER" } // Dashboard estratégico CEO
     ]
   },
   {
@@ -166,13 +167,13 @@ const wgMenus: MenuSection[] = [
       { label: "Cadastros Pendentes", path: "/sistema/cadastros-pendentes" },
       { label: "Central de Links", path: "/sistema/central-links" },
       { label: "Central Import/Export", path: "/sistema/importar-exportar" },
-      { label: "Empresas do Grupo WG", path: "/empresas" },
-      { label: "Planta do Sistema", path: "/sistema/planta" },
+      { label: "Empresas do Grupo WG", path: "/empresas", restrictTo: "MASTER" }, // Apenas CEO
+      { label: "Planta do Sistema", path: "/sistema/planta", restrictTo: "MASTER" }, // Apenas CEO
       { label: "Precificação", path: "/sistema/precificacao" },
       { label: "Price List", path: "/pricelist" },
-      { label: "Saúde do Sistema", path: "/sistema/saude" },
+      { label: "Saúde do Sistema", path: "/sistema/saude", restrictTo: "MASTER" }, // Apenas CEO
       { label: "Templates de Checklists", path: "/sistema/checklists" },
-      { label: "Usuários", path: "/usuarios" }
+      { label: "Usuários", path: "/usuarios", restrictTo: ["MASTER", "ADMIN"] } // MASTER e ADMIN podem gerenciar usuários
     ]
   },
   {

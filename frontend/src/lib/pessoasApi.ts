@@ -6,6 +6,7 @@ import { supabase } from "./supabaseClient";
 import type {
   Pessoa,
   PessoaTipo,
+  PessoaStatus,
   PessoaInput,
   PessoaDocumento,
   PessoaAvaliacao,
@@ -16,6 +17,7 @@ import type {
 export type {
   Pessoa,
   PessoaTipo,
+  PessoaStatus,
   PessoaInput,
   PessoaDocumento,
   PessoaAvaliacao,
@@ -76,6 +78,7 @@ function mapFromDb(row: any): Pessoa {
     avatar: row.avatar ?? null,
     avatar_url: row.avatar_url ?? null,
     foto_url: row.foto_url ?? null,
+    status: row.status ?? "ativo",
     ativo: row.ativo ?? true,
     criado_em: row.criado_em,
     atualizado_em: row.atualizado_em,
@@ -100,6 +103,8 @@ export async function listarPessoas(params?: {
   tipo?: PessoaTipo;
   ativo?: boolean;
   search?: string;
+  status?: PessoaStatus | PessoaStatus[];
+  incluirConcluidos?: boolean; // Se true, inclui pessoas com status 'concluido'
 }): Promise<Pessoa[]> {
   let query = supabase.from(TABLE).select("*");
 
@@ -109,6 +114,15 @@ export async function listarPessoas(params?: {
 
   if (typeof params?.ativo === "boolean") {
     query = query.eq("ativo", params.ativo);
+  }
+
+  // Filtro de status - exclui pessoas com status 'concluido' por padrão
+  if (params?.status) {
+    if (Array.isArray(params.status)) {
+      query = query.in("status", params.status);
+    } else {
+      query = query.eq("status", params.status);
+    }
   }
 
   if (params?.search && params.search.trim()) {
@@ -322,6 +336,8 @@ export async function listarPessoasComDataVinculo(params?: {
   tipo?: PessoaTipo;
   ativo?: boolean;
   search?: string;
+  status?: PessoaStatus | PessoaStatus[];
+  incluirConcluidos?: boolean;
 }): Promise<(Pessoa & { data_vinculo?: string | null })[]> {
   // Primeiro busca as pessoas
   let query = supabase.from(TABLE).select("*");
@@ -332,6 +348,15 @@ export async function listarPessoasComDataVinculo(params?: {
 
   if (typeof params?.ativo === "boolean") {
     query = query.eq("ativo", params.ativo);
+  }
+
+  // Filtro de status - exclui pessoas com status 'concluido' por padrão
+  if (params?.status) {
+    if (Array.isArray(params.status)) {
+      query = query.in("status", params.status);
+    } else {
+      query = query.eq("status", params.status);
+    }
   }
 
   if (params?.search?.trim()) {
@@ -500,9 +525,9 @@ export async function listarPessoasComDataVinculo(params?: {
     if (clientesSemData.length > 0) {
       const { data: oportunidades, error: oportunidadesError } = await supabase
         .from("oportunidades")
-        .select("cliente_id, created_at")
+        .select("cliente_id, criado_em")
         .in("cliente_id", clientesSemData)
-        .order("created_at", { ascending: true });
+        .order("criado_em", { ascending: true });
 
       if (oportunidadesError) {
         console.error("[listarPessoasComDataVinculo] erro oportunidades:", oportunidadesError);
@@ -510,8 +535,8 @@ export async function listarPessoasComDataVinculo(params?: {
 
       if (oportunidades) {
         for (const oport of oportunidades) {
-          if (oport.cliente_id && !dataVinculoPorPessoa[oport.cliente_id] && oport.created_at) {
-            dataVinculoPorPessoa[oport.cliente_id] = oport.created_at.split('T')[0];
+          if (oport.cliente_id && !dataVinculoPorPessoa[oport.cliente_id] && oport.criado_em) {
+            dataVinculoPorPessoa[oport.cliente_id] = oport.criado_em.split('T')[0];
           }
         }
       }

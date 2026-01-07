@@ -459,21 +459,31 @@ const [novoAmbiente, setNovoAmbiente] = useState({
         const ids = itensPriceList.map((i) => i.id);
         if (ids.length === 0) return;
 
-        // NOVO: Buscar nucleo diretamente via join
+        // Buscar nucleo_id dos itens do pricelist (sem join - evita erro de FK)
         const { data } = await supabase
           .from("pricelist_itens")
-          .select(`
-            id, nucleo_id,
-            nucleo:nucleos!nucleo_id(id, nome)
-          `)
+          .select("id, nucleo_id")
           .in("id", ids);
 
         if (!data) return;
 
+        // Buscar núcleos separadamente
+        const nucleoIds = [...new Set(data.map((i: any) => i.nucleo_id).filter(Boolean))];
+        let nucleosMap: Record<string, string> = {};
+        if (nucleoIds.length > 0) {
+          const { data: nucleos } = await supabase
+            .from("nucleos")
+            .select("id, nome")
+            .in("id", nucleoIds);
+          if (nucleos) {
+            nucleosMap = Object.fromEntries(nucleos.map(n => [n.id, n.nome]));
+          }
+        }
+
         const mapNormalized = new Map<string, NucleoItem>();
         (data as any[]).forEach((row: any) => {
-          // Usar o nome do núcleo do join
-          const nomeNucleo: string | undefined = row.nucleo?.nome;
+          // Usar o nome do núcleo do mapa
+          const nomeNucleo: string | undefined = row.nucleo_id ? nucleosMap[row.nucleo_id] : undefined;
           const normalizado = normalizarNucleoItem(nomeNucleo);
           if (normalizado) {
             mapNormalized.set(row.id, normalizado);
@@ -590,14 +600,23 @@ const [novoAmbiente, setNovoAmbiente] = useState({
       }
       // Se vier de uma oportunidade, carregar dados da oportunidade
       else if (oportunidadeId) {
+        // Buscar oportunidade sem join (evita erro de FK)
         const { data: oportunidade } = await supabase
           .from("oportunidades")
-          .select("*, cliente:pessoas!cliente_id(*)")
+          .select("*")
           .eq("id", oportunidadeId)
           .single();
 
-        if (oportunidade?.cliente) {
-          setClienteSelecionado(oportunidade.cliente as any);
+        // Buscar dados do cliente separadamente
+        if (oportunidade?.cliente_id) {
+          const { data: cliente } = await supabase
+            .from("pessoas")
+            .select("*")
+            .eq("id", oportunidade.cliente_id)
+            .single();
+          if (cliente) {
+            setClienteSelecionado(cliente as any);
+          }
         }
       }
       // Se vier com cliente_id diretamente
@@ -620,7 +639,7 @@ const [novoAmbiente, setNovoAmbiente] = useState({
     }
   }
 
-  // Buscar clientes
+  // Buscar clientes (exclui concluídos)
   async function buscarClientes(termo: string) {
     if (!termo || termo.length < 2) {
       setClientesEncontrados([]);
@@ -633,6 +652,7 @@ const [novoAmbiente, setNovoAmbiente] = useState({
         .from("pessoas")
         .select("*")
         .eq("tipo", "CLIENTE")
+        .eq("ativo", true)
         .or(`nome.ilike.*${termo}*,cpf.ilike.*${termo}*,email.ilike.*${termo}*`)
         .limit(5);
 
@@ -2789,7 +2809,7 @@ ${textoContrato.trim()}
       try {
         // Deletar itens antigos
         await supabase
-          .from("propostas_itens")
+          .from("proposta_itens")
           .delete()
           .eq("proposta_id", propostaId);
 
@@ -2814,7 +2834,7 @@ ${textoContrato.trim()}
           }));
 
           await supabase
-            .from("propostas_itens")
+            .from("proposta_itens")
             .insert(itensParaInserir);
 
           console.log(`✅ ${itensProposta.length} itens atualizados`);

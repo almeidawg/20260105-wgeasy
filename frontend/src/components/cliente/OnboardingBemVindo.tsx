@@ -11,27 +11,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  CheckCircle2,
-  Circle,
-  ChevronRight,
-  Building2,
-  Hammer,
-  Paintbrush,
-  Users,
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  FileText,
-  MessageSquare,
-  Calendar,
-  Star,
-  Heart,
-  Sparkles,
-  ArrowRight,
-  ExternalLink,
-} from "lucide-react";
+import { CheckCircle2, Circle, ChevronRight, Building2, Hammer, Paintbrush, Users, Phone, Mail, MapPin, Clock, FileText, MessageSquare, Calendar, Heart, Sparkles, ArrowRight, ExternalLink } from "lucide-react";
+import WGStarIcon from "@/components/icons/WGStarIcon";
 
 interface OnboardingBemVindoProps {
   clienteId: string;
@@ -141,7 +122,7 @@ export default function OnboardingBemVindo({
           {/* Header com gradiente */}
           <div className="bg-gradient-to-br from-[#5E9B94] via-[#4A8B84] to-[#3A7B74] p-8 text-white text-center">
             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Star className="w-10 h-10 text-white" />
+              <WGStarIcon className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-oswald font-bold mb-2">
               Bem-vindo{nomeCliente ? `, ${nomeCliente}` : ""}!

@@ -405,21 +405,41 @@ export default function ProjectDetailPage() {
     try {
       setLoading(true);
 
-      // Buscar projeto
+      // Buscar projeto (sem join - evita erro de FK)
       const { data: projetoData, error: projetoError } = await supabaseRaw
         .from('projetos')
-        .select(`
-          *,
-          cliente:pessoas!cliente_id(nome, cpf, telefone, email),
-          contrato:contratos!contrato_id(numero, valor_total, dados_imovel_json)
-        `)
+        .select("*")
         .eq('id', projetoId)
         .single();
 
       if (projetoError) throw projetoError;
 
+      // Buscar dados do cliente separadamente
+      let clienteData: any = null;
+      if (projetoData.cliente_id) {
+        const { data: cliente } = await supabaseRaw
+          .from("pessoas")
+          .select("nome, cpf, telefone, email")
+          .eq("id", projetoData.cliente_id)
+          .single();
+        clienteData = cliente;
+      }
+      projetoData.cliente = clienteData;
+
+      // Buscar contrato separadamente
+      let contratoData: any = null;
+      if (projetoData.contrato_id) {
+        const { data: contrato } = await supabaseRaw
+          .from("contratos")
+          .select("numero, valor_total, dados_imovel_json")
+          .eq("id", projetoData.contrato_id)
+          .single();
+        contratoData = contrato;
+      }
+      projetoData.contrato = contratoData;
+
       // Montar endereço da obra
-      const dadosImovel = projetoData.contrato?.dados_imovel_json;
+      const dadosImovel = contratoData?.dados_imovel_json;
       let enderecoObra = '';
       if (dadosImovel) {
         const partes = [

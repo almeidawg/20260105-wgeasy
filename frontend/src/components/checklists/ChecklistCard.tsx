@@ -95,6 +95,8 @@ export function ChecklistCard({
   const [mentionSearch, setMentionSearch] = useState("");
   const [mentionPosition, setMentionPosition] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Mapeamento de nomes mencionados para IDs (para converter ao salvar)
+  const [mentionedUsers, setMentionedUsers] = useState<Map<string, string>>(new Map());
 
   // Carregar itens do checklist e usuários
   useEffect(() => {
@@ -102,10 +104,13 @@ export function ChecklistCard({
     loadUsuarios();
   }, [checklist.id]);
 
-  // Carregar lista de usuários para menções
+  // Carregar lista de usuários para menções (usuarios com login + todas as pessoas)
   async function loadUsuarios() {
     try {
-      const { data, error } = await supabase
+      const usuariosMap = new Map<string, { id: string; pessoa_id: string; nome: string; email: string }>();
+
+      // 1. Carregar usuários com login
+      const { data: usuariosData } = await supabase
         .from("usuarios")
         .select(`
           id,
@@ -115,16 +120,40 @@ export function ChecklistCard({
         .eq("ativo", true)
         .limit(100);
 
-      if (error) throw error;
+      if (usuariosData) {
+        usuariosData.forEach((u: any) => {
+          if (u.pessoas?.nome) {
+            usuariosMap.set(u.pessoa_id || u.id, {
+              id: u.id,
+              pessoa_id: u.pessoa_id,
+              nome: u.pessoas.nome,
+              email: u.pessoas.email || "",
+            });
+          }
+        });
+      }
 
-      const usuariosFormatados = (data || []).map((u: any) => ({
-        id: u.id,
-        pessoa_id: u.pessoa_id,
-        nome: u.pessoas?.nome || "Sem nome",
-        email: u.pessoas?.email || "",
-      }));
+      // 2. Carregar todas as pessoas (para permitir menções de qualquer pessoa)
+      const { data: pessoasData } = await supabase
+        .from("pessoas")
+        .select("id, nome, email")
+        .eq("ativo", true)
+        .limit(200);
 
-      setUsuarios(usuariosFormatados);
+      if (pessoasData) {
+        pessoasData.forEach((p: any) => {
+          if (!usuariosMap.has(p.id) && p.nome) {
+            usuariosMap.set(p.id, {
+              id: p.id,
+              pessoa_id: p.id,
+              nome: p.nome,
+              email: p.email || "",
+            });
+          }
+        });
+      }
+
+      setUsuarios(Array.from(usuariosMap.values()));
     } catch (error) {
       console.error("Erro ao carregar usuários:", error);
     }
@@ -195,18 +224,37 @@ export function ChecklistCard({
     setShowMentionDropdown(false);
   }
 
-  // Inserir menção selecionada
+  // Inserir menção selecionada (mostra @Nome, armazena mapeamento para @[uuid])
   function insertMention(usuario: Usuario) {
     const beforeMention = newItemText.substring(0, mentionPosition);
     const afterMention = newItemText.substring(
       mentionPosition + mentionSearch.length + 1
     );
-    const mentionTag = `@[${usuario.pessoa_id}] `;
+    // Mostrar @Nome no input (não o UUID)
+    const mentionDisplay = `@${usuario.nome} `;
 
-    setNewItemText(beforeMention + mentionTag + afterMention);
+    // Armazenar mapeamento nome -> id para converter ao salvar
+    setMentionedUsers((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(usuario.nome.toLowerCase(), usuario.pessoa_id);
+      return newMap;
+    });
+
+    setNewItemText(beforeMention + mentionDisplay + afterMention);
     setShowMentionDropdown(false);
     setMentionSearch("");
     inputRef.current?.focus();
+  }
+
+  // Converter texto com @Nome para @[uuid] antes de salvar
+  function convertNamesToIds(texto: string): string {
+    let result = texto;
+    mentionedUsers.forEach((id, nome) => {
+      // Regex para encontrar @Nome (case insensitive)
+      const regex = new RegExp(`@${nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`, 'gi');
+      result = result.replace(regex, `@[${id}]`);
+    });
+    return result;
   }
 
   // Filtrar usuários para dropdown
@@ -279,11 +327,14 @@ export function ChecklistCard({
       setAddingItem(true);
       const maxOrdem = items.reduce((max, item) => Math.max(max, item.ordem), 0);
 
+      // Converter @Nome para @[uuid] antes de salvar
+      const textoComIds = convertNamesToIds(newItemText.trim());
+
       const { data, error } = await supabase
         .from("checklist_itens")
         .insert({
           checklist_id: checklist.id,
-          texto: newItemText.trim(),
+          texto: textoComIds,
           ordem: maxOrdem + 1,
         })
         .select()
@@ -291,11 +342,12 @@ export function ChecklistCard({
 
       if (error) throw error;
 
-      // Criar notificações para menções
-      await criarNotificacoesMencoes(newItemText.trim(), data.id);
+      // Criar notificações para menções (usar texto com IDs)
+      await criarNotificacoesMencoes(textoComIds, data.id);
 
       setItems((prev) => [...prev, data]);
       setNewItemText("");
+      setMentionedUsers(new Map()); // Limpar mapeamento após salvar
       setShowMentionDropdown(false);
       toast.success("Item adicionado");
       onUpdate?.();

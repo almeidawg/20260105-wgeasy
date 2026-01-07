@@ -398,7 +398,7 @@ export async function listarItensContrato(
 
   if (propostaItemIds.length > 0) {
     const { data: propostasItens, error: propostasItensError } = await supabase
-      .from("propostas_itens")
+      .from("proposta_itens")
       .select("id, nome, descricao, descricao_customizada")
       .in("id", propostaItemIds);
 

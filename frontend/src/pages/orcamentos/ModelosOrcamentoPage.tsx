@@ -7,34 +7,11 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  FileText,
-  ArrowRight,
-  Palette,
-  Hammer,
-  Home,
-  Building2,
-  Sofa,
-  ChefHat,
-  Bath,
-  Bed,
-  Trees,
-  Ruler,
-  HardHat,
-  PenTool,
-  Check,
-  Star,
-  Sparkles,
-  ClipboardList,
-  ShoppingCart,
-  Package,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
+import { FileText, ArrowRight, Palette, Hammer, Home, Building2, Sofa, ChefHat, Bath, Bed, Trees, Ruler, HardHat, PenTool, Check, Sparkles, ClipboardList, ShoppingCart, Package, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { listarAnalises } from "@/lib/analiseProjetoApi";
 import { carregarDadosAnaliseParaOrcamento, gerarListaComprasDeAnalise } from "@/lib/modelosOrcamentoApi";
 import { useToast } from "@/hooks/use-toast";
+import WGStarIcon from "@/components/icons/WGStarIcon";
 
 // Tipos de modelo de orçamento
 interface ModeloOrcamento {
@@ -533,7 +510,7 @@ export default function ModelosOrcamentoPage() {
         {filtroNucleo === "todos" && !buscaModelo && (
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Star className="w-5 h-5 text-amber-500" />
+              <WGStarIcon className="w-5 h-5 text-amber-500" />
               Mais Utilizados
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

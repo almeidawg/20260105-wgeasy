@@ -19,6 +19,7 @@ import {
   Settings,
   Shield,
   Eye,
+  EyeOff,
   Plus,
   Edit,
   Trash2,
@@ -33,9 +34,17 @@ import {
   UserCog,
   Building2,
   Truck,
+  Scale,
+  Coins,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useUsuarioLogado } from "@/hooks/useUsuarioLogado";
+import {
+  usePreviewTipoUsuario,
+  LABELS_TIPO_USUARIO,
+  DESCRICOES_TIPO_USUARIO,
+} from "@/hooks/usePreviewTipoUsuario";
+import type { TipoUsuario } from "@/types/usuarios";
 import {
   listarModulos,
   listarPermissoesTipoUsuario,
@@ -56,11 +65,28 @@ const ICONES_TIPO: Record<string, any> = {
   CLIENTE: User,
   ESPECIFICADOR: UserCog,
   FORNECEDOR: Truck,
+  JURIDICO: Scale,
+  FINANCEIRO: Coins,
 };
+
+// Lista de tipos de usuário para preview
+const TIPOS_PREVIEW: TipoUsuario[] = [
+  "MASTER",
+  "ADMIN",
+  "COMERCIAL",
+  "ATENDIMENTO",
+  "COLABORADOR",
+  "CLIENTE",
+  "ESPECIFICADOR",
+  "FORNECEDOR",
+  "JURIDICO",
+  "FINANCEIRO",
+];
 
 export default function PlantaSistemaPage() {
   const { toast } = useToast();
   const { isMaster, isAdmin, loading: loadingUser } = useUsuarioLogado();
+  const { previewTipo, isPreviewMode, startPreview, stopPreview } = usePreviewTipoUsuario();
 
   const [modulos, setModulos] = useState<ModuloSistema[]>([]);
   const [permissoes, setPermissoes] = useState<Record<string, PermissaoTipoUsuario[]>>({});
@@ -231,6 +257,96 @@ export default function PlantaSistemaPage() {
           </p>
         </div>
       </div>
+
+      {/* Barra de Preview Ativo */}
+      {isPreviewMode && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Eye className="w-5 h-5 text-amber-600" />
+            <div>
+              <p className="font-medium text-amber-800">
+                Modo Preview Ativo: {LABELS_TIPO_USUARIO[previewTipo!]}
+              </p>
+              <p className="text-sm text-amber-600">
+                O menu lateral está exibindo a visão deste tipo de usuário
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={stopPreview}
+            className="border-amber-300 text-amber-700 hover:bg-amber-100"
+          >
+            <EyeOff className="w-4 h-4 mr-2" />
+            Encerrar Preview
+          </Button>
+        </div>
+      )}
+
+      {/* Seção: Visualizar Como */}
+      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Eye className="w-5 h-5 text-blue-600" />
+            Visualizar Como
+          </CardTitle>
+          <CardDescription>
+            Clique em um tipo de usuário para ver como o menu lateral aparece para ele.
+            Útil para validar as permissões configuradas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {TIPOS_PREVIEW.map((tipo) => {
+              const Icone = ICONES_TIPO[tipo] || User;
+              const isActive = previewTipo === tipo;
+
+              return (
+                <button
+                  key={tipo}
+                  type="button"
+                  onClick={() => {
+                    if (isActive) {
+                      stopPreview();
+                    } else {
+                      startPreview(tipo);
+                      toast({
+                        title: `Preview: ${LABELS_TIPO_USUARIO[tipo]}`,
+                        description: "O menu lateral agora mostra a visão deste usuário",
+                      });
+                    }
+                  }}
+                  className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                    isActive
+                      ? "border-blue-500 bg-blue-100 ring-2 ring-blue-300"
+                      : "border-gray-200 hover:border-blue-300 bg-white hover:bg-blue-50"
+                  }`}
+                >
+                  <Icone
+                    className={`w-5 h-5 ${isActive ? "text-blue-600" : "text-gray-500"}`}
+                  />
+                  <span
+                    className={`text-xs font-medium ${
+                      isActive ? "text-blue-700" : "text-gray-600"
+                    }`}
+                  >
+                    {LABELS_TIPO_USUARIO[tipo]}
+                  </span>
+                  {isActive && (
+                    <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0">
+                      Ativo
+                    </Badge>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-500 mt-4">
+            Dica: Quando o preview estiver ativo, navegue pelo sistema para ver exatamente o que cada tipo de usuário pode acessar.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Seleção de Tipo de Usuário */}
       <Card>

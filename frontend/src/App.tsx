@@ -209,6 +209,9 @@ const CategoriasPage = lazy(() => import("@/pages/financeiro/CategoriasPage"));
 const ImportarExtratoPage = lazy(
   () => import("@/pages/financeiro/ImportarExtratoPage")
 );
+const ImportarExtratoBTGPage = lazy(
+  () => import("@/pages/financeiro/ImportarExtratoBTGPage")
+);
 const ConfigFinanceiroPage = lazy(
   () => import("@/pages/financeiro/ConfigFinanceiroPage")
 );
@@ -726,8 +729,9 @@ export default function App() {
                 <MainLayout />
               </ClienteProtectedRoute>
             }
-          >
-            <Route index element={<DashboardPage />} />
+            >
+              <Route index element={<DashboardPage />} />
+              <Route path="/dashboard/executivo" element={<DashboardPage />} />
 
             {/* PESSOAS */}
             <Route
@@ -880,6 +884,12 @@ export default function App() {
             <Route path="/evf/novo" element={<EVFEditorPage />} />
             <Route path="/evf/:id" element={<EVFEditorPage />} />
 
+            {/* COMERCIAL - Redirects para compatibilidade */}
+            <Route
+              path="/comercial/propostas"
+              element={<Navigate replace to="/propostas" />}
+            />
+
             {/* PROPOSTAS - Versão V3 Nova Estrutura (Cliente + Analise + Nucleos) */}
             <Route path="/propostas" element={<PropostasPage />} />
             <Route path="/propostas/nova" element={<PropostaEmissaoPageV3 />} />
@@ -946,6 +956,10 @@ export default function App() {
             <Route
               path="/financeiro/importar-extrato"
               element={<ImportarExtratoPage />}
+            />
+            <Route
+              path="/financeiro/importar-btg"
+              element={<ImportarExtratoBTGPage />}
             />
             <Route
               path="/financeiro/config"

@@ -16,19 +16,33 @@ import type {
 // ============================================================
 
 export async function listarPropostas(): Promise<PropostaCompleta[]> {
+  // Buscar propostas
   const { data, error } = await supabase
     .from("propostas")
-    .select(`
-      *,
-      pessoas!cliente_id(nome)
-    `)
+    .select("*")
     .order("criado_em", { ascending: false });
 
   if (error) throw error;
+  if (!data || data.length === 0) return [];
 
-  return (data || []).map((row: any) => ({
+  // Buscar nomes dos clientes separadamente (evita problema de FK)
+  const clienteIds = [...new Set(data.map(p => p.cliente_id).filter(Boolean))];
+
+  let clientesMap: Record<string, string> = {};
+  if (clienteIds.length > 0) {
+    const { data: clientes } = await supabase
+      .from("pessoas")
+      .select("id, nome")
+      .in("id", clienteIds);
+
+    if (clientes) {
+      clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+    }
+  }
+
+  return data.map((row: any) => ({
     ...row,
-    cliente_nome: row.pessoas?.nome || "Cliente não encontrado",
+    cliente_nome: clientesMap[row.cliente_id] || "Cliente não encontrado",
     itens: [], // Itens carregados separadamente quando necessário
   }));
 }
@@ -37,19 +51,30 @@ export async function buscarProposta(id: string): Promise<PropostaCompleta> {
   // Buscar proposta
   const { data: proposta, error: propostaError } = await supabase
     .from("propostas")
-    .select(`
-      *,
-      pessoas!cliente_id(nome)
-    `)
+    .select("*")
     .eq("id", id)
     .single();
 
   if (propostaError) throw propostaError;
   if (!proposta) throw new Error("Proposta não encontrada");
 
+  // Buscar nome do cliente separadamente
+  let clienteNome = "Cliente não encontrado";
+  if (proposta.cliente_id) {
+    const { data: cliente } = await supabase
+      .from("pessoas")
+      .select("nome")
+      .eq("id", proposta.cliente_id)
+      .single();
+
+    if (cliente) {
+      clienteNome = cliente.nome;
+    }
+  }
+
   // Buscar itens da proposta com JOIN do pricelist para trazer informações completas
   const { data: itens, error: itensError } = await supabase
-    .from("propostas_itens")
+    .from("proposta_itens")
     .select(`
       *,
       pricelist:pricelist_itens!pricelist_item_id(
@@ -61,14 +86,26 @@ export async function buscarProposta(id: string): Promise<PropostaCompleta> {
         tipo,
         unidade,
         nucleo_id,
-        imagem_url,
-        nucleo:nucleos!nucleo_id(id, nome)
+        imagem_url
       )
     `)
     .eq("proposta_id", id)
     .order("ordem", { ascending: true });
 
   if (itensError) throw itensError;
+
+  // Buscar núcleos separadamente (evita erro de FK)
+  const nucleoIds = [...new Set((itens || []).map((i: any) => i.pricelist?.nucleo_id).filter(Boolean))];
+  let nucleosMap: Record<string, string> = {};
+  if (nucleoIds.length > 0) {
+    const { data: nucleos } = await supabase
+      .from("nucleos")
+      .select("id, nome")
+      .in("id", nucleoIds);
+    if (nucleos) {
+      nucleosMap = Object.fromEntries(nucleos.map(n => [n.id, n.nome]));
+    }
+  }
 
   // Mesclar dados do item da proposta com dados do pricelist
   const itensCompletos = (itens || []).map((item: any) => ({
@@ -79,8 +116,8 @@ export async function buscarProposta(id: string): Promise<PropostaCompleta> {
     categoria: item.categoria || item.pricelist?.categoria || "",
     tipo: item.tipo || item.pricelist?.tipo || "material",
     unidade: item.unidade || item.pricelist?.unidade || "un",
-    // NOVO: Usar nome do núcleo do join
-    nucleo: item.nucleo || item.pricelist?.nucleo?.nome || undefined,
+    // Usar nome do núcleo do mapa
+    nucleo: item.nucleo || (item.pricelist?.nucleo_id ? nucleosMap[item.pricelist.nucleo_id] : undefined),
     nucleo_id: item.nucleo_id || item.pricelist?.nucleo_id || undefined,
     codigo: item.codigo || item.pricelist?.codigo || "",
     imagem_url: item.imagem_url || item.pricelist?.imagem_url || undefined,
@@ -88,7 +125,7 @@ export async function buscarProposta(id: string): Promise<PropostaCompleta> {
 
   return {
     ...proposta,
-    cliente_nome: proposta.pessoas?.nome || "Cliente não encontrado",
+    cliente_nome: clienteNome,
     itens: itensCompletos,
   };
 }
@@ -164,7 +201,7 @@ export async function criarProposta(
     }));
 
     const { error: itensError } = await supabase
-      .from("propostas_itens")
+      .from("proposta_itens")
       .insert(itensParaInserir);
 
     if (itensError) throw itensError;
@@ -318,7 +355,7 @@ export async function duplicarProposta(id: string): Promise<string> {
     }));
 
     const { error: erroItens } = await supabase
-      .from("propostas_itens")
+      .from("proposta_itens")
       .insert(itensParaCopiar);
 
     if (erroItens) throw erroItens;
@@ -336,7 +373,7 @@ export async function adicionarItemProposta(
   item: PropostaItemInput
 ): Promise<PropostaItem> {
   const { data, error } = await supabase
-    .from("propostas_itens")
+    .from("proposta_itens")
     .insert({
       proposta_id: propostaId,
       pricelist_item_id: item.pricelist_item_id,
@@ -368,7 +405,7 @@ export async function atualizarItemProposta(
   dados: Partial<PropostaItemInput>
 ): Promise<PropostaItem> {
   const { data, error } = await supabase
-    .from("propostas_itens")
+    .from("proposta_itens")
     .update(dados)
     .eq("id", itemId)
     .select()
@@ -382,7 +419,7 @@ export async function atualizarItemProposta(
 
 export async function deletarItemProposta(itemId: string): Promise<void> {
   const { error } = await supabase
-    .from("propostas_itens")
+    .from("proposta_itens")
     .delete()
     .eq("id", itemId);
 
@@ -501,7 +538,7 @@ export async function sincronizarItensComPricelist(): Promise<SincronizacaoResul
 
   // 1. Buscar todos os itens de propostas que têm vínculo com pricelist
   const { data: itensPropostas, error: erroItens } = await supabase
-    .from("propostas_itens")
+    .from("proposta_itens")
     .select("*")
     .not("pricelist_item_id", "is", null);
 
@@ -534,13 +571,25 @@ export async function sincronizarItensComPricelist(): Promise<SincronizacaoResul
       categoria,
       tipo,
       unidade,
-      nucleo_id,
-      nucleo:nucleos!nucleo_id(id, nome)
+      nucleo_id
     `)
     .in("id", pricelistIds);
 
   if (erroPricelist) {
     throw new Error(`Erro ao buscar pricelist: ${erroPricelist.message}`);
+  }
+
+  // Buscar núcleos separadamente (evita erro de FK)
+  const nucleoIds = [...new Set((itensPricelist || []).map((i: any) => i.nucleo_id).filter(Boolean))];
+  let nucleosMap: Record<string, string> = {};
+  if (nucleoIds.length > 0) {
+    const { data: nucleos } = await supabase
+      .from("nucleos")
+      .select("id, nome")
+      .in("id", nucleoIds);
+    if (nucleos) {
+      nucleosMap = Object.fromEntries(nucleos.map(n => [n.id, n.nome]));
+    }
   }
 
   // Criar mapa para acesso rápido
@@ -561,8 +610,8 @@ export async function sincronizarItensComPricelist(): Promise<SincronizacaoResul
       continue;
     }
 
-    // Extrair nome do núcleo do JOIN
-    const nucleoNome = (pricelistItem as any).nucleo?.nome || null;
+    // Buscar nome do núcleo do mapa
+    const nucleoNome = pricelistItem.nucleo_id ? nucleosMap[pricelistItem.nucleo_id] : null;
 
     // Montar objeto de update apenas com campos que existem na tabela
     const dadosUpdate: Record<string, any> = {};
@@ -605,7 +654,7 @@ export async function sincronizarItensComPricelist(): Promise<SincronizacaoResul
     }
 
     const { error: erroUpdate, data: dataUpdate } = await supabase
-      .from("propostas_itens")
+      .from("proposta_itens")
       .update(dadosUpdate)
       .eq("id", itemProposta.id)
       .select();
@@ -658,7 +707,7 @@ export async function sincronizarItensProposta(propostaId: string): Promise<Sinc
 
   // 1. Buscar itens desta proposta que têm vínculo com pricelist
   const { data: itensPropostas, error: erroItens } = await supabase
-    .from("propostas_itens")
+    .from("proposta_itens")
     .select("id, pricelist_item_id, nome")
     .eq("proposta_id", propostaId)
     .not("pricelist_item_id", "is", null);
@@ -679,21 +728,24 @@ export async function sincronizarItensProposta(propostaId: string): Promise<Sinc
 
   const { data: itensPricelist, error: erroPricelist } = await supabase
     .from("pricelist_itens")
-    .select(`
-      id,
-      codigo,
-      nome,
-      descricao,
-      categoria,
-      tipo,
-      unidade,
-      nucleo_id,
-      nucleo:nucleos!nucleo_id(id, nome)
-    `)
+    .select("id, codigo, nome, descricao, categoria, tipo, unidade, nucleo_id")
     .in("id", pricelistIds);
 
   if (erroPricelist) {
     throw new Error(`Erro ao buscar pricelist: ${erroPricelist.message}`);
+  }
+
+  // Buscar núcleos separadamente (evita erro de FK)
+  const nucleoIds = [...new Set((itensPricelist || []).map((i: any) => i.nucleo_id).filter(Boolean))];
+  let nucleosMap: Record<string, string> = {};
+  if (nucleoIds.length > 0) {
+    const { data: nucleos } = await supabase
+      .from("nucleos")
+      .select("id, nome")
+      .in("id", nucleoIds);
+    if (nucleos) {
+      nucleosMap = Object.fromEntries(nucleos.map(n => [n.id, n.nome]));
+    }
   }
 
   const pricelistMap = new Map(
@@ -709,7 +761,7 @@ export async function sincronizarItensProposta(propostaId: string): Promise<Sinc
       continue;
     }
 
-    const nucleoNome = (pricelistItem as any).nucleo?.nome || null;
+    const nucleoNome = pricelistItem.nucleo_id ? nucleosMap[pricelistItem.nucleo_id] : null;
 
     // Atualizar apenas campos essenciais (tipo e nucleo) - com mapeamento
     const dadosUpdate: Record<string, any> = {};
@@ -728,7 +780,7 @@ export async function sincronizarItensProposta(propostaId: string): Promise<Sinc
     }
 
     const { error: erroUpdate } = await supabase
-      .from("propostas_itens")
+      .from("proposta_itens")
       .update(dadosUpdate)
       .eq("id", itemProposta.id);
 

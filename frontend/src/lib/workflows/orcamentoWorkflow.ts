@@ -25,12 +25,10 @@ export async function listarOrcamentosComFiltros(filtros?: {
   cliente_id?: string;
   obra_id?: string;
 }): Promise<OrcamentoCompleto[]> {
+  // Buscar orçamentos sem join (evita erro de FK)
   let query = supabase
     .from("orcamentos")
-    .select(`
-      *,
-      cliente:pessoas!cliente_id(id, nome, email, telefone)
-    `)
+    .select("*")
     .order("criado_em", { ascending: false });
 
   if (filtros?.status && filtros.status.length > 0) {
@@ -48,13 +46,30 @@ export async function listarOrcamentosComFiltros(filtros?: {
   const { data, error } = await query;
 
   if (error) throw error;
+  if (!data || data.length === 0) return [];
 
-  return (data || []).map((o: any) => ({
-    ...o,
-    cliente_nome: o.cliente?.nome,
-    cliente_email: o.cliente?.email,
-    cliente_telefone: o.cliente?.telefone,
-  }));
+  // Buscar dados dos clientes separadamente
+  const clienteIds = [...new Set(data.map(o => o.cliente_id).filter(Boolean))];
+  let clientesMap: Record<string, any> = {};
+  if (clienteIds.length > 0) {
+    const { data: clientes } = await supabase
+      .from("pessoas")
+      .select("id, nome, email, telefone")
+      .in("id", clienteIds);
+    if (clientes) {
+      clientesMap = Object.fromEntries(clientes.map(c => [c.id, c]));
+    }
+  }
+
+  return data.map((o: any) => {
+    const cliente = o.cliente_id ? clientesMap[o.cliente_id] : null;
+    return {
+      ...o,
+      cliente_nome: cliente?.nome,
+      cliente_email: cliente?.email,
+      cliente_telefone: cliente?.telefone,
+    };
+  });
 }
 
 /**
@@ -65,10 +80,7 @@ export async function listarOrcamentosPendentesAprovacao(
 ): Promise<OrcamentoCompleto[]> {
   let query = supabase
     .from("orcamentos")
-    .select(`
-      *,
-      cliente:pessoas!cliente_id(id, nome, email, telefone)
-    `)
+    .select("*")
     .eq("status", "enviado")
     .order("enviado_em", { ascending: false });
 
@@ -79,13 +91,30 @@ export async function listarOrcamentosPendentesAprovacao(
   const { data, error } = await query;
 
   if (error) throw error;
+  if (!data || data.length === 0) return [];
 
-  return (data || []).map((o: any) => ({
-    ...o,
-    cliente_nome: o.cliente?.nome,
-    cliente_email: o.cliente?.email,
-    cliente_telefone: o.cliente?.telefone,
-  }));
+  // Buscar dados dos clientes separadamente
+  const clienteIds = [...new Set(data.map(o => o.cliente_id).filter(Boolean))];
+  let clientesMap: Record<string, any> = {};
+  if (clienteIds.length > 0) {
+    const { data: clientes } = await supabase
+      .from("pessoas")
+      .select("id, nome, email, telefone")
+      .in("id", clienteIds);
+    if (clientes) {
+      clientesMap = Object.fromEntries(clientes.map(c => [c.id, c]));
+    }
+  }
+
+  return data.map((o: any) => {
+    const cliente = o.cliente_id ? clientesMap[o.cliente_id] : null;
+    return {
+      ...o,
+      cliente_nome: cliente?.nome,
+      cliente_email: cliente?.email,
+      cliente_telefone: cliente?.telefone,
+    };
+  });
 }
 
 /**
@@ -96,10 +125,7 @@ export async function buscarOrcamentoPorLink(
 ): Promise<OrcamentoCompleto | null> {
   const { data, error } = await supabase
     .from("orcamentos")
-    .select(`
-      *,
-      cliente:pessoas!cliente_id(id, nome, email, telefone)
-    `)
+    .select("*")
     .eq("link_aprovacao", link_aprovacao)
     .single();
 
@@ -108,14 +134,25 @@ export async function buscarOrcamentoPorLink(
     throw error;
   }
 
-  return data
-    ? {
-        ...data,
-        cliente_nome: (data as any).cliente?.nome,
-        cliente_email: (data as any).cliente?.email,
-        cliente_telefone: (data as any).cliente?.telefone,
-      }
-    : null;
+  if (!data) return null;
+
+  // Buscar dados do cliente separadamente
+  let clienteData: any = null;
+  if (data.cliente_id) {
+    const { data: cliente } = await supabase
+      .from("pessoas")
+      .select("id, nome, email, telefone")
+      .eq("id", data.cliente_id)
+      .single();
+    clienteData = cliente;
+  }
+
+  return {
+    ...data,
+    cliente_nome: clienteData?.nome,
+    cliente_email: clienteData?.email,
+    cliente_telefone: clienteData?.telefone,
+  };
 }
 
 /**
@@ -126,15 +163,23 @@ export async function buscarOrcamentoCompleto(
 ): Promise<OrcamentoCompleto | null> {
   const { data: orcamento, error: orcError } = await supabase
     .from("orcamentos")
-    .select(`
-      *,
-      cliente:pessoas!cliente_id(id, nome, email, telefone)
-    `)
+    .select("*")
     .eq("id", id)
     .single();
 
   if (orcError) throw orcError;
   if (!orcamento) return null;
+
+  // Buscar dados do cliente separadamente
+  let clienteData: any = null;
+  if (orcamento.cliente_id) {
+    const { data: cliente } = await supabase
+      .from("pessoas")
+      .select("id, nome, email, telefone")
+      .eq("id", orcamento.cliente_id)
+      .single();
+    clienteData = cliente;
+  }
 
   // Buscar itens
   const { data: itens, error: itensError } = await supabase
@@ -156,9 +201,9 @@ export async function buscarOrcamentoCompleto(
 
   return {
     ...orcamento,
-    cliente_nome: (orcamento as any).cliente?.nome,
-    cliente_email: (orcamento as any).cliente?.email,
-    cliente_telefone: (orcamento as any).cliente?.telefone,
+    cliente_nome: clienteData?.nome,
+    cliente_email: clienteData?.email,
+    cliente_telefone: clienteData?.telefone,
     itens: itens || [],
     historico: historico || [],
     total_itens: itens?.length || 0,

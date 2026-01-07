@@ -8,25 +8,10 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import {
-  CheckCircle2,
-  Circle,
-  Clock,
-  ChevronDown,
-  ChevronUp,
-  Ruler,
-  Layers,
-  Scissors,
-  Package,
-  Truck,
-  Hammer,
-  Sparkles,
-  CheckSquare,
-  ShieldCheck,
-  Star,
-} from "lucide-react";
+import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp, Ruler, Layers, Scissors, Package, Truck, Hammer, Sparkles, CheckSquare, ShieldCheck } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import WGStarIcon from "@/components/icons/WGStarIcon";
 
 // Ícones para cada etapa de marcenaria
 const ETAPA_ICONS: Record<number, React.ReactNode> = {
@@ -39,7 +24,7 @@ const ETAPA_ICONS: Record<number, React.ReactNode> = {
   7: <Hammer className="w-5 h-5" />,
   8: <Sparkles className="w-5 h-5" />,
   9: <ShieldCheck className="w-5 h-5" />,
-  10: <Star className="w-5 h-5" />,
+  10: <WGStarIcon className="w-5 h-5" />,
 };
 
 // Descrições resumidas das etapas de marcenaria

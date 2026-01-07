@@ -17,12 +17,12 @@ import {
   Hammer,
   Building2,
   Paintbrush,
-  Star,
   AlertCircle,
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import WGStarIcon from "@/components/icons/WGStarIcon";
 
 interface TimelineClienteProps {
   clienteId: string;
@@ -316,7 +316,7 @@ export default function TimelineCliente({ clienteId, oportunidadeId, contratoId,
                         {/* Ícone de destaque */}
                         {evento.destaque && (
                           <div className="absolute -top-2 -right-2">
-                            <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
+                            <WGStarIcon className="w-5 h-5 text-amber-500 fill-amber-400" />
                           </div>
                         )}
 

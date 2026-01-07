@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "@/auth/AuthContext";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import { PreviewTipoUsuarioProvider } from "@/hooks/usePreviewTipoUsuario";
 
 // SEGURANÇA: Desativa console.log em produção
 import { disableConsoleInProduction } from "@/lib/logger";
@@ -39,7 +40,9 @@ ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <ToastProvider>
       <AuthProvider>
-        <App />
+        <PreviewTipoUsuarioProvider>
+          <App />
+        </PreviewTipoUsuarioProvider>
       </AuthProvider>
     </ToastProvider>
   </React.StrictMode>

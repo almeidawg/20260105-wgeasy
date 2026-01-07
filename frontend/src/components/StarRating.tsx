@@ -1,9 +1,10 @@
+import WGStarIcon from "@/components/icons/WGStarIcon";
 // ============================================================
-// COMPONENTE: Star Rating (Avaliação em Estrelas)
+// COMPONENTE: WGStarIcon Rating (Avaliação em Estrelas)
 // Sistema WG Easy - Exibição de avaliações de produtos
 // ============================================================
 
-import { Star } from "lucide-react";
+
 
 interface StarRatingProps {
   /** Nota média (0-5) */
@@ -57,7 +58,7 @@ export default function StarRating({
       <div className="flex items-center gap-0.5">
         {/* Estrelas cheias */}
         {Array.from({ length: fullStars }).map((_, i) => (
-          <Star
+          <WGStarIcon
             key={`full-${i}`}
             className={`${iconSize} fill-yellow-400 text-yellow-400`}
           />
@@ -66,8 +67,8 @@ export default function StarRating({
         {/* Meia estrela */}
         {hasHalfStar && (
           <div className="relative">
-            <Star className={`${iconSize} text-yellow-400`} />
-            <Star
+            <WGStarIcon className={`${iconSize} text-yellow-400`} />
+            <WGStarIcon
               className={`${iconSize} fill-yellow-400 text-yellow-400 absolute top-0 left-0`}
               style={{ clipPath: "inset(0 50% 0 0)" }}
             />
@@ -76,7 +77,7 @@ export default function StarRating({
 
         {/* Estrelas vazias */}
         {Array.from({ length: emptyStars }).map((_, i) => (
-          <Star
+          <WGStarIcon
             key={`empty-${i}`}
             className={`${iconSize} text-gray-300`}
           />
@@ -115,7 +116,7 @@ export function StarRatingBadge({ rating, totalReviews }: { rating: number; tota
 
   return (
     <div className="inline-flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 rounded-lg px-2.5 py-1">
-      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+      <WGStarIcon className="w-4 h-4 fill-yellow-400 text-yellow-400" />
       <span className="text-sm font-semibold text-gray-700">
         {roundedRating.toFixed(1)}
       </span>

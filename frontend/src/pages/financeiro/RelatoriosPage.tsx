@@ -74,7 +74,7 @@ const RelatoriosPage = () => {
           *,
           categoria:fin_categories(name, kind),
           pessoa:pessoas!financeiro_lancamentos_pessoa_id_fkey(nome),
-          contrato:contratos(numero, titulo)
+          contrato:contratos(numero)
         `)
         .gte('data_competencia', dataInicio)
         .lte('data_competencia', dataFim)

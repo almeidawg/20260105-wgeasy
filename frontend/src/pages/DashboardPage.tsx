@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useUsuarioLogado } from "@/hooks/useUsuarioLogado";
 import {
   obterChecklistDiario,
-  adicionarItem,
+  adicionarItemComMencoes,
   toggleItemConcluido,
   removerItem,
   calcularProgresso,
@@ -115,10 +115,10 @@ interface ContratoAtivo {
   obra?: {
     nome?: string;
     endereco?: string;
-  };
+  } | null;
   cliente?: {
     nome?: string;
-  };
+  } | null;
 }
 
 interface Alerta {
@@ -190,10 +190,14 @@ export default function DashboardPage() {
   const [dadosMensais, setDadosMensais] = useState<any[]>([]);
 
   // Lista de contratos ativos para exibição nos cards
-  const [contratosAtivosList, setContratosAtivosList] = useState<ContratoAtivo[]>([]);
+  const [contratosAtivosList, setContratosAtivosList] = useState<
+    ContratoAtivo[]
+  >([]);
 
   // Estado para expand/collapse dos cards de contratos ativos
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Função para toggle expand/collapse dos cards
   const handleToggleExpand = useCallback((id: string) => {
@@ -278,16 +282,24 @@ export default function DashboardPage() {
           // Clientes ativos
           supabase
             .from("pessoas")
-            .select("id, criado_em", { count: "exact" })
+            .select("id, created_at", { count: "exact" })
             .eq("tipo", "CLIENTE"),
           // Propostas
           supabase
             .from("propostas")
-            .select("id, status, valor_total, criado_em"),
-          // Contratos
-          supabase.from("contratos").select("id, codigo, status, valor_total, nucleo"),
+            .select("id, status, valor_total, created_at"),
+          // Contratos com dados do cliente
+          supabase.from("contratos").select(`
+            id, codigo, status, valor_total, nucleo,
+            cliente:cliente_id (
+              id, nome
+            ),
+            obra:obra_id (
+              id, nome, endereco
+            )
+          `),
           // Projetos
-          supabase.from("projetos").select("id, status, nucleo, criado_em"),
+          supabase.from("projetos").select("id, status, nucleo, created_at"),
           // Receitas do mês
           supabase
             .from("financeiro_lancamentos")
@@ -321,7 +333,7 @@ export default function DashboardPage() {
 
         // Clientes novos este mês
         const clientesNovosMes = clientes.filter(
-          (c) => c.criado_em && new Date(c.criado_em) >= new Date(inicioMes)
+          (c) => c.created_at && new Date(c.created_at) >= new Date(inicioMes)
         ).length;
 
         // Propostas
@@ -362,7 +374,7 @@ export default function DashboardPage() {
           (p) => p.status === "concluido"
         ).length;
         const projetosNovos = projetos.filter(
-          (p) => p.criado_em && new Date(p.criado_em) >= new Date(inicioMes)
+          (p) => p.created_at && new Date(p.created_at) >= new Date(inicioMes)
         ).length;
 
         // Financeiro
@@ -408,6 +420,9 @@ export default function DashboardPage() {
             status: c.status,
             valor_total: c.valor_total,
             nucleo: c.nucleo,
+            // Supabase retorna relações como objeto único ou null
+            cliente: c.cliente as { nome?: string } | null,
+            obra: c.obra as { nome?: string; endereco?: string } | null,
           }));
         setContratosAtivosList(listaContratosAtivos);
 
@@ -452,8 +467,8 @@ export default function DashboardPage() {
                 supabase
                   .from("projetos")
                   .select("id", { count: "exact" })
-                  .gte("criado_em", inicio)
-                  .lt("criado_em", fim),
+                  .gte("created_at", inicio)
+                  .lt("created_at", fim),
               ]);
             const receitasMes = (receitasMesResult.data || []).reduce(
               (acc, r) => acc + (r.valor || 0),
@@ -599,7 +614,8 @@ export default function DashboardPage() {
     }
 
     carregarDados();
-  }, [usuario, loadingUsuario]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario?.id, loadingUsuario]);
 
   // Toggle checklist item (persistente)
   const toggleChecklist = useCallback(
@@ -633,19 +649,31 @@ export default function DashboardPage() {
 
   // Adicionar novo item ao checklist
   const handleAdicionarItem = useCallback(async () => {
-    if (!ceoChecklist?.id || !novoItemTexto.trim()) return;
+    const autorId = usuario?.id;
+    if (!ceoChecklist?.id || !novoItemTexto.trim() || !autorId || autorId.trim() === "") {
+      console.warn("[Checklist] Não foi possível adicionar item: dados incompletos", {
+        checklistId: ceoChecklist?.id,
+        texto: novoItemTexto.trim(),
+        autorId,
+      });
+      return;
+    }
 
     setSalvandoItem(true);
     try {
-      const novoItem = await adicionarItem(ceoChecklist.id, {
-        texto: novoItemTexto.trim(),
-        prioridade: "media",
-      });
+      const novoItem = await adicionarItemComMencoes(
+        ceoChecklist.id,
+        {
+          texto: novoItemTexto.trim(),
+          prioridade: "media",
+        },
+        autorId
+      );
       setCeoChecklist((prev) =>
         prev
           ? {
               ...prev,
-              itens: [...(prev.itens || []), novoItem],
+              itens: [novoItem, ...(prev.itens || [])],
             }
           : null
       );
@@ -653,10 +681,11 @@ export default function DashboardPage() {
       setAdicionandoItem(false);
     } catch (err) {
       console.error("Erro ao adicionar item:", err);
+      window.alert(err instanceof Error ? err.message : "Erro ao adicionar item.");
     } finally {
       setSalvandoItem(false);
     }
-  }, [ceoChecklist?.id, novoItemTexto]);
+  }, [ceoChecklist?.id, novoItemTexto, usuario?.id]);
 
   // Remover item do checklist
   const handleRemoverItem = useCallback(
@@ -700,7 +729,7 @@ export default function DashboardPage() {
           prev
             ? {
                 ...prev,
-                itens: [...(prev.itens || []), novoItem],
+                itens: [novoItem, ...(prev.itens || [])],
               }
             : null
         );
@@ -1059,7 +1088,7 @@ export default function DashboardPage() {
                   type="text"
                   value={novoItemTexto}
                   onChange={(e) => setNovoItemTexto(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAdicionarItem()}
+                  onKeyDown={(e) => e.key === "Enter" && usuario?.id && handleAdicionarItem()}
                   placeholder="@eliana fazer entrega... (use @nome)"
                   className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-emerald-500"
                   autoFocus
@@ -1067,7 +1096,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleAdicionarItem}
-                  disabled={salvandoItem || !novoItemTexto.trim()}
+                  disabled={salvandoItem || !novoItemTexto.trim() || !usuario?.id}
                   className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 disabled:opacity-50 transition-colors"
                   title="Salvar tarefa"
                 >

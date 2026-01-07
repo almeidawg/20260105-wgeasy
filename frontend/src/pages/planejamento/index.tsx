@@ -81,11 +81,30 @@ export default function PlanejamentoDashboard() {
       // Buscar estatísticas de orçamentos
       const { data: orcamentos, error: orcError } = await supabase
         .from("orcamentos")
-        .select("id, titulo, cliente_nome, status, valor_total, criado_em")
+        .select("id, titulo, cliente_id, status, valor_total, criado_em")
         .order("criado_em", { ascending: false })
         .limit(50);
 
       if (orcError) throw orcError;
+
+      // Buscar nomes dos clientes
+      const clienteIds = [...new Set(orcamentos?.map(o => o.cliente_id).filter(Boolean))];
+      let clientesMap: Record<string, string> = {};
+      if (clienteIds.length > 0) {
+        const { data: clientes } = await supabase
+          .from("pessoas")
+          .select("id, nome")
+          .in("id", clienteIds);
+        if (clientes) {
+          clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+        }
+      }
+
+      // Adicionar cliente_nome aos orçamentos
+      const orcamentosComNome = orcamentos?.map(o => ({
+        ...o,
+        cliente_nome: o.cliente_id ? clientesMap[o.cliente_id] || "Cliente não informado" : "Cliente não informado"
+      })) || [];
 
       // Calcular estatísticas
       const emAnalise = orcamentos?.filter(o => o.status === "rascunho").length || 0;
@@ -116,31 +135,36 @@ export default function PlanejamentoDashboard() {
       });
 
       // Últimos orçamentos
-      setOrcamentosRecentes((orcamentos || []).slice(0, 5));
+      setOrcamentosRecentes(orcamentosComNome.slice(0, 5));
 
       // Buscar clientes ativos para Pedidos Rápidos
       const clientesFormatados: ClienteAtivo[] = [];
 
       // Buscar análises de projeto ativas
+      // Buscar análises sem join (evita erro de FK)
       const { data: analises } = await supabase
         .from("analises_projeto")
-        .select(`
-          id,
-          titulo,
-          cliente_id,
-          endereco_obra,
-          status,
-          total_ambientes,
-          total_area_piso,
-          pessoas!cliente_id(id, nome)
-        `)
+        .select("id, titulo, cliente_id, endereco_obra, status, total_ambientes, total_area_piso")
         .in("status", ["analisado", "aprovado", "em_execucao"])
         .order("criado_em", { ascending: false })
         .limit(6);
 
-      if (analises) {
+      if (analises && analises.length > 0) {
+        // Buscar nomes dos clientes separadamente
+        const clienteIds = [...new Set(analises.map(a => a.cliente_id).filter(Boolean))];
+        let clientesMap: Record<string, string> = {};
+        if (clienteIds.length > 0) {
+          const { data: clientes } = await supabase
+            .from("pessoas")
+            .select("id, nome")
+            .in("id", clienteIds);
+          if (clientes) {
+            clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+          }
+        }
+
         for (const a of analises) {
-          const clienteNome = (a.pessoas as any)?.nome || a.titulo;
+          const clienteNome = a.cliente_id ? clientesMap[a.cliente_id] || a.titulo : a.titulo;
           clientesFormatados.push({
             id: a.id,
             nome: clienteNome,

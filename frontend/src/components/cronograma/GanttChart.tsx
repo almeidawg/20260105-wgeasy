@@ -487,12 +487,12 @@ export default function GanttChart({
 
       {/* Container do Gantt com scroll horizontal */}
       <div className={`overflow-auto ${fullscreen ? 'max-h-[calc(100vh-140px)]' : 'max-h-[calc(100vh-300px)] min-h-[500px]'}`}>
-        <div style={{ minWidth: `${totalWidth + 350}px` }}>
+        <div style={{ minWidth: `${totalWidth + 200}px` }}>
           {/* Cabeçalho do Timeline */}
           <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
             {/* Linha 1: Mês/Ano */}
             <div className="flex">
-              <div className="w-[350px] flex-shrink-0 bg-gray-50 px-4 py-2 border-r border-gray-200">
+              <div className="w-[200px] sm:w-[280px] lg:w-[350px] flex-shrink-0 bg-gray-50 px-4 py-2 border-r border-gray-200">
                 <span className="text-xs font-semibold text-gray-700">Descrição do Item</span>
               </div>
               <div className="flex">
@@ -510,7 +510,7 @@ export default function GanttChart({
 
             {/* Linha 2: Número do dia */}
             <div className="flex">
-              <div className="w-[350px] flex-shrink-0 bg-gray-50 px-4 py-0.5 border-r border-gray-200">
+              <div className="w-[200px] sm:w-[280px] lg:w-[350px] flex-shrink-0 bg-gray-50 px-4 py-0.5 border-r border-gray-200">
                 <span className="text-[9px] text-gray-400">Dia</span>
               </div>
               <div className="flex">
@@ -535,7 +535,7 @@ export default function GanttChart({
 
             {/* Linha 3: Dias da semana (S T Q Q S S D) */}
             <div className="flex">
-              <div className="w-[350px] flex-shrink-0 bg-gray-50 px-4 py-0.5 border-r border-gray-200 flex items-center justify-between">
+              <div className="w-[200px] sm:w-[280px] lg:w-[350px] flex-shrink-0 bg-gray-50 px-4 py-0.5 border-r border-gray-200 flex items-center justify-between">
                 <span className="text-[9px] text-gray-400">Data Início → Data Fim</span>
               </div>
               <div className="flex">
@@ -610,7 +610,7 @@ export default function GanttChart({
                 >
                   {/* Coluna de informações */}
                   <div
-                    className="w-[350px] flex-shrink-0 px-3 py-2 border-r border-gray-100 flex items-center gap-2"
+                    className="w-[200px] sm:w-[280px] lg:w-[350px] flex-shrink-0 px-3 py-2 border-r border-gray-100 flex items-center gap-2"
                     style={{ paddingLeft: `${12 + nivel * 20}px` }}
                   >
                     {/* Indicador de arraste (drag handle) */}

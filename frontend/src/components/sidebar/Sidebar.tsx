@@ -4,6 +4,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import wgMenus, { MenuSection, MenuItem } from "@/config/wg-menus";
 import "@/styles/wg-sidebar.css";
 import { useUsuarioLogado } from "@/hooks/useUsuarioLogado";
+import { usePreviewTipoUsuario } from "@/hooks/usePreviewTipoUsuario";
 import {
   LayoutDashboard,
   Users,
@@ -130,12 +131,14 @@ export default function Sidebar({ open = false, onToggle }: SidebarProps) {
   // começa recolhido por padrão
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const { usuario } = useUsuarioLogado();
+  const { previewTipo, isPreviewMode } = usePreviewTipoUsuario();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Filtrar menus baseado no tipo de usuário
+  // Filtrar menus baseado no tipo de usuário (ou tipo de preview se ativo)
   const sortedMenus = useMemo(() => {
-    const tipoUsuario = usuario?.tipo_usuario;
+    // Usar tipo de preview se ativo, senão usar tipo real do usuário
+    const tipoUsuario = isPreviewMode ? previewTipo : usuario?.tipo_usuario;
 
     // Se for tipo restrito (JURIDICO ou FINANCEIRO), filtrar menus
     if (tipoUsuario && MENU_POR_TIPO[tipoUsuario]) {
@@ -152,13 +155,17 @@ export default function Sidebar({ open = false, onToggle }: SidebarProps) {
       items: section.items.filter((item) => {
         // Se o item tem restrictTo, verificar se o usuário tem permissão
         if (item.restrictTo) {
+          // Suporta string única ou array de strings
+          if (Array.isArray(item.restrictTo)) {
+            return tipoUsuario && item.restrictTo.includes(tipoUsuario);
+          }
           return tipoUsuario === item.restrictTo;
         }
         // Se não tem restrictTo, mostrar para todos
         return true;
       })
     }));
-  }, [usuario?.tipo_usuario]);
+  }, [usuario?.tipo_usuario, previewTipo, isPreviewMode]);
 
   const toggleSection = (section: string, path?: string, hasItems?: boolean) => {
     // Se a seção tiver um path, navega para ele

@@ -125,14 +125,34 @@ export default function MemorialAcabamentosPage() {
 
   async function carregarProjetos() {
     try {
+      // Buscar projetos sem join (evita erro de FK)
       const { data, error } = await supabase
         .from("projetos")
-        .select("id, nome, cliente:pessoas!cliente_id(nome)")
+        .select("id, nome, cliente_id")
         .order("created_at", { ascending: false })
         .limit(100);
 
       if (error) throw error;
-      setProjetos(data || []);
+
+      // Buscar nomes dos clientes separadamente
+      const clienteIds = [...new Set((data || []).map(p => p.cliente_id).filter(Boolean))];
+      let clientesMap: Record<string, string> = {};
+      if (clienteIds.length > 0) {
+        const { data: clientes } = await supabase
+          .from("pessoas")
+          .select("id, nome")
+          .in("id", clienteIds);
+        if (clientes) {
+          clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+        }
+      }
+
+      const projetosComCliente = (data || []).map(p => ({
+        ...p,
+        cliente: { nome: p.cliente_id ? clientesMap[p.cliente_id] : null }
+      }));
+
+      setProjetos(projetosComCliente);
 
       // Se tem projeto na URL, selecionar
       const projetoUrl = searchParams.get("projeto");

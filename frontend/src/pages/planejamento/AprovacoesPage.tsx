@@ -52,29 +52,37 @@ export default function AprovacoesPage() {
       setLoading(true);
       const itensPendentes: ItemPendente[] = [];
 
-      // Buscar orçamentos pendentes (status em elaboração)
+      // Buscar orçamentos pendentes sem join (evita erro de FK)
       const { data: orcamentos, error: errOrc } = await supabase
         .from("orcamentos")
-        .select(`
-          id,
-          titulo,
-          valor_total,
-          criado_em,
-          cliente:pessoas!cliente_id(nome)
-        `)
+        .select("id, titulo, valor_total, criado_em, cliente_id")
         .order("criado_em", { ascending: false })
         .limit(50);
 
-      if (!errOrc && orcamentos) {
+      if (!errOrc && orcamentos && orcamentos.length > 0) {
+        // Buscar nomes dos clientes separadamente
+        const clienteIds = [...new Set(orcamentos.map(o => o.cliente_id).filter(Boolean))];
+        let clientesMap: Record<string, string> = {};
+        if (clienteIds.length > 0) {
+          const { data: clientes } = await supabase
+            .from("pessoas")
+            .select("id, nome")
+            .in("id", clienteIds);
+          if (clientes) {
+            clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+          }
+        }
+
         orcamentos.forEach((orc: any) => {
+          const clienteNome = orc.cliente_id ? clientesMap[orc.cliente_id] : null;
           itensPendentes.push({
             id: orc.id,
             tipo: "orcamento",
             titulo: orc.titulo || "Orçamento sem título",
-            descricao: `Cliente: ${orc.cliente?.nome || "Não informado"}`,
+            descricao: `Cliente: ${clienteNome || "Não informado"}`,
             valor: orc.valor_total || 0,
             data_criacao: orc.criado_em,
-            cliente: orc.cliente?.nome,
+            cliente: clienteNome,
             status: "pendente",
             urgencia: "media",
           });

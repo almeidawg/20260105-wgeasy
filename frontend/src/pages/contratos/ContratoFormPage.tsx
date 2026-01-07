@@ -448,7 +448,7 @@ export default function ContratoFormPage() {
 
           // Buscar itens da proposta
           const { data: itensData } = await supabase
-            .from("propostas_itens")
+            .from("proposta_itens")
             .select("*")
             .eq("proposta_id", propostaId)
             .order("ordem", { ascending: true });

@@ -122,17 +122,26 @@ export default function SuperCronogramaGanttPage() {
     try {
       setLoading(true);
 
-      // Buscar projeto
+      // Buscar projeto (sem join - evita erro de FK)
       const { data: projetoData, error: projetoError } = await supabase
         .from("projetos")
-        .select(`
-          *,
-          cliente:pessoas!cliente_id(nome)
-        `)
+        .select("*")
         .eq("id", projetoId)
         .single();
 
       if (projetoError) throw projetoError;
+
+      // Buscar nome do cliente separadamente
+      let clienteNome = null;
+      if (projetoData.cliente_id) {
+        const { data: cliente } = await supabase
+          .from("pessoas")
+          .select("nome")
+          .eq("id", projetoData.cliente_id)
+          .single();
+        clienteNome = cliente?.nome;
+      }
+      projetoData.cliente = { nome: clienteNome };
 
       // Buscar tarefas
       const { data: tarefasData, error: tarefasError } = await supabase
@@ -523,7 +532,7 @@ export default function SuperCronogramaGanttPage() {
             className="overflow-hidden"
           >
             <div className="max-w-[1920px] mx-auto px-6 py-4">
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: "Valor Total", valor: totaisFinanceiros.valorTotal, cor: "from-blue-500 to-blue-600", icone: DollarSign },
                   { label: "Valor Realizado", valor: totaisFinanceiros.valorRealizado, cor: "from-green-500 to-green-600", icone: CheckCircle2 },
@@ -561,7 +570,7 @@ export default function SuperCronogramaGanttPage() {
           {/* Timeline Header */}
           <div className="flex border-b border-slate-700/50">
             {/* Coluna fixa de tarefas */}
-            <div className="w-[400px] flex-shrink-0 bg-slate-800/80 border-r border-slate-700/50">
+            <div className="w-full md:w-[350px] lg:w-[400px] flex-shrink-0 bg-slate-800/80 border-r border-slate-700/50">
               <div className="h-16 px-4 flex items-center">
                 <span className="text-slate-400 font-medium">Tarefas</span>
               </div>
@@ -606,9 +615,9 @@ export default function SuperCronogramaGanttPage() {
           </div>
 
           {/* Linhas de Tarefas */}
-          <div className="flex">
+          <div className="flex flex-col md:flex-row">
             {/* Coluna fixa de tarefas */}
-            <div className="w-[400px] flex-shrink-0 bg-slate-800/50 border-r border-slate-700/50">
+            <div className="w-full md:w-[350px] lg:w-[400px] flex-shrink-0 bg-slate-800/50 border-r border-slate-700/50">
               {tarefas.map((tarefa, index) => {
                 const cor = getCorCategoria(tarefa.categoria);
                 const temFilhos = tarefas.some((t) => t.parent_id === tarefa.id);

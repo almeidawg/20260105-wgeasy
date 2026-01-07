@@ -27,7 +27,7 @@ export function StepIndicator({
 }: StepIndicatorProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         {passos.map((passo, idx) => {
           const Icone = passo.icone;
           const isAtivo = passoAtual === passo.id;
@@ -35,12 +35,12 @@ export function StepIndicator({
           const podeNavegar = permitirNavegacao && (isCompleto || isAtivo);
 
           return (
-            <div key={passo.id} className="flex items-center flex-1">
+            <div key={passo.id} className="flex items-center flex-1 min-w-0">
               <button
                 type="button"
                 onClick={() => podeNavegar && onPassoClick?.(passo.id)}
                 disabled={!podeNavegar}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all ${
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all w-full ${
                   isAtivo
                     ? "bg-[#F25C26]/10 text-[#F25C26]"
                     : isCompleto
@@ -75,7 +75,7 @@ export function StepIndicator({
 
               {idx < passos.length - 1 && (
                 <div
-                  className={`flex-1 h-0.5 mx-2 ${
+                  className={`hidden sm:block flex-1 h-0.5 mx-2 ${
                     isCompleto ? "bg-green-500" : "bg-gray-200"
                   }`}
                 />

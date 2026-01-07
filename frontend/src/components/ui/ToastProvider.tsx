@@ -63,6 +63,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {/* Container dos toasts */}
       <div className="fixed bottom-4 right-4 z-50 space-y-2">
         {toasts.map((t) => {
+          // Não renderiza toast sem título nem descrição
+          if (!t.title && !t.description) return null;
+
           const tone = t.type === "destructive" ? "error" : t.type ?? t.variant ?? "info";
           return (
           <div

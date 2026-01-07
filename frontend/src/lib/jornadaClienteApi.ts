@@ -153,7 +153,7 @@ async function buscarCardsNucleoDireto(nucleo: Nucleo): Promise<CardNucleo[]> {
     .from("contratos_nucleos")
     .select(`
       *,
-      contrato:contratos(numero, titulo, cliente_id),
+      contrato:contratos(numero, cliente_id),
       oportunidade:oportunidades(titulo, area_total, tipo_projeto, endereco_obra),
       responsavel:pessoas(nome)
     `)
@@ -177,7 +177,7 @@ async function buscarCardsNucleoDireto(nucleo: Nucleo): Promise<CardNucleo[]> {
   return (data || []).map((item: any) => ({
     ...item,
     contrato_numero: item.contrato?.numero,
-    contrato_titulo: item.contrato?.titulo,
+    contrato_titulo: item.contrato?.numero,
     cliente_id: item.contrato?.cliente_id,
     cliente_nome: clientesMap.get(item.contrato?.cliente_id) || null,
     oportunidade_titulo: item.oportunidade?.titulo,
@@ -196,7 +196,7 @@ export async function buscarCardNucleo(cardId: string): Promise<CardNucleo | nul
     .from("contratos_nucleos")
     .select(`
       *,
-      contrato:contratos(numero, titulo, cliente_id),
+      contrato:contratos(numero, cliente_id),
       oportunidade:oportunidades(titulo, area_total, tipo_projeto, endereco_obra),
       responsavel:pessoas(nome)
     `)

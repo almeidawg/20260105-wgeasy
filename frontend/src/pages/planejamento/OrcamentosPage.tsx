@@ -5,7 +5,7 @@
 // ==========================================
 
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { listarOrcamentos, type Orcamento } from "@/lib/orcamentoApi";
 import { formatarMoeda } from "@/lib/utils";
 import { supabaseRaw as supabase } from "@/lib/supabaseClient";
@@ -31,6 +31,7 @@ interface GrupoOrcamentos {
 
 export default function OrcamentosPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [orcamentos, setOrcamentos] = useState<OrcamentoComCliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -50,25 +51,44 @@ export default function OrcamentosPage() {
     carregarOrcamentos();
   }, []);
 
+  useEffect(() => {
+    const statusParam = searchParams.get("status");
+    if (statusParam) {
+      setFiltroStatus(statusParam);
+    }
+  }, [searchParams]);
+
   async function carregarOrcamentos() {
     try {
       setLoading(true);
 
-      // Buscar orçamentos com dados de cliente
+      // Buscar orçamentos sem join (evita erro de FK)
       const { data, error } = await supabase
         .from("orcamentos")
-        .select(
-          `
-          *,
-          cliente:pessoas!cliente_id(nome)
-
-        `
-        )
+        .select("*")
         .order("criado_em", { ascending: false });
 
       if (error) throw error;
 
-      setOrcamentos(data || []);
+      // Buscar nomes dos clientes separadamente
+      const clienteIds = [...new Set((data || []).map(o => o.cliente_id).filter(Boolean))];
+      let clientesMap: Record<string, string> = {};
+      if (clienteIds.length > 0) {
+        const { data: clientes } = await supabase
+          .from("pessoas")
+          .select("id, nome")
+          .in("id", clienteIds);
+        if (clientes) {
+          clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+        }
+      }
+
+      const orcamentosComCliente = (data || []).map(o => ({
+        ...o,
+        cliente: { nome: o.cliente_id ? clientesMap[o.cliente_id] : null }
+      }));
+
+      setOrcamentos(orcamentosComCliente);
     } catch (error) {
       console.error("Erro ao carregar orçamentos:", error);
     } finally {
@@ -92,7 +112,10 @@ export default function OrcamentosPage() {
       orc.cliente?.nome?.toLowerCase().includes(busca.toLowerCase()) ||
       orc.obra?.nome?.toLowerCase().includes(busca.toLowerCase());
 
-    return matchBusca;
+    const matchStatus =
+      filtroStatus === "todos" || orc.status === filtroStatus;
+
+    return matchBusca && matchStatus;
   });
 
   // Agrupar orçamentos por cliente
@@ -159,7 +182,7 @@ export default function OrcamentosPage() {
   }
 
   return (
-    <div className="p-8" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div className="p-4 sm:p-8" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -171,32 +194,54 @@ export default function OrcamentosPage() {
               Gestão de orçamentos e estimativas de projetos
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleNovoOrcamento}
-            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-[#F25C26] text-white rounded-lg hover:bg-[#e04a1a] font-medium flex items-center justify-center gap-2 shadow-md transition-colors whitespace-nowrap shrink-0"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/planejamento/novo")}
+              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-[#F25C26] rounded-lg hover:bg-[#F25C26]/10 font-medium flex items-center justify-center gap-2 shadow-sm transition-colors whitespace-nowrap shrink-0 border border-[#F25C26]"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span>Novo Orçamento</span>
-          </button>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>Novo Pedido</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleNovoOrcamento}
+              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-[#F25C26] text-white rounded-lg hover:bg-[#e04a1a] font-medium flex items-center justify-center gap-2 shadow-md transition-colors whitespace-nowrap shrink-0"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>Novo Or‡amento</span>
+            </button>
+          </div>
         </div>
 
         {/* Filtros e Busca */}
-        <div className="mb-6 bg-white rounded-lg shadow p-4">
+        <div className="mb-6 bg-white rounded-lg shadow p-3 sm:p-4">
           <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-[300px]">
+            <div className="flex-1 min-w-[220px]">
               <input
                 type="text"
                 value={busca}
@@ -308,7 +353,7 @@ export default function OrcamentosPage() {
                 >
                   {/* Header do Grupo (Clicável) */}
                   <div
-                    className="bg-gradient-to-r from-[#F25C26] to-[#e04a1a] p-4 text-white cursor-pointer flex items-center justify-between"
+                    className="bg-gradient-to-r from-[#F25C26] to-[#e04a1a] p-3 sm:p-4 text-white cursor-pointer flex items-center justify-between"
                     onClick={() => toggleGrupo(grupoKey)}
                   >
                     <div className="flex items-center gap-3">
@@ -337,8 +382,8 @@ export default function OrcamentosPage() {
 
                   {/* Lista de Orçamentos do Grupo (Expandível) */}
                   {isExpandido && (
-                    <div className="p-4 bg-gray-50">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="p-3 sm:p-4 bg-gray-50">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         {grupo.orcamentos.map((orcamento) => (
                           <div
                             key={orcamento.id}
@@ -347,7 +392,7 @@ export default function OrcamentosPage() {
                               handleVisualizarOrcamento(orcamento.id)
                             }
                           >
-                            <div className="p-4 space-y-3">
+                            <div className="p-3 sm:p-4 space-y-3">
                               <h4 className="font-semibold text-gray-900 truncate">
                                 {orcamento.titulo || "Sem título"}
                               </h4>
@@ -402,7 +447,7 @@ export default function OrcamentosPage() {
                               </div>
                             </div>
 
-                            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
+                            <div className="px-3 sm:px-4 py-2 bg-gray-50 border-t border-gray-200">
                               <button
                                 type="button"
                                 className="w-full px-3 py-1.5 text-sm font-medium text-[#F25C26] hover:bg-[#F25C26] hover:text-white rounded-lg transition-colors border border-[#F25C26]"
@@ -429,7 +474,7 @@ export default function OrcamentosPage() {
                 onClick={() => handleVisualizarOrcamento(orcamento.id)}
               >
                 {/* Header do Card */}
-                <div className="bg-gradient-to-r from-[#F25C26] to-[#e04a1a] p-4 text-white">
+                <div className="bg-gradient-to-r from-[#F25C26] to-[#e04a1a] p-3 sm:p-4 text-white">
                   <h3 className="font-semibold text-lg mb-1 truncate">
                     {orcamento.titulo || "Sem título"}
                   </h3>
@@ -439,7 +484,7 @@ export default function OrcamentosPage() {
                 </div>
 
                 {/* Conteúdo do Card */}
-                <div className="p-4 space-y-3">
+                <div className="p-3 sm:p-4 space-y-3">
                   {orcamento.obra?.nome && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <svg
@@ -490,7 +535,7 @@ export default function OrcamentosPage() {
                 </div>
 
                 {/* Footer do Card */}
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                <div className="px-3 sm:px-4 py-3 bg-gray-50 border-t border-gray-200">
                   <button
                     type="button"
                     className="w-full px-4 py-2 text-sm font-medium text-[#F25C26] hover:bg-[#F25C26] hover:text-white rounded-lg transition-colors border border-[#F25C26]"
@@ -505,8 +550,8 @@ export default function OrcamentosPage() {
 
         {/* Estatísticas */}
         {orcamentos.length > 0 && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6 border border-gray-200">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-100 rounded-lg">
                   <svg
@@ -532,7 +577,7 @@ export default function OrcamentosPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6 border border-gray-200">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-green-100 rounded-lg">
                   <svg
@@ -563,7 +608,7 @@ export default function OrcamentosPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <div className="bg-white rounded-lg shadow p-4 sm:p-6 border border-gray-200">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-purple-100 rounded-lg">
                   <svg

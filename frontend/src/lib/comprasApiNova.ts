@@ -99,14 +99,10 @@ export interface AdicionarItemData {
  * Listar todos os pedidos de compra
  */
 export async function listarPedidosCompra(): Promise<PedidoCompraCompleto[]> {
+  // Buscar pedidos sem join (evita erro de FK)
   const { data, error } = await supabase
     .from('pedidos_compra')
-    .select(`
-      *,
-      fornecedor:pessoas!fornecedor_id(id, nome, email, telefone),
-      projeto:projetos(id, nome),
-      contrato:contratos(id, numero)
-    `)
+    .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -114,21 +110,63 @@ export async function listarPedidosCompra(): Promise<PedidoCompraCompleto[]> {
     throw error;
   }
 
-  return data as PedidoCompraCompleto[];
+  if (!data || data.length === 0) return [];
+
+  // Buscar fornecedores separadamente
+  const fornecedorIds = [...new Set(data.map(p => p.fornecedor_id).filter(Boolean))];
+  let fornecedoresMap: Record<string, any> = {};
+  if (fornecedorIds.length > 0) {
+    const { data: fornecedores } = await supabase
+      .from('pessoas')
+      .select('id, nome, email, telefone')
+      .in('id', fornecedorIds);
+    if (fornecedores) {
+      fornecedoresMap = Object.fromEntries(fornecedores.map(f => [f.id, f]));
+    }
+  }
+
+  // Buscar projetos separadamente
+  const projetoIds = [...new Set(data.map(p => p.projeto_id).filter(Boolean))];
+  let projetosMap: Record<string, any> = {};
+  if (projetoIds.length > 0) {
+    const { data: projetos } = await supabase
+      .from('projetos')
+      .select('id, nome')
+      .in('id', projetoIds);
+    if (projetos) {
+      projetosMap = Object.fromEntries(projetos.map(p => [p.id, p]));
+    }
+  }
+
+  // Buscar contratos separadamente
+  const contratoIds = [...new Set(data.map(p => p.contrato_id).filter(Boolean))];
+  let contratosMap: Record<string, any> = {};
+  if (contratoIds.length > 0) {
+    const { data: contratos } = await supabase
+      .from('contratos')
+      .select('id, numero')
+      .in('id', contratoIds);
+    if (contratos) {
+      contratosMap = Object.fromEntries(contratos.map(c => [c.id, c]));
+    }
+  }
+
+  return data.map(p => ({
+    ...p,
+    fornecedor: p.fornecedor_id ? fornecedoresMap[p.fornecedor_id] : null,
+    projeto: p.projeto_id ? projetosMap[p.projeto_id] : null,
+    contrato: p.contrato_id ? contratosMap[p.contrato_id] : null,
+  })) as PedidoCompraCompleto[];
 }
 
 /**
  * Buscar pedido por ID
  */
 export async function buscarPedidoCompra(id: string): Promise<PedidoCompraCompleto> {
+  // Buscar pedido sem join (evita erro de FK)
   const { data, error } = await supabase
     .from('pedidos_compra')
-    .select(`
-      *,
-      fornecedor:pessoas!fornecedor_id(id, nome, email, telefone),
-      projeto:projetos(id, nome),
-      contrato:contratos(id, numero)
-    `)
+    .select('*')
     .eq('id', id)
     .single();
 
@@ -137,11 +175,47 @@ export async function buscarPedidoCompra(id: string): Promise<PedidoCompraComple
     throw error;
   }
 
+  // Buscar fornecedor separadamente
+  let fornecedor = null;
+  if (data.fornecedor_id) {
+    const { data: f } = await supabase
+      .from('pessoas')
+      .select('id, nome, email, telefone')
+      .eq('id', data.fornecedor_id)
+      .single();
+    fornecedor = f;
+  }
+
+  // Buscar projeto separadamente
+  let projeto = null;
+  if (data.projeto_id) {
+    const { data: p } = await supabase
+      .from('projetos')
+      .select('id, nome')
+      .eq('id', data.projeto_id)
+      .single();
+    projeto = p;
+  }
+
+  // Buscar contrato separadamente
+  let contrato = null;
+  if (data.contrato_id) {
+    const { data: c } = await supabase
+      .from('contratos')
+      .select('id, numero')
+      .eq('id', data.contrato_id)
+      .single();
+    contrato = c;
+  }
+
   // Buscar itens
   const itens = await listarItensPedido(id);
 
   return {
     ...data,
+    fornecedor,
+    projeto,
+    contrato,
     itens,
   } as PedidoCompraCompleto;
 }
@@ -395,12 +469,10 @@ export async function deletarItemPedido(id: string): Promise<void> {
  * Listar pedidos por projeto
  */
 export async function listarPedidosPorProjeto(projeto_id: string): Promise<PedidoCompraCompleto[]> {
+  // Buscar pedidos sem join (evita erro de FK)
   const { data, error } = await supabase
     .from('pedidos_compra')
-    .select(`
-      *,
-      fornecedor:pessoas!fornecedor_id(id, nome, email, telefone)
-    `)
+    .select('*')
     .eq('projeto_id', projeto_id)
     .order('created_at', { ascending: false });
 
@@ -409,19 +481,35 @@ export async function listarPedidosPorProjeto(projeto_id: string): Promise<Pedid
     throw error;
   }
 
-  return data as PedidoCompraCompleto[];
+  if (!data || data.length === 0) return [];
+
+  // Buscar fornecedores separadamente
+  const fornecedorIds = [...new Set(data.map(p => p.fornecedor_id).filter(Boolean))];
+  let fornecedoresMap: Record<string, any> = {};
+  if (fornecedorIds.length > 0) {
+    const { data: fornecedores } = await supabase
+      .from('pessoas')
+      .select('id, nome, email, telefone')
+      .in('id', fornecedorIds);
+    if (fornecedores) {
+      fornecedoresMap = Object.fromEntries(fornecedores.map(f => [f.id, f]));
+    }
+  }
+
+  return data.map(p => ({
+    ...p,
+    fornecedor: p.fornecedor_id ? fornecedoresMap[p.fornecedor_id] : null,
+  })) as PedidoCompraCompleto[];
 }
 
 /**
  * Listar pedidos por contrato
  */
 export async function listarPedidosPorContrato(contrato_id: string): Promise<PedidoCompraCompleto[]> {
+  // Buscar pedidos sem join (evita erro de FK)
   const { data, error } = await supabase
     .from('pedidos_compra')
-    .select(`
-      *,
-      fornecedor:pessoas!fornecedor_id(id, nome, email, telefone)
-    `)
+    .select('*')
     .eq('contrato_id', contrato_id)
     .order('created_at', { ascending: false });
 
@@ -430,7 +518,25 @@ export async function listarPedidosPorContrato(contrato_id: string): Promise<Ped
     throw error;
   }
 
-  return data as PedidoCompraCompleto[];
+  if (!data || data.length === 0) return [];
+
+  // Buscar fornecedores separadamente
+  const fornecedorIds = [...new Set(data.map(p => p.fornecedor_id).filter(Boolean))];
+  let fornecedoresMap: Record<string, any> = {};
+  if (fornecedorIds.length > 0) {
+    const { data: fornecedores } = await supabase
+      .from('pessoas')
+      .select('id, nome, email, telefone')
+      .in('id', fornecedorIds);
+    if (fornecedores) {
+      fornecedoresMap = Object.fromEntries(fornecedores.map(f => [f.id, f]));
+    }
+  }
+
+  return data.map(p => ({
+    ...p,
+    fornecedor: p.fornecedor_id ? fornecedoresMap[p.fornecedor_id] : null,
+  })) as PedidoCompraCompleto[];
 }
 
 /**

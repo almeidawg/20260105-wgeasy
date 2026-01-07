@@ -78,7 +78,7 @@ function DiarioObraForm({
 
   const selectedClienteId = watch("cliente_id");
 
-  // Carregar clientes ao montar
+  // Carregar clientes ao montar (exclui concluídos)
   useEffect(() => {
     async function loadClientes() {
       try {
@@ -87,6 +87,7 @@ function DiarioObraForm({
           .select("id, nome, drive_link")
           .eq("tipo", "CLIENTE")
           .eq("ativo", true)
+          .eq("status", "ativo")
           .order("nome");
         if (!error) setClientes(data || []);
       } catch (error) {
@@ -103,6 +104,10 @@ function DiarioObraForm({
   // Handler de submit
   async function onSubmit(data: FormData) {
     if (!data.cliente_id) {
+      return;
+    }
+    if (fotos.length > 0 && !temDriveConfigurado) {
+      alert("Cliente sem Google Drive configurado. Cadastre o link do Drive para enviar fotos.");
       return;
     }
 
@@ -252,7 +257,7 @@ function DiarioObraForm({
         <DiarioFotoCapture
           onFotosCapturadas={setFotos}
           fotosExistentes={fotos}
-          disabled={submitting}
+          disabled={submitting || (!!selectedClienteId && !temDriveConfigurado)}
         />
       </div>
 

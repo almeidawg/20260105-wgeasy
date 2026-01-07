@@ -118,15 +118,26 @@ export default function NotificationBell() {
   }, [open]);
 
   async function loadCount() {
-    const total = await contarNotificacoesNaoLidas();
-    setCount(total);
+    try {
+      const total = await contarNotificacoesNaoLidas();
+      setCount(total);
+    } catch (error) {
+      console.warn("Notificações indisponíveis:", error);
+      setCount(0);
+    }
   }
 
   async function loadNotifications() {
     setIsLoading(true);
-    const data = await listarNotificacoesNaoLidas();
-    setNotifications(data);
-    setIsLoading(false);
+    try {
+      const data = await listarNotificacoesNaoLidas();
+      setNotifications(data);
+    } catch (error) {
+      console.warn("Erro ao carregar notificações:", error);
+      setNotifications([]);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function handleMarkAsRead(notif: NotificacaoSistema) {

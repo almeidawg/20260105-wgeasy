@@ -22,21 +22,37 @@ import type {
  * Listar todas as análises de projeto
  */
 export async function listarAnalises(): Promise<AnaliseProjetoCompleta[]> {
+  // Buscar análises sem join (evita erro de FK)
   const { data, error } = await supabase
     .from("analises_projeto")
-    .select(`
-      *,
-      pessoas!cliente_id(nome, email, telefone)
-    `)
+    .select("*")
     .order("criado_em", { ascending: false });
 
   if (error) throw error;
+  if (!data || data.length === 0) return [];
 
-  return (data || []).map((row: any) => ({
+  // Buscar dados dos clientes separadamente
+  const clienteIds = [...new Set(data.map(a => a.cliente_id).filter(Boolean))];
+  let clientesMap: Record<string, { nome: string; email: string; telefone: string }> = {};
+
+  if (clienteIds.length > 0) {
+    const { data: clientes } = await supabase
+      .from("pessoas")
+      .select("id, nome, email, telefone")
+      .in("id", clienteIds);
+
+    if (clientes) {
+      clientesMap = Object.fromEntries(
+        clientes.map(c => [c.id, { nome: c.nome, email: c.email || "", telefone: c.telefone || "" }])
+      );
+    }
+  }
+
+  return data.map((row: any) => ({
     ...row,
-    cliente_nome: row.pessoas?.nome || "Cliente não encontrado",
-    cliente_email: row.pessoas?.email || "",
-    cliente_telefone: row.pessoas?.telefone || "",
+    cliente_nome: row.cliente_id ? clientesMap[row.cliente_id]?.nome || "Cliente não encontrado" : "Cliente não encontrado",
+    cliente_email: row.cliente_id ? clientesMap[row.cliente_id]?.email || "" : "",
+    cliente_telefone: row.cliente_id ? clientesMap[row.cliente_id]?.telefone || "" : "",
     plantas_urls: row.plantas_urls || [],
   }));
 }
@@ -45,22 +61,28 @@ export async function listarAnalises(): Promise<AnaliseProjetoCompleta[]> {
  * Listar análises por cliente
  */
 export async function listarAnalisesPorCliente(clienteId: string): Promise<AnaliseProjetoCompleta[]> {
+  // Buscar análises
   const { data, error } = await supabase
     .from("analises_projeto")
-    .select(`
-      *,
-      pessoas!cliente_id(nome, email, telefone)
-    `)
+    .select("*")
     .eq("cliente_id", clienteId)
     .order("criado_em", { ascending: false });
 
   if (error) throw error;
+  if (!data || data.length === 0) return [];
 
-  return (data || []).map((row: any) => ({
+  // Buscar dados do cliente
+  const { data: cliente } = await supabase
+    .from("pessoas")
+    .select("nome, email, telefone")
+    .eq("id", clienteId)
+    .single();
+
+  return data.map((row: any) => ({
     ...row,
-    cliente_nome: row.pessoas?.nome || "Cliente não encontrado",
-    cliente_email: row.pessoas?.email || "",
-    cliente_telefone: row.pessoas?.telefone || "",
+    cliente_nome: cliente?.nome || "Cliente não encontrado",
+    cliente_email: cliente?.email || "",
+    cliente_telefone: cliente?.telefone || "",
     plantas_urls: row.plantas_urls || [],
   }));
 }
@@ -71,10 +93,7 @@ export async function listarAnalisesPorCliente(clienteId: string): Promise<Anali
 export async function listarAnalisesAprovadas(clienteId?: string): Promise<AnaliseProjetoCompleta[]> {
   let query = supabase
     .from("analises_projeto")
-    .select(`
-      *,
-      pessoas!cliente_id(nome, email, telefone)
-    `)
+    .select("*")
     .in("status", ["analisado", "aprovado"])
     .is("proposta_id", null);
 
@@ -85,10 +104,26 @@ export async function listarAnalisesAprovadas(clienteId?: string): Promise<Anali
   const { data, error } = await query.order("criado_em", { ascending: false });
 
   if (error) throw error;
+  if (!data || data.length === 0) return [];
 
-  return (data || []).map((row: any) => ({
+  // Buscar dados dos clientes separadamente
+  const clienteIds = [...new Set(data.map(a => a.cliente_id).filter(Boolean))];
+  let clientesMap: Record<string, string> = {};
+
+  if (clienteIds.length > 0) {
+    const { data: clientes } = await supabase
+      .from("pessoas")
+      .select("id, nome")
+      .in("id", clienteIds);
+
+    if (clientes) {
+      clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+    }
+  }
+
+  return data.map((row: any) => ({
     ...row,
-    cliente_nome: row.pessoas?.nome || "Cliente não encontrado",
+    cliente_nome: row.cliente_id ? clientesMap[row.cliente_id] || "Cliente não encontrado" : "Cliente não encontrado",
     plantas_urls: row.plantas_urls || [],
   }));
 }
@@ -97,20 +132,41 @@ export async function listarAnalisesAprovadas(clienteId?: string): Promise<Anali
  * Buscar análise por ID (com ambientes)
  */
 export async function buscarAnalise(id: string): Promise<AnaliseProjetoCompleta> {
-  // Buscar análise principal
+  // Buscar análise principal (sem joins)
   const { data: analise, error: analiseError } = await supabase
     .from("analises_projeto")
-    .select(`
-      *,
-      pessoas!cliente_id(nome, email, telefone),
-      oportunidades!oportunidade_id(titulo),
-      propostas!proposta_id(titulo, numero)
-    `)
+    .select("*")
     .eq("id", id)
     .single();
 
   if (analiseError) throw analiseError;
   if (!analise) throw new Error("Análise não encontrada");
+
+  // Buscar dados do cliente separadamente
+  let clienteData: { nome: string; email: string; telefone: string } | null = null;
+  if (analise.cliente_id) {
+    const { data: cliente } = await supabase
+      .from("pessoas")
+      .select("nome, email, telefone")
+      .eq("id", analise.cliente_id)
+      .single();
+    clienteData = cliente;
+  }
+
+  // Buscar dados da proposta separadamente
+  let propostaData: { titulo: string; numero: string } | null = null;
+  if (analise.proposta_id) {
+    const { data: proposta } = await supabase
+      .from("propostas")
+      .select("titulo, numero")
+      .eq("id", analise.proposta_id)
+      .single();
+    propostaData = proposta;
+  }
+
+  // Adicionar dados do cliente e proposta ao objeto
+  (analise as any).pessoas = clienteData;
+  (analise as any).propostas = propostaData;
 
   // Buscar ambientes
   const { data: ambientes, error: ambientesError } = await supabase
@@ -137,12 +193,26 @@ export async function buscarAnalise(id: string): Promise<AnaliseProjetoCompleta>
     console.warn("Tabela de acabamentos não encontrada:", err);
   }
 
+  let oportunidadeTitulo: string | null = null;
+  if (analise.oportunidade_id) {
+    try {
+      const { data: oportunidade } = await supabase
+        .from("oportunidades")
+        .select("titulo")
+        .eq("id", analise.oportunidade_id)
+        .single();
+      oportunidadeTitulo = oportunidade?.titulo || null;
+    } catch (err) {
+      console.warn("Tabela de oportunidades não encontrada:", err);
+    }
+  }
+
   return {
     ...analise,
     cliente_nome: analise.pessoas?.nome || "Cliente não encontrado",
     cliente_email: analise.pessoas?.email || "",
     cliente_telefone: analise.pessoas?.telefone || "",
-    oportunidade_titulo: analise.oportunidades?.titulo || null,
+    oportunidade_titulo: oportunidadeTitulo,
     proposta_titulo: analise.propostas?.titulo || null,
     proposta_numero: analise.propostas?.numero || null,
     plantas_urls: analise.plantas_urls || [],

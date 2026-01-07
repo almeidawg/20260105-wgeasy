@@ -77,9 +77,10 @@ const CobrancasPage = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      // Buscar cobranças sem join (evita erro de FK)
       let query = supabase
         .from('cobrancas')
-        .select(`*, obra:obras!obra_id(nome), contrato:contratos!contrato_id(numero, titulo)`);
+        .select('*');
 
       if (searchTerm) {
         // Buscar por cliente ou observações
@@ -99,13 +100,26 @@ const CobrancasPage = () => {
       const [cobrancasRes, obrasRes, contratosRes] = await Promise.all([
         query,
         supabase.from('obras').select('id, nome'),
-        supabase.from('contratos').select('id, numero, titulo').order('numero', { ascending: false }),
+        supabase.from('contratos').select('id, numero').order('numero', { ascending: false }),
       ]);
 
       if (cobrancasRes.error) throw cobrancasRes.error;
       if (obrasRes.error) throw obrasRes.error;
 
-      setCobrancas(cobrancasRes.data || []);
+      // Criar mapas para lookup
+      const obrasMap: Record<string, string> = {};
+      (obrasRes.data || []).forEach((o: any) => { obrasMap[o.id] = o.nome; });
+      const contratosMap: Record<string, { numero: string }> = {};
+      (contratosRes.data || []).forEach((c: any) => { contratosMap[c.id] = { numero: c.numero }; });
+
+      // Adicionar dados relacionados às cobranças
+      const cobrancasComRelacionados = (cobrancasRes.data || []).map((cob: any) => ({
+        ...cob,
+        obra: cob.obra_id ? { nome: obrasMap[cob.obra_id] } : null,
+        contrato: cob.contrato_id ? contratosMap[cob.contrato_id] : null,
+      }));
+
+      setCobrancas(cobrancasComRelacionados);
       setObras(obrasRes.data || []);
 
     } catch (error: any) {

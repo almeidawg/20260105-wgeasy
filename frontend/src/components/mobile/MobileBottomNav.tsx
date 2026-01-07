@@ -1,66 +1,114 @@
 // ============================================================
-// MobileBottomNav - Navegação inferior para dispositivos móveis
+// MobileBottomNav - Navegacao inferior para dispositivos moveis
 // Sistema WG Easy - Grupo WG Almeida
-// Padrão iOS/Android com safe area e haptic feedback
+// Menu horizontal com rolagem
 // ============================================================
 
+import { useMemo } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-  Building2,
+  BadgeDollarSign,
   FileText,
-  MoreHorizontal,
+  ClipboardList,
+  FolderKanban,
+  CalendarCheck,
+  Coins,
+  Scale,
+  Truck,
+  Circle,
 } from "lucide-react";
+import wgMenus, { MenuSection } from "@/config/wg-menus";
+import { useUsuarioLogado } from "@/hooks/useUsuarioLogado";
 
-interface MobileBottomNavProps {
-  onMoreClick: () => void;
+const MENU_POR_TIPO: Record<string, string[]> = {
+  JURIDICO: ["juridico", "sessao"],
+  FINANCEIRO: ["financeiro", "sessao"],
+};
+
+function normalizeSection(section: string) {
+  return section
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
-const NAV_ITEMS = [
-  {
-    path: "/",
-    label: "Painel",
-    icon: LayoutDashboard,
-    exact: true,
-  },
-  {
-    path: "/pessoas/clientes",
-    label: "CRM",
-    icon: Users,
-    matchPaths: ["/pessoas", "/oportunidades"],
-  },
-  {
-    path: "/cronograma",
-    label: "Obras",
-    icon: Building2,
-    matchPaths: ["/cronograma", "/contratos"],
-  },
-  {
-    path: "/planejamento/orcamentos",
-    label: "Orçamentos",
-    icon: FileText,
-    matchPaths: ["/planejamento", "/orcamentos", "/quantitativos"],
-  },
-];
+function sectionIcon(section: string) {
+  const size = 18;
+  const sectionLower = normalizeSection(section);
 
-export default function MobileBottomNav({ onMoreClick }: MobileBottomNavProps) {
+  switch (sectionLower) {
+    case "dashboard":
+      return <LayoutDashboard size={size} />;
+    case "pessoas":
+      return <Users size={size} />;
+    case "oportunidades":
+      return <BadgeDollarSign size={size} />;
+    case "comercial":
+      return <FileText size={size} />;
+    case "nucleos":
+      return <FolderKanban size={size} />;
+    case "planejamento":
+      return <ClipboardList size={size} />;
+    case "cronograma":
+      return <CalendarCheck size={size} />;
+    case "financeiro":
+      return <Coins size={size} />;
+    case "juridico":
+      return <Scale size={size} />;
+    case "servicos":
+      return <Truck size={size} />;
+    default:
+      return <Circle size={size} />;
+  }
+}
+
+export default function MobileBottomNav() {
   const location = useLocation();
+  const { usuario } = useUsuarioLogado();
 
-  const isActive = (item: typeof NAV_ITEMS[0]) => {
+  const navItems = useMemo(() => {
+    const tipoUsuario = usuario?.tipo_usuario;
+    const allowedSections = tipoUsuario ? MENU_POR_TIPO[tipoUsuario] : null;
+
+    const menus = allowedSections
+      ? wgMenus.filter((section: MenuSection) =>
+          allowedSections.includes(normalizeSection(section.section))
+        )
+      : wgMenus;
+
+    return menus
+      .map((section) => {
+        const path = section.path || section.items[0]?.path;
+        if (!path || path === "/logout") {
+          return null;
+        }
+        return {
+          path,
+          label: section.section,
+          icon: sectionIcon(section.section),
+          exact: path === "/",
+        };
+      })
+      .filter(Boolean) as Array<{
+      path: string;
+      label: string;
+      icon: JSX.Element;
+      exact: boolean;
+    }>;
+  }, [usuario?.tipo_usuario]);
+
+  const isActive = (item: typeof navItems[0]) => {
     if (item.exact) {
       return location.pathname === item.path;
-    }
-    if (item.matchPaths) {
-      return item.matchPaths.some((p) => location.pathname.startsWith(p));
     }
     return location.pathname.startsWith(item.path);
   };
 
   return (
     <nav className="mobile-bottom-nav">
-      {NAV_ITEMS.map((item) => {
-        const Icon = item.icon;
+      {navItems.map((item) => {
         const active = isActive(item);
 
         return (
@@ -69,22 +117,11 @@ export default function MobileBottomNav({ onMoreClick }: MobileBottomNavProps) {
             to={item.path}
             className={`mobile-nav-item ${active ? "active" : ""}`}
           >
-            <Icon size={20} strokeWidth={active ? 2.5 : 2} />
+            {item.icon}
             <span>{item.label}</span>
           </NavLink>
         );
       })}
-
-      {/* Botão Mais */}
-      <button
-        type="button"
-        onClick={onMoreClick}
-        className="mobile-nav-item"
-        aria-label="Mais opções"
-      >
-        <MoreHorizontal size={20} strokeWidth={2} />
-        <span>Mais</span>
-      </button>
     </nav>
   );
 }

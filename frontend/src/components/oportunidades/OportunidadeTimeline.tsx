@@ -19,7 +19,6 @@ import {
   Hammer,
   Building2,
   Paintbrush,
-  Star,
   Eye,
   EyeOff,
   ArrowRight,
@@ -27,6 +26,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { listarTimelineOportunidade, TimelineEvento } from '@/lib/jornadaClienteApi';
+import WGStarIcon from "@/components/icons/WGStarIcon";
 
 interface OportunidadeTimelineProps {
   oportunidadeId?: string;
@@ -162,7 +162,7 @@ export default function OportunidadeTimeline({ oportunidadeId, mostrarTodos = tr
                       evento.destaque ? 'bg-amber-400' : config.bgColor
                     }`}
                   >
-                    {evento.destaque && <Star className="w-3 h-3 text-white" />}
+                    {evento.destaque && <WGStarIcon className="w-3 h-3 text-white" />}
                   </div>
 
                   {/* Card do evento */}

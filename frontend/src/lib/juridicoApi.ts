@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabaseClient";
 
 // =============================================
 // TIPOS DE DADOS
@@ -390,6 +390,247 @@ export async function adicionarMovimentacaoHistorico(
     .select()
     .single();
 
+  if (error) throw error;
+  return data;
+}
+
+// =============================================
+// CONTRATOS - CRUD
+// =============================================
+
+export interface Contrato {
+  id: string;
+  numero_contrato: string;
+  tipo_contrato: string;
+  cliente_id: string;
+  proposta_id?: string;
+  projeto_id?: string;
+  valor_total: number;
+  valor_pago: number;
+  valor_pendente: number;
+  data_assinatura?: string;
+  previsao_inicio?: string;
+  dias_uteis?: number;
+  previsao_termino?: string;
+  data_vencimento?: string;
+  status: string;
+  descricao?: string;
+  objeto?: string;
+  observacoes?: string;
+  arquivo_pdf_url?: string;
+  arquivo_assinado_url?: string;
+  drive_link?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listarContratos(
+  pagination: PaginationParams = {},
+  filters: Partial<Pick<Contrato, "status" | "tipo_contrato" | "cliente_id">> = {},
+  sort: SortParams = {}
+) {
+  const { pageSize = 10, offset = 0 } = pagination;
+  const { status, tipo_contrato, cliente_id } = filters;
+  const { sortBy = "created_at", sortOrder = "desc" } = sort;
+
+  let query = supabase
+    .from("contratos")
+    .select("*", { count: "exact" });
+
+  if (status) query = query.eq("status", status);
+  if (tipo_contrato) query = query.eq("tipo_contrato", tipo_contrato);
+  if (cliente_id) query = query.eq("cliente_id", cliente_id);
+
+  query = query.order(sortBy, { ascending: sortOrder === "asc" });
+  query = query.range(offset, offset + pageSize - 1);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return {
+    data: data as Contrato[],
+    count: count || 0,
+    pageSize,
+    offset,
+    totalPages: Math.ceil((count || 0) / pageSize),
+    currentPage: Math.floor(offset / pageSize) + 1,
+  };
+}
+
+export async function obterContrato(id: string) {
+  const { data, error } = await supabase
+    .from("contratos")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data as Contrato;
+}
+
+export async function criarContrato(
+  dados: Omit<Contrato, "id" | "created_at" | "updated_at" | "valor_pendente"> // valor_pendente é calculado
+) {
+  const { data, error } = await supabase
+    .from("contratos")
+    .insert([dados])
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Contrato;
+}
+
+export async function atualizarContrato(
+  id: string,
+  dados: Partial<Omit<Contrato, "id" | "created_at" | "updated_at" | "valor_pendente">>
+) {
+  const { data, error } = await supabase
+    .from("contratos")
+    .update(dados)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Contrato;
+}
+
+export async function deletarContrato(id: string) {
+  const { error } = await supabase
+    .from("contratos")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// =============================================
+// CONTRATO PARCELAS - CRUD
+// =============================================
+
+export interface ContratoParcela {
+  id: string;
+  contrato_id: string;
+  numero_parcela: number;
+  valor: number;
+  data_vencimento: string;
+  data_pagamento?: string;
+  status: string;
+  forma_pagamento?: string;
+}
+
+export async function listarParcelasContrato(contrato_id: string) {
+  const { data, error } = await supabase
+    .from("contrato_parcelas")
+    .select("*")
+    .eq("contrato_id", contrato_id)
+    .order("numero_parcela", { ascending: true });
+  if (error) throw error;
+  return data as ContratoParcela[];
+}
+
+export async function criarParcelaContrato(
+  dados: Omit<ContratoParcela, "id">
+) {
+  const { data, error } = await supabase
+    .from("contrato_parcelas")
+    .insert([dados])
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ContratoParcela;
+}
+
+export async function atualizarParcelaContrato(
+  id: string,
+  dados: Partial<Omit<ContratoParcela, "id">>
+) {
+  const { data, error } = await supabase
+    .from("contrato_parcelas")
+    .update(dados)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ContratoParcela;
+}
+
+export async function deletarParcelaContrato(id: string) {
+  const { error } = await supabase
+    .from("contrato_parcelas")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// =============================================
+// CONTRATO ADITIVOS - CRUD
+// =============================================
+
+export interface ContratoAditivo {
+  id: string;
+  contrato_id: string;
+  numero_aditivo: number;
+  tipo: string;
+  descricao: string;
+  valor_adicional: number;
+  dias_adicionais: number;
+  nova_previsao_termino?: string;
+  data_assinatura?: string;
+  arquivo_url?: string;
+  created_at: string;
+}
+
+export async function listarAditivosContrato(contrato_id: string) {
+  const { data, error } = await supabase
+    .from("contrato_aditivos")
+    .select("*")
+    .eq("contrato_id", contrato_id)
+    .order("numero_aditivo", { ascending: true });
+  if (error) throw error;
+  return data as ContratoAditivo[];
+}
+
+export async function criarAditivoContrato(
+  dados: Omit<ContratoAditivo, "id" | "created_at"> // created_at é automático
+) {
+  const { data, error } = await supabase
+    .from("contrato_aditivos")
+    .insert([dados])
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ContratoAditivo;
+}
+
+export async function atualizarAditivoContrato(
+  id: string,
+  dados: Partial<Omit<ContratoAditivo, "id" | "created_at">>
+) {
+  const { data, error } = await supabase
+    .from("contrato_aditivos")
+    .update(dados)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ContratoAditivo;
+}
+
+export async function deletarAditivoContrato(id: string) {
+  const { error } = await supabase
+    .from("contrato_aditivos")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// =============================================
+// CONTRATOS ALERTAS - VIEW
+// =============================================
+
+export async function listarContratosAlertas() {
+  const { data, error } = await supabase
+    .from("contratos_alertas")
+    .select("*")
+    .order("data_vencimento", { ascending: true });
   if (error) throw error;
   return data;
 }

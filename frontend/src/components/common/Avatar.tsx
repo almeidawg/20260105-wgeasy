@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   gerarAvatarUrl,
   gerarCorPorNome,
@@ -27,13 +27,14 @@ const Avatar: React.FC<AvatarProps> = ({
   className = "",
   onClick,
 }) => {
+  const [imageError, setImageError] = useState(false);
   const finalSize = size ?? tamanho ?? 40;
   const hasImage = !!(avatar_url || foto_url || avatar);
 
   if (!nome) nome = "Sem Nome";
 
-  // Se não houver imagem, geramos iniciais com cor WG
-  if (!hasImage) {
+  // Se não houver imagem ou se houve erro ao carregar, geramos iniciais com cor WG
+  if (!hasImage || imageError) {
     const bg = "#" + gerarCorPorNome(nome);
     const iniciais = gerarIniciais(nome);
 
@@ -55,6 +56,7 @@ const Avatar: React.FC<AvatarProps> = ({
       src={url || gerarAvatarUrl(nome)}
       alt={nome}
       onClick={onClick}
+      onError={() => setImageError(true)}
       style={{ width: finalSize, height: finalSize }}
       className={`rounded-full object-cover cursor-pointer ${className}`}
     />

@@ -75,10 +75,10 @@ export async function buscarTituloRegistro(
       return fallbackNomes[rotaBase] || "Detalhes";
     }
 
-    const nome = data[config.campo] as string;
+    const nome = (data[config.campo] as string) || "";
 
     // Truncar nomes muito longos
-    const nomeFormatado = nome.length > 25 ? nome.substring(0, 22) + "..." : nome;
+    const nomeFormatado = nome && nome.length > 25 ? nome.substring(0, 22) + "..." : nome || fallbackNomes[rotaBase] || "Detalhes";
 
     // Salvar no cache
     cache.set(cacheKey, nomeFormatado);

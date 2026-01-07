@@ -68,7 +68,7 @@ const ReembolsosPage = () => {
       // Buscar reembolsos com joins corretos
       const { data: reembolsosData, error: reembolsosError } = await supabase
         .from('reembolsos')
-        .select('*, obras(nome), fin_categories(name), contratos(numero, titulo)')
+        .select('*, obras(nome), fin_categories(name), contratos(numero)')
         .range(0, 49999)
         .order('data', { ascending: false });
 
@@ -76,7 +76,7 @@ const ReembolsosPage = () => {
       const [obrasRes, categoriasRes, contratosRes] = await Promise.all([
         supabase.from('obras').select('id, nome'),
         supabase.from('fin_categories').select('id, name'),
-        supabase.from('contratos').select('id, numero, titulo').order('numero', { ascending: false })
+        supabase.from('contratos').select('id, numero').order('numero', { ascending: false })
       ]);
 
       if (reembolsosError) throw reembolsosError;
@@ -464,7 +464,7 @@ const ReembolsosPage = () => {
                       {contratosFiltrados.length === 0 ? (
                         <div className="py-2 px-3 text-xs text-gray-400 text-center">Nenhum resultado</div>
                       ) : (
-                        contratosFiltrados.map(c => <SelectItem key={c.id} value={c.id}>{c.numero} - {c.titulo}</SelectItem>)
+                        contratosFiltrados.map(c => <SelectItem key={c.id} value={c.id}>{c.numero}</SelectItem>)
                       )}
                     </div>
                   </SelectContent>

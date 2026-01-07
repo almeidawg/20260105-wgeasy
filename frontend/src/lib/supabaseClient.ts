@@ -14,10 +14,27 @@ import { createClient, PostgrestError } from "@supabase/supabase-js";
 // ------------------------------------------------------------
 // CONFIGURAÇÃO BASE (usa o mesmo supabaseUrl e anonKey do projeto)
 // ------------------------------------------------------------
+
+// Detecta ambiente: Vite (browser) ou Node.js
+function getEnvVar(key: string, fallback?: string): string | undefined {
+  // If running under Jest, always use process.env
+  if (typeof process !== "undefined" && process.env && (process.env.JEST_WORKER_ID || process.env.NODE_ENV === 'test')) {
+    return process.env[key] || fallback;
+  }
+  // Vite
+  if (typeof import.meta !== "undefined" && import.meta.env && key in import.meta.env) {
+    return import.meta.env[key] || fallback;
+  }
+  // Node.js
+  if (typeof process !== "undefined" && process.env && key in process.env) {
+    return process.env[key] || fallback;
+  }
+  return fallback;
+}
+
 export const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  "https://ahlqzzkxuutwoepirpzr.supabase.co";
-const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  getEnvVar("VITE_SUPABASE_URL", "https://ahlqzzkxuutwoepirpzr.supabase.co");
+const supabaseAnon = getEnvVar("VITE_SUPABASE_ANON_KEY");
 
 if (!supabaseAnon) {
   throw new Error(
@@ -25,12 +42,12 @@ if (!supabaseAnon) {
       "VITE_SUPABASE_ANON_KEY não foi definido.",
       "Crie ou atualize o arquivo .env com a chave pública do Supabase:",
       'VITE_SUPABASE_ANON_KEY="sua-chave-publica"',
-      "Em seguida reinicie o servidor (npm run dev).",
+      "Em seguida reinicie o servidor (npm run dev ou npm run test).",
     ].join(" ")
   );
 }
 
-if (!import.meta.env.VITE_SUPABASE_URL) {
+if (!supabaseUrl) {
   console.warn(
     "VITE_SUPABASE_URL não definido — usando fallback. Verifique variáveis de ambiente."
   );

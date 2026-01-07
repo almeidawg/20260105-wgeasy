@@ -74,13 +74,10 @@ export async function buscarProjetos(filtros?: FiltrosProjetos): Promise<Projeto
  * Buscar projetos completos (com dados de cliente e contrato)
  */
 export async function buscarProjetosCompletos(filtros?: FiltrosProjetos): Promise<ProjetoCompleto[]> {
+  // Buscar projetos sem joins (evita erro de FK)
   let query = supabase
     .from("projetos")
-    .select(`
-      *,
-      cliente:pessoas!cliente_id(nome, cpf, telefone, email),
-      contrato:contratos!contrato_id(numero, valor_total)
-    `)
+    .select("*")
     .order("created_at", { ascending: false });
 
   // Aplicar mesmos filtros
@@ -119,16 +116,48 @@ export async function buscarProjetosCompletos(filtros?: FiltrosProjetos): Promis
     throw error;
   }
 
-  // Mapear dados do JOIN para formato correto
-  const projetos: ProjetoCompleto[] = (data || []).map((item: any) => ({
-    ...item,
-    cliente_nome: item.cliente?.nome,
-    cliente_cpf: item.cliente?.cpf,
-    cliente_telefone: item.cliente?.telefone,
-    cliente_email: item.cliente?.email,
-    contrato_numero: item.contrato?.numero,
-    contrato_valor_total: item.contrato?.valor_total,
-  }));
+  if (!data || data.length === 0) return [];
+
+  // Buscar clientes separadamente
+  const clienteIds = [...new Set(data.map(p => p.cliente_id).filter(Boolean))];
+  let clientesMap: Record<string, any> = {};
+  if (clienteIds.length > 0) {
+    const { data: clientes } = await supabase
+      .from("pessoas")
+      .select("id, nome, cpf, telefone, email")
+      .in("id", clienteIds);
+    if (clientes) {
+      clientesMap = Object.fromEntries(clientes.map(c => [c.id, c]));
+    }
+  }
+
+  // Buscar contratos separadamente
+  const contratoIds = [...new Set(data.map(p => p.contrato_id).filter(Boolean))];
+  let contratosMap: Record<string, any> = {};
+  if (contratoIds.length > 0) {
+    const { data: contratos } = await supabase
+      .from("contratos")
+      .select("id, numero, valor_total")
+      .in("id", contratoIds);
+    if (contratos) {
+      contratosMap = Object.fromEntries(contratos.map(c => [c.id, c]));
+    }
+  }
+
+  // Mapear dados para formato correto
+  const projetos: ProjetoCompleto[] = data.map((item: any) => {
+    const cliente = item.cliente_id ? clientesMap[item.cliente_id] : null;
+    const contrato = item.contrato_id ? contratosMap[item.contrato_id] : null;
+    return {
+      ...item,
+      cliente_nome: cliente?.nome,
+      cliente_cpf: cliente?.cpf,
+      cliente_telefone: cliente?.telefone,
+      cliente_email: cliente?.email,
+      contrato_numero: contrato?.numero,
+      contrato_valor_total: contrato?.valor_total,
+    };
+  });
 
   return projetos;
 }
@@ -137,13 +166,10 @@ export async function buscarProjetosCompletos(filtros?: FiltrosProjetos): Promis
  * Buscar projeto por ID com dados completos
  */
 export async function buscarProjetoPorId(id: string): Promise<ProjetoCompleto | null> {
+  // Buscar projeto sem join
   const { data, error } = await supabase
     .from("projetos")
-    .select(`
-      *,
-      cliente:pessoas!cliente_id(nome, cpf, telefone, email),
-      contrato:contratos!contrato_id(numero, valor_total)
-    `)
+    .select("*")
     .eq("id", id)
     .single();
 
@@ -151,6 +177,34 @@ export async function buscarProjetoPorId(id: string): Promise<ProjetoCompleto | 
     console.error("Erro ao buscar projeto:", error);
     throw error;
   }
+
+  if (!data) return null;
+
+  // Buscar cliente separadamente
+  let clienteData: any = null;
+  if (data.cliente_id) {
+    const { data: cliente } = await supabase
+      .from("pessoas")
+      .select("nome, cpf, telefone, email")
+      .eq("id", data.cliente_id)
+      .single();
+    clienteData = cliente;
+  }
+
+  // Buscar contrato separadamente
+  let contratoData: any = null;
+  if (data.contrato_id) {
+    const { data: contrato } = await supabase
+      .from("contratos")
+      .select("numero, valor_total")
+      .eq("id", data.contrato_id)
+      .single();
+    contratoData = contrato;
+  }
+
+  // Adicionar ao objeto para compatibilidade
+  (data as any).cliente = clienteData;
+  (data as any).contrato = contratoData;
 
   if (!data) return null;
 

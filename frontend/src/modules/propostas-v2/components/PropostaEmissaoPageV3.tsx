@@ -157,6 +157,7 @@ export default function PropostaEmissaoPageV3() {
         .from("pessoas")
         .select("id, nome, cpf, email, telefone")
         .eq("tipo", "CLIENTE")
+        .eq("ativo", true)
         .ilike("nome", `%${termo}%`)
         .limit(10);
 

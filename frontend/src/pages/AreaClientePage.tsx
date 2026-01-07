@@ -1,56 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowRight,
-  Calendar,
-  CheckCircle2,
-  ExternalLink,
-  FileText,
-  FolderOpen,
-  Image as ImageIcon,
-  Play,
-  X,
-  Eye,
-  ChevronRight,
-  Loader2,
-  Download,
-  FileImage,
-  FileVideo,
-  FileSpreadsheet,
-  FileType,
-  ArrowLeft,
-  Home,
-  Wrench,
-  ShieldCheck,
-  FileCheck,
-  LogOut,
-  User,
-  Menu,
-  Package,
-  Truck,
-  Star,
-  Phone,
-  MessageSquare,
-  Clock,
-  AlertCircle,
-  CheckSquare,
-  FileSignature,
-  Shield,
-  Award,
-  ClipboardList,
-  Headphones,
-  ThumbsUp,
-  ThumbsDown,
-  Send,
-  DollarSign,
-  CreditCard,
-  TrendingUp,
-  Receipt,
-  Banknote,
-  Target,
-  Layers,
-  Instagram,
-  HelpCircle,
-} from "lucide-react";
+import { ArrowRight, Calendar, CheckCircle2, ExternalLink, FileText, FolderOpen, Image as ImageIcon, Play, X, Eye, ChevronRight, Loader2, Download, FileImage, FileVideo, FileSpreadsheet, FileType, ArrowLeft, Home, Wrench, ShieldCheck, FileCheck, LogOut, User, Menu, Package, Truck, Phone, MessageSquare, Clock, AlertCircle, CheckSquare, FileSignature, Shield, Award, ClipboardList, Headphones, ThumbsUp, ThumbsDown, Send, DollarSign, CreditCard, TrendingUp, Receipt, Banknote, Target, Layers, Instagram, HelpCircle } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { useImpersonation, ImpersonationBar } from "@/hooks/useImpersonation";
 import { supabaseRaw as supabase } from "@/lib/supabaseClient";
@@ -62,6 +11,7 @@ import AtividadesNucleo from "@/components/cliente/AtividadesNucleo";
 import OrcamentosPendentesCliente from "@/components/cliente/OrcamentosPendentesCliente";
 import { usePanoramaCliente } from "@/hooks/usePanoramaCliente";
 import IntroAreaCliente from "@/components/area-cliente/IntroAreaCliente";
+import WGStarIcon from "@/components/icons/WGStarIcon";
 
 type Pessoa = {
   id: string;
@@ -203,7 +153,7 @@ function TabPosVendas({ clienteNome }: { clienteNome: string }) {
         {[
           { id: "entregas", label: "Entregas", icon: Truck },
           { id: "historico", label: "Histórico", icon: Clock },
-          { id: "avaliacoes", label: "Avaliações", icon: Star },
+          { id: "avaliacoes", label: "Avaliações", icon: WGStarIcon },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -262,13 +212,13 @@ function TabPosVendas({ clienteNome }: { clienteNome: string }) {
       {subTab === "avaliacoes" && (
         <div className="space-y-4">
           <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-2xl p-6 text-center">
-            <Star className="w-12 h-12 text-orange-500 mx-auto mb-3" />
+            <WGStarIcon className="w-12 h-12 text-orange-500 mx-auto mb-3" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Avalie sua experiência</h3>
             <p className="text-sm text-gray-600 mb-4">Sua opinião é muito importante para continuarmos melhorando!</p>
             <div className="flex justify-center gap-2 mb-4">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button key={star} className="p-2 hover:scale-110 transition">
-                  <Star className="w-8 h-8 text-gray-300 hover:text-yellow-400 hover:fill-yellow-400" />
+                  <WGStarIcon className="w-8 h-8 text-gray-300 hover:text-yellow-400 hover:fill-yellow-400" />
                 </button>
               ))}
             </div>

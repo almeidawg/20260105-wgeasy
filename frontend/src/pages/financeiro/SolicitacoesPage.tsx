@@ -6,7 +6,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabaseRaw as supabase } from '@/lib/supabaseClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import styles from '../../planejamento/NovoPedidoPage.module.css';
 import { DateInputBR } from '@/components/ui/DateInputBR';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -283,9 +282,9 @@ const SolicitacaoForm = ({ isOpen, setIsOpen, solicitacao, obras, categorias, on
       try {
         // Buscar todas as pessoas por tipo
         const [clientesRes, fornecedoresRes, colaboradoresRes, empresasRes] = await Promise.all([
-          supabase.from('pessoas').select('id, nome').eq('tipo', 'CLIENTE').order('nome'),
-          supabase.from('pessoas').select('id, nome').eq('tipo', 'FORNECEDOR').order('nome'),
-          supabase.from('pessoas').select('id, nome').eq('tipo', 'COLABORADOR').order('nome'),
+          supabase.from('pessoas').select('id, nome').eq('tipo', 'CLIENTE').eq('ativo', true).order('nome'),
+          supabase.from('pessoas').select('id, nome').eq('tipo', 'FORNECEDOR').eq('ativo', true).order('nome'),
+          supabase.from('pessoas').select('id, nome').eq('tipo', 'COLABORADOR').eq('ativo', true).order('nome'),
           supabase.from('empresas_grupo').select('id, nome_fantasia').order('nome_fantasia'),
         ]);
 
@@ -374,7 +373,6 @@ const SolicitacaoForm = ({ isOpen, setIsOpen, solicitacao, obras, categorias, on
               {/* Projeto/Obra */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Projeto/Obra *</label>
-                                <label className={styles.label}>Projeto/Obra *</label>
                 <Select value={formData.obra_id} onValueChange={(value) => handleSelectChange('obra_id', value)}>
                   <SelectTrigger><SelectValue placeholder="Selecione o projeto" /></SelectTrigger>
                   <SelectContent>{obras.map((o: any) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}</SelectContent>
@@ -384,7 +382,6 @@ const SolicitacaoForm = ({ isOpen, setIsOpen, solicitacao, obras, categorias, on
               {/* Categoria */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Categoria *</label>
-                                <label className={styles.label}>Categoria *</label>
                 <Select value={formData.categoria_id} onValueChange={(value) => handleSelectChange('categoria_id', value)}>
                   <SelectTrigger><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
                   <SelectContent>{categorias.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -394,7 +391,6 @@ const SolicitacaoForm = ({ isOpen, setIsOpen, solicitacao, obras, categorias, on
               {/* Tipo de Favorecido */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Tipo de Favorecido *</label>
-                                <label className={styles.label}>Tipo de Favorecido *</label>
                 <Select value={formData.tipo_favorecido} onValueChange={(value) => {
                   handleSelectChange('tipo_favorecido', value);
                   handleSelectChange('favorecido_id', ''); // Limpa seleção ao mudar tipo
@@ -411,7 +407,6 @@ const SolicitacaoForm = ({ isOpen, setIsOpen, solicitacao, obras, categorias, on
               {/* Favorecido (baseado no tipo) */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
-                                  <label className={styles.label}>
                   {formData.tipo_favorecido === 'FORNECEDOR' ? 'Fornecedor' :
                    formData.tipo_favorecido === 'COLABORADOR' ? 'Colaborador' : 'Empresa'} *
                 </label>
@@ -430,27 +425,21 @@ const SolicitacaoForm = ({ isOpen, setIsOpen, solicitacao, obras, categorias, on
               {/* Descrição */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Descrição</label>
-                                <label className={styles.label}>Descrição</label>
                 <Input name="descricao" placeholder="Ex: Compra de materiais, Serviço de pintura..." value={formData.descricao} onChange={handleInputChange} />
-                              <Input name="descricao" placeholder="Ex: Compra de materiais, Serviço de pintura..." value={formData.descricao} onChange={handleInputChange} className={styles.inputBox} />
               </div>
 
               {/* Valor e Data em linha */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Valor *</label>
-                                    <label className={styles.label}>Valor *</label>
                   <Input name="valor" type="number" step="0.01" placeholder="0,00" value={formData.valor} onChange={handleInputChange} />
-                                  <Input name="valor" type="number" step="0.01" placeholder="0,00" value={formData.valor} onChange={handleInputChange} className={styles.inputBox} />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Data da Solicitação</label>
-                                    <label className={styles.label}>Data da Solicitação</label>
                   <DateInputBR
                     value={formData.data_solicitacao}
                     onChange={(val) => setFormData((prev: typeof formData) => ({ ...prev, data_solicitacao: val }))}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                      className={styles.inputBox}
                   />
                 </div>
               </div>
@@ -458,7 +447,6 @@ const SolicitacaoForm = ({ isOpen, setIsOpen, solicitacao, obras, categorias, on
               {/* Status */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
-                                <label className={styles.label}>Status</label>
                 <Select value={formData.status} onValueChange={(value) => handleSelectChange('status', value)}>
                   <SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger>
                   <SelectContent>
@@ -471,9 +459,7 @@ const SolicitacaoForm = ({ isOpen, setIsOpen, solicitacao, obras, categorias, on
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsOpen(false)}>Cancelar</Button>
-                        <Button variant="outline" onClick={() => setIsOpen(false)} className={styles.buttonSecondary}>Cancelar</Button>
             <Button onClick={handleSubmit} className="bg-[#F25C26] hover:bg-[#d94d1f]" disabled={loadingDados}>
-                          <Button onClick={handleSubmit} className={styles.buttonPrimary} disabled={loadingDados}>
               {isEditing ? 'Atualizar' : 'Criar Solicitação'}
             </Button>
           </DialogFooter>

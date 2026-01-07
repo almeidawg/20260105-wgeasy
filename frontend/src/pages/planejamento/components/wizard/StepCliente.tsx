@@ -55,26 +55,31 @@ export function StepCliente({
       setLoading(true);
       const clientesFormatados: ClienteObra[] = [];
 
-      // 1. Buscar análises de projeto (com ambientes já calculados)
+      // 1. Buscar análises de projeto (sem join - evita erro de FK)
+      // Excluir status concluido e cancelado
       const { data: analises, error: analisesError } = await supabase
         .from("analises_projeto")
-        .select(`
-          id,
-          titulo,
-          cliente_id,
-          endereco_obra,
-          status,
-          total_ambientes,
-          total_area_piso,
-          criado_em,
-          pessoas!cliente_id(id, nome)
-        `)
-        .in("status", ["analisado", "aprovado", "em_execucao"])
+        .select("id, titulo, cliente_id, endereco_obra, status, total_ambientes, total_area_piso, criado_em")
+        .in("status", ["analisado", "aprovado", "em_execucao", "em_analise", "pendente"])
+        .not("status", "in", "(concluido,concluída,finalizado,cancelado)")
         .order("criado_em", { ascending: false });
 
-      if (!analisesError && analises) {
+      if (!analisesError && analises && analises.length > 0) {
+        // Buscar nomes dos clientes separadamente
+        const clienteIds = [...new Set(analises.map(a => a.cliente_id).filter(Boolean))];
+        let clientesMap: Record<string, string> = {};
+        if (clienteIds.length > 0) {
+          const { data: clientes } = await supabase
+            .from("pessoas")
+            .select("id, nome")
+            .in("id", clienteIds);
+          if (clientes) {
+            clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+          }
+        }
+
         for (const a of analises) {
-          const clienteNome = (a.pessoas as any)?.nome || a.titulo;
+          const clienteNome = a.cliente_id ? clientesMap[a.cliente_id] || a.titulo : a.titulo;
           clientesFormatados.push({
             id: a.id,
             nome: clienteNome,
@@ -89,27 +94,54 @@ export function StepCliente({
         }
       }
 
-      // 2. Buscar clientes diretos (sem análise)
-      const { data: clientesDiretos, error: clientesError } = await supabase
-        .from("pessoas")
-        .select("id, nome, endereco")
-        .eq("tipo", "CLIENTE")
+      // 2. Buscar clientes diretos (sem análise) que tenham contratos ativos
+      // Primeiro, buscar IDs de clientes com contratos ativos (não concluídos)
+      const { data: contratosAtivos } = await supabase
+        .from("contratos")
+        .select("cliente_id")
         .eq("ativo", true)
-        .order("nome");
+        .not("status", "in", "(concluido,concluída,finalizado,cancelado)");
 
-      if (!clientesError && clientesDiretos) {
-        for (const c of clientesDiretos) {
-          // Evitar duplicatas
-          const jaExiste = clientesFormatados.some(
-            (cf) => cf.nome.toLowerCase() === c.nome.toLowerCase()
-          );
-          if (!jaExiste) {
-            clientesFormatados.push({
-              id: c.id,
-              nome: c.nome,
-              endereco: c.endereco,
-              origem: "cliente",
-            });
+      const clientesComContratoAtivo = new Set(
+        contratosAtivos?.map(c => c.cliente_id).filter(Boolean) || []
+      );
+
+      // IDs de clientes já adicionados via análises
+      const clientesJaAdicionados = new Set(
+        clientesFormatados.map(c => c.id)
+      );
+
+      // Buscar clientes ativos que tenham contrato ativo e não estejam na lista
+      if (clientesComContratoAtivo.size > 0) {
+        const idsParaBuscar = [...clientesComContratoAtivo].filter(
+          id => !clientesJaAdicionados.has(id)
+        );
+
+        if (idsParaBuscar.length > 0) {
+          const { data: clientesDiretos, error: clientesError } = await supabase
+            .from("pessoas")
+            .select("id, nome, logradouro, cidade, estado")
+            .eq("tipo", "CLIENTE")
+            .eq("ativo", true)
+            .in("id", idsParaBuscar)
+            .order("nome");
+
+          if (!clientesError && clientesDiretos) {
+            for (const c of clientesDiretos) {
+              // Evitar duplicatas por nome
+              const jaExiste = clientesFormatados.some(
+                (cf) => cf.nome.toLowerCase() === c.nome.toLowerCase()
+              );
+              if (!jaExiste) {
+                const enderecoFormatado = [c.logradouro, c.cidade, c.estado].filter(Boolean).join(", ");
+                clientesFormatados.push({
+                  id: c.id,
+                  nome: c.nome,
+                  endereco: enderecoFormatado || undefined,
+                  origem: "cliente",
+                });
+              }
+            }
           }
         }
       }

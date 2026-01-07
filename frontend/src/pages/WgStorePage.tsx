@@ -6,26 +6,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Search,
-  Filter,
-  Grid3X3,
-  List,
-  Package,
-  Star,
-  ShoppingCart,
-  ExternalLink,
-  ChevronDown,
-  X,
-  AlertCircle,
-  Plus,
-  Globe,
-  ImageIcon,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-} from "lucide-react";
+import { Search, Filter, Grid3X3, List, Package, ShoppingCart, ExternalLink, ChevronDown, X, AlertCircle, Plus, Globe, ImageIcon, Loader2, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import WGStarIcon from "@/components/icons/WGStarIcon";
 
 // ==========================================
 // Tipos
@@ -873,7 +855,7 @@ function ProdutoCard({ produto }: { produto: ProdutoLoja }) {
         {/* Avaliação */}
         {produto.avaliacao && (
           <div className="absolute top-1.5 right-1.5 bg-white/90 rounded-full px-1.5 py-0.5 flex items-center gap-0.5">
-            <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+            <WGStarIcon className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
             <span className="text-[10px] font-medium">{produto.avaliacao}</span>
           </div>
         )}
@@ -1016,7 +998,7 @@ function ProdutoListItem({ produto }: { produto: ProdutoLoja }) {
             {/* Avaliação */}
             {produto.avaliacao && (
               <div className="flex items-center justify-end gap-1 mt-1">
-                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                <WGStarIcon className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                 <span className="text-xs font-medium">{produto.avaliacao}</span>
               </div>
             )}

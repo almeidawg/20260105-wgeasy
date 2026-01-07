@@ -239,7 +239,7 @@ export default function ColaboradorMateriaisPage() {
     }
   }, [usuarioCompleto?.id, usuarioCompleto?.pessoa_id]);
 
-  // Carregar clientes ao abrir modal
+  // Carregar clientes ao abrir modal (exclui concluídos)
   const carregarClientes = useCallback(async () => {
     try {
       const { data, error } = await supabase

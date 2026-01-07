@@ -45,6 +45,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { openaiVision, anthropicChat, isBackendConfigured } from '@/lib/apiSecure';
 import { toast } from 'sonner';
 
 interface ProdutoExtraido {
@@ -79,6 +80,7 @@ export default function ImportarCatalogoIAPage() {
   const [provedorIA, setProvedorIA] = useState<"openai" | "anthropic">(
     (import.meta.env.VITE_AI_PROVIDER as "openai" | "anthropic") || "openai"
   );
+  const usarProxyIA = import.meta.env.VITE_USE_BACKEND_PROXY === 'true';
 
   // Estatisticas
   const estatisticas = {
@@ -189,6 +191,9 @@ Retorne um JSON array com os produtos. Exemplo:
 IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
 
     try {
+      if (usarProxyIA && !isBackendConfigured()) {
+        throw new Error('Backend nao configurado para IA. Verifique VITE_BACKEND_URL e VITE_INTERNAL_API_KEY.');
+      }
       if (provedor === 'openai') {
         return await chamarOpenAIVisionCatalogo(imagemBase64, mimeType, promptBase);
       } else {
@@ -206,6 +211,13 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     mimeType: string,
     prompt: string
   ): Promise<Partial<ProdutoExtraido>[]> => {
+    if (usarProxyIA) {
+      const dataUrl = `data:${mimeType};base64,${imagemBase64}`;
+      const data = await openaiVision([dataUrl], prompt);
+      const conteudo = data.choices?.[0]?.message?.content || '[]';
+      return extrairProdutosJson(conteudo);
+    }
+
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
     if (!apiKey) throw new Error('API Key OpenAI nao configurada');
 
@@ -242,17 +254,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
 
     const data = await response.json();
     const conteudo = data.choices[0]?.message?.content || '[]';
-
-    try {
-      // Extrair JSON do texto
-      const jsonMatch = conteudo.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-      return [];
-    } catch {
-      return [];
-    }
+    return extrairProdutosJson(conteudo);
   };
 
   // Chamar Claude Vision
@@ -261,6 +263,33 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
     mimeType: string,
     prompt: string
   ): Promise<Partial<ProdutoExtraido>[]> => {
+    if (usarProxyIA) {
+      const data = await anthropicChat(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mimeType,
+                  data: imagemBase64,
+                },
+              },
+              { type: 'text', text: prompt },
+            ],
+          },
+        ],
+        {
+          model: import.meta.env.VITE_ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+          maxTokens: 4096,
+        }
+      );
+      const conteudo = data.content?.[0]?.text || '[]';
+      return extrairProdutosJson(conteudo);
+    }
+
     const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error('API Key Anthropic nao configurada');
 
@@ -303,7 +332,10 @@ IMPORTANTE: Retorne APENAS o JSON, sem texto adicional.`;
 
     const data = await response.json();
     const conteudo = data.content[0]?.text || '[]';
+    return extrairProdutosJson(conteudo);
+  };
 
+  const extrairProdutosJson = (conteudo: string): Partial<ProdutoExtraido>[] => {
     try {
       const jsonMatch = conteudo.match(/\[[\s\S]*\]/);
       if (jsonMatch) {

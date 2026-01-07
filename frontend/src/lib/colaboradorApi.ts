@@ -396,7 +396,7 @@ export async function listarLancamentosFavorecido(
       vencimento,
       data_pagamento,
       data_competencia,
-      contrato:contratos(numero, titulo),
+      contrato:contratos(numero),
       projeto:projetos(nome)
     `
     )
@@ -428,7 +428,7 @@ export async function obterSolicitacaoPagamento(
       *,
       solicitante:pessoas!solicitacoes_pagamento_solicitante_id_fkey(nome),
       beneficiario:pessoas!solicitacoes_pagamento_beneficiario_id_fkey(nome),
-      projeto:contratos(numero, titulo),
+      projeto:contratos(numero),
       anexos:solicitacoes_pagamento_anexos(*)
     `
     )

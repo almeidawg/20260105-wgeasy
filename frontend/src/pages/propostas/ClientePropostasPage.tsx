@@ -49,7 +49,7 @@ export default function ClientePropostasPage() {
         .from("propostas")
         .select(`
           *,
-          propostas_itens (*)
+          proposta_itens (*)
         `)
         .eq("cliente_id", clienteId)
         .order("criado_em", { ascending: false });
@@ -60,7 +60,7 @@ export default function ClientePropostasPage() {
       const propostasCompletas: PropostaCompleta[] = (propostasData || []).map((p: any) => ({
         ...p,
         cliente_nome: clienteNome,
-        itens: p.propostas_itens || [],
+        itens: p.proposta_itens || [],
       }));
 
       setPropostas(propostasCompletas);

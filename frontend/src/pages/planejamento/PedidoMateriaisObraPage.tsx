@@ -178,27 +178,31 @@ export default function PedidoMateriaisObraPage() {
     try {
       setLoadingClientes(true);
 
+      // Buscar análises sem join (evita erro de FK)
       const { data: analises, error } = await supabase
         .from("analises_projeto")
-        .select(`
-          id,
-          titulo,
-          cliente_id,
-          endereco_obra,
-          status,
-          total_ambientes,
-          total_area_piso,
-          criado_em,
-          pessoas!cliente_id(id, nome)
-        `)
+        .select("id, titulo, cliente_id, endereco_obra, status, total_ambientes, total_area_piso, criado_em")
         .in("status", ["analisado", "aprovado", "em_execucao"])
         .order("criado_em", { ascending: false });
 
       if (error) throw error;
 
+      // Buscar nomes dos clientes separadamente
+      const clienteIds = [...new Set((analises || []).map(a => a.cliente_id).filter(Boolean))];
+      let clientesMap: Record<string, string> = {};
+      if (clienteIds.length > 0) {
+        const { data: clientes } = await supabase
+          .from("pessoas")
+          .select("id, nome")
+          .in("id", clienteIds);
+        if (clientes) {
+          clientesMap = Object.fromEntries(clientes.map(c => [c.id, c.nome]));
+        }
+      }
+
       const clientesFormatados: ClienteObra[] = await Promise.all(
         (analises || []).map(async (a: any) => {
-          const clienteNome = a.pessoas?.nome || a.titulo;
+          const clienteNome = a.cliente_id ? clientesMap[a.cliente_id] || a.titulo : a.titulo;
 
           const { count } = await supabase
             .from("projetos_compras")

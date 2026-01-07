@@ -58,12 +58,10 @@ export default function ItemMatcher({
 
     try {
       // Busca direta no Supabase usando ILIKE - busca no campo nome (mais comum)
+      // Sem join de núcleo (evita erro de FK)
       const { data, error } = await supabase
         .from("pricelist_itens")
-        .select(`
-          id, codigo, nome, descricao, categoria, tipo, unidade, preco, imagem_url, nucleo_id,
-          nucleo:nucleos!nucleo_id(id, nome)
-        `)
+        .select("id, codigo, nome, descricao, categoria, tipo, unidade, preco, imagem_url, nucleo_id")
         .eq("ativo", true)
         .ilike("nome", `%${termoLimpo}%`)
         .limit(20);
@@ -73,27 +71,43 @@ export default function ItemMatcher({
         throw error;
       }
 
+      // Buscar núcleos separadamente
+      const enriquecerComNucleos = async (itens: any[]) => {
+        if (!itens || itens.length === 0) return itens;
+        const nucleoIds = [...new Set(itens.map(i => i.nucleo_id).filter(Boolean))];
+        if (nucleoIds.length === 0) return itens;
+        const { data: nucleos } = await supabase
+          .from("nucleos")
+          .select("id, nome")
+          .in("id", nucleoIds);
+        const nucleosMap: Record<string, any> = {};
+        if (nucleos) nucleos.forEach(n => nucleosMap[n.id] = n);
+        return itens.map(item => ({
+          ...item,
+          nucleo: item.nucleo_id ? nucleosMap[item.nucleo_id] : null
+        }));
+      };
+
       // Se encontrou resultados, usa eles
       if (data && data.length > 0) {
         console.log(`[Pricelist] Encontrados ${data.length} itens para "${termoLimpo}"`);
-        setResultadosBusca(data);
+        const dataComNucleos = await enriquecerComNucleos(data);
+        setResultadosBusca(dataComNucleos);
         return;
       }
 
       // Se não encontrou por nome, tenta por descrição ou categoria
       const { data: data2, error: error2 } = await supabase
         .from("pricelist_itens")
-        .select(`
-          id, codigo, nome, descricao, categoria, tipo, unidade, preco, imagem_url, nucleo_id,
-          nucleo:nucleos!nucleo_id(id, nome)
-        `)
+        .select("id, codigo, nome, descricao, categoria, tipo, unidade, preco, imagem_url, nucleo_id")
         .eq("ativo", true)
         .or(`descricao.ilike.%${termoLimpo}%,categoria.ilike.%${termoLimpo}%,codigo.ilike.%${termoLimpo}%`)
         .limit(20);
 
       if (!error2 && data2 && data2.length > 0) {
         console.log(`[Pricelist] Encontrados ${data2.length} itens (descrição/categoria) para "${termoLimpo}"`);
-        setResultadosBusca(data2);
+        const data2ComNucleos = await enriquecerComNucleos(data2);
+        setResultadosBusca(data2ComNucleos);
         return;
       }
 

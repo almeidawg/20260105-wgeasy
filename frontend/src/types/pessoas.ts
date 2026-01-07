@@ -7,6 +7,9 @@ export type PessoaTipo =
   | "FORNECEDOR"
   | "ESPECIFICADOR";
 
+// Status da pessoa (para filtrar concluídos das buscas)
+export type PessoaStatus = "ativo" | "concluido" | "inativo" | "suspenso";
+
 export interface Pessoa {
   id: string;
   nome: string;
@@ -65,6 +68,9 @@ export interface Pessoa {
 
   // Data de início na WG (para "Com a WG desde...")
   data_inicio_wg?: string | null;
+
+  // Status da pessoa (ativo, concluido, inativo, suspenso)
+  status?: PessoaStatus | null;
 
   ativo: boolean;
   criado_em?: string | null;
@@ -129,6 +135,9 @@ export type PessoaInput = {
 
   // Data de início na WG (para "Com a WG desde...")
   data_inicio_wg?: string | null;
+
+  // Status da pessoa (ativo, concluido, inativo, suspenso)
+  status?: PessoaStatus | null;
 
   ativo: boolean;
 };

@@ -283,7 +283,7 @@ export async function gerarListaComprasDeProposta(
 ): Promise<ListaComprasObra> {
   // Buscar itens da proposta que são materiais/produtos
   const { data: itensProposta, error } = await supabase
-    .from("propostas_itens")
+    .from("proposta_itens")
     .select(`
       *,
       item:pricelist_itens(*)

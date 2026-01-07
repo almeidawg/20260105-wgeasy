@@ -3,10 +3,10 @@
 // Sistema WG Easy - Grupo WG Almeida
 // ============================================================
 // Componente reutilizável para input de texto com menções de usuários
-// Uso: <MentionInput value={texto} onChange={setTexto} />
+// Exibe @Nome no textarea, mas salva como @[uuid] para processamento
 // ============================================================
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 // ============================================================
@@ -21,8 +21,8 @@ interface Usuario {
 }
 
 interface MentionInputProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: string; // Formato interno: @[uuid]
+  onChange: (value: string) => void; // Retorna formato @[uuid]
   placeholder?: string;
   rows?: number;
   disabled?: boolean;
@@ -55,9 +55,7 @@ export default function MentionInput({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<MentionSuggestion[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [mentionStart, setMentionStart] = useState<number | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -66,15 +64,19 @@ export default function MentionInput({
   // Cache de usuários para evitar múltiplas requisições
   const [usuariosCache, setUsuariosCache] = useState<Usuario[]>([]);
 
-  // Carregar usuários do sistema (colaboradores e admins)
+  // Carregar usuários do sistema (usuarios com login + todas as pessoas)
   useEffect(() => {
     async function carregarUsuarios() {
       try {
-        const { data, error } = await supabase
+        const usuariosMap = new Map<string, Usuario>();
+
+        // 1. Carregar usuários com login
+        const { data: usuariosData } = await supabase
           .from("usuarios")
           .select(`
             id,
             pessoa:pessoas!usuarios_pessoa_id_fkey (
+              id,
               nome,
               email,
               avatar_url
@@ -83,16 +85,41 @@ export default function MentionInput({
           .eq("ativo", true)
           .limit(100);
 
-        if (error) throw error;
+        if (usuariosData) {
+          usuariosData.forEach((u: any) => {
+            if (u.pessoa?.nome) {
+              usuariosMap.set(u.id, {
+                id: u.id,
+                nome: u.pessoa.nome,
+                email: u.pessoa.email,
+                avatar_url: u.pessoa.avatar_url,
+              });
+            }
+          });
+        }
 
-        const usuarios = (data || []).map((u: any) => ({
-          id: u.id,
-          nome: u.pessoa?.nome || "Usuário",
-          email: u.pessoa?.email,
-          avatar_url: u.pessoa?.avatar_url,
-        }));
+        // 2. Carregar todas as pessoas (para permitir menções de qualquer pessoa)
+        const { data: pessoasData } = await supabase
+          .from("pessoas")
+          .select("id, nome, email, avatar_url")
+          .eq("ativo", true)
+          .limit(200);
 
-        setUsuariosCache(usuarios);
+        if (pessoasData) {
+          pessoasData.forEach((p: any) => {
+            // Só adiciona se não existir já (evita duplicar usuários com login)
+            if (!usuariosMap.has(p.id) && p.nome) {
+              usuariosMap.set(p.id, {
+                id: p.id,
+                nome: p.nome,
+                email: p.email,
+                avatar_url: p.avatar_url,
+              });
+            }
+          });
+        }
+
+        setUsuariosCache(Array.from(usuariosMap.values()));
       } catch (err) {
         console.error("Erro ao carregar usuários para menções:", err);
       }
@@ -101,83 +128,140 @@ export default function MentionInput({
     carregarUsuarios();
   }, []);
 
+  // Converter valor interno (@[uuid]) para exibição (@Nome)
+  const displayValue = useMemo(() => {
+    if (!value || usuariosCache.length === 0) return value;
+
+    let display = value;
+    const mentionRegex = /@\[([^\]]+)\]/g;
+    let match;
+
+    // Substituir cada @[uuid] por @Nome
+    const replacements: Array<{ from: string; to: string }> = [];
+    while ((match = mentionRegex.exec(value)) !== null) {
+      const userId = match[1];
+      const usuario = usuariosCache.find((u) => u.id === userId);
+      if (usuario) {
+        replacements.push({ from: match[0], to: `@${usuario.nome}` });
+      }
+    }
+
+    // Aplicar substituições (em ordem reversa para não afetar índices)
+    replacements.forEach(({ from, to }) => {
+      display = display.replace(from, to);
+    });
+
+    return display;
+  }, [value, usuariosCache]);
+
+  // Converter exibição (@Nome) de volta para interno (@[uuid])
+  const convertDisplayToInternal = useCallback(
+    (displayText: string): string => {
+      let internal = displayText;
+
+      // Encontrar todos os @Nome e converter para @[uuid]
+      usuariosCache.forEach((usuario) => {
+        // Regex para encontrar @Nome (nome completo ou primeiro nome)
+        const nomeCompleto = usuario.nome;
+        const primeiroNome = nomeCompleto.split(" ")[0];
+
+        // Tentar match com nome completo primeiro
+        const regexCompleto = new RegExp(`@${escapeRegex(nomeCompleto)}(?![\\w])`, "gi");
+        internal = internal.replace(regexCompleto, `@[${usuario.id}]`);
+
+        // Depois tentar com primeiro nome (se ainda tiver @primeiroNome solto)
+        const regexPrimeiro = new RegExp(`@${escapeRegex(primeiroNome)}(?![\\w\\[])`, "gi");
+        internal = internal.replace(regexPrimeiro, `@[${usuario.id}]`);
+      });
+
+      return internal;
+    },
+    [usuariosCache]
+  );
+
   // Detectar quando o usuário digita @
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const newValue = e.target.value;
+      const newDisplayValue = e.target.value;
       const cursorPos = e.target.selectionStart || 0;
 
-      onChange(newValue);
-      setCursorPosition(cursorPos);
-
       // Verificar se estamos em um contexto de menção
-      const textBeforeCursor = newValue.substring(0, cursorPos);
+      const textBeforeCursor = newDisplayValue.substring(0, cursorPos);
       const lastAtIndex = textBeforeCursor.lastIndexOf("@");
 
       if (lastAtIndex !== -1) {
-        // Verificar se o @ não está dentro de um @[...] já existente
-        const textAfterAt = textBeforeCursor.substring(lastAtIndex);
-        const hasClosingBracket = textAfterAt.includes("]");
+        // Extrair texto após o @
+        const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
 
-        if (!hasClosingBracket) {
-          // Extrair termo de busca após o @
-          const searchText = textBeforeCursor.substring(lastAtIndex + 1);
+        // Verificar se é um @ válido (início de palavra, sem espaço depois ainda)
+        const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : " ";
+        const isValidMention = charBeforeAt === " " || charBeforeAt === "\n" || lastAtIndex === 0;
 
-          // Verificar se não há espaço antes do @ (início de palavra)
-          const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : " ";
-          const isValidMention = charBeforeAt === " " || charBeforeAt === "\n" || lastAtIndex === 0;
+        // Se não tem espaço após o @ e é válido, mostrar sugestões
+        if (isValidMention && !textAfterAt.includes(" ") && !textAfterAt.includes("\n")) {
+          setMentionStart(lastAtIndex);
+          setSearchTerm(textAfterAt);
+          setShowSuggestions(true);
+          setSelectedIndex(0);
 
-          if (isValidMention && !searchText.includes(" ") && !searchText.includes("\n")) {
-            setMentionStart(lastAtIndex);
-            setSearchTerm(searchText);
-            setShowSuggestions(true);
-            setSelectedIndex(0);
-
-            // Filtrar sugestões
-            const filtered = usuariosCache.filter(
-              (u) =>
-                u.nome.toLowerCase().includes(searchText.toLowerCase()) ||
-                (u.email && u.email.toLowerCase().includes(searchText.toLowerCase()))
-            );
-            setSuggestions(filtered.slice(0, 8));
-            return;
-          }
+          // Filtrar sugestões
+          const filtered = usuariosCache.filter(
+            (u) =>
+              u.nome.toLowerCase().includes(textAfterAt.toLowerCase()) ||
+              (u.email && u.email.toLowerCase().includes(textAfterAt.toLowerCase()))
+          );
+          setSuggestions(filtered.slice(0, 8));
+        } else {
+          setShowSuggestions(false);
+          setMentionStart(null);
         }
+      } else {
+        setShowSuggestions(false);
+        setMentionStart(null);
       }
 
-      // Fechar sugestões se não estiver em contexto de menção
-      setShowSuggestions(false);
-      setMentionStart(null);
+      // Converter para formato interno e notificar pai
+      const internalValue = convertDisplayToInternal(newDisplayValue);
+      onChange(internalValue);
     },
-    [onChange, usuariosCache]
+    [onChange, usuariosCache, convertDisplayToInternal]
   );
 
   // Inserir menção selecionada
   const insertMention = useCallback(
     (usuario: MentionSuggestion) => {
-      if (mentionStart === null) return;
+      if (mentionStart === null || !textareaRef.current) return;
 
-      const beforeMention = value.substring(0, mentionStart);
-      const afterMention = value.substring(cursorPosition);
+      const currentDisplay = textareaRef.current.value;
+      const cursorPos = textareaRef.current.selectionStart || 0;
 
-      // Formato: @[usuario_id] com display @Nome
-      const mentionText = `@[${usuario.id}]`;
-      const newValue = beforeMention + mentionText + " " + afterMention;
+      // Texto antes do @
+      const beforeMention = currentDisplay.substring(0, mentionStart);
+      // Texto após o cursor (onde o usuário estava digitando)
+      const afterMention = currentDisplay.substring(cursorPos);
 
-      onChange(newValue);
+      // Inserir @Nome (visualmente)
+      const mentionDisplay = `@${usuario.nome}`;
+      const newDisplayValue = beforeMention + mentionDisplay + " " + afterMention;
+
+      // Converter para interno (@[uuid])
+      const newInternalValue = beforeMention + `@[${usuario.id}]` + " " + convertDisplayToInternal(afterMention);
+
+      // Notificar pai com valor interno
+      onChange(newInternalValue);
       setShowSuggestions(false);
       setMentionStart(null);
 
-      // Focar no textarea e posicionar cursor após a menção
+      // Focar e posicionar cursor após a menção
       setTimeout(() => {
         if (textareaRef.current) {
-          const newCursorPos = mentionStart + mentionText.length + 1;
+          const newCursorPos = mentionStart + mentionDisplay.length + 1;
           textareaRef.current.focus();
           textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
         }
       }, 0);
     },
-    [value, mentionStart, cursorPosition, onChange]
+    [mentionStart, onChange, convertDisplayToInternal]
   );
 
   // Navegação por teclado nas sugestões
@@ -235,32 +319,12 @@ export default function MentionInput({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Renderizar texto com menções destacadas
-  const renderPreview = () => {
-    if (!value) return null;
-
-    // Substituir @[id] por @Nome
-    let displayText = value;
-    const mentionRegex = /@\[([^\]]+)\]/g;
-    let match;
-
-    while ((match = mentionRegex.exec(value)) !== null) {
-      const userId = match[1];
-      const usuario = usuariosCache.find((u) => u.id === userId);
-      if (usuario) {
-        displayText = displayText.replace(match[0], `@${usuario.nome}`);
-      }
-    }
-
-    return displayText;
-  };
-
   return (
     <div className="relative">
-      {/* Textarea */}
+      {/* Textarea - mostra @Nome */}
       <textarea
         ref={textareaRef}
-        value={value}
+        value={displayValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
@@ -269,13 +333,6 @@ export default function MentionInput({
         autoFocus={autoFocus}
         className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F25C26] focus:border-transparent resize-none disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
       />
-
-      {/* Preview de menções (opcional - pode ser habilitado) */}
-      {/* {value && (
-        <div className="mt-1 text-xs text-gray-500">
-          Preview: {renderPreview()}
-        </div>
-      )} */}
 
       {/* Dropdown de sugestões */}
       {showSuggestions && suggestions.length > 0 && (
@@ -331,15 +388,13 @@ export default function MentionInput({
           </div>
         </div>
       )}
-
-      {/* Loading */}
-      {loading && (
-        <div className="absolute right-3 top-3">
-          <div className="w-4 h-4 border-2 border-gray-300 border-t-[#F25C26] rounded-full animate-spin" />
-        </div>
-      )}
     </div>
   );
+}
+
+// Função auxiliar para escapar caracteres especiais em regex
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 // ============================================================

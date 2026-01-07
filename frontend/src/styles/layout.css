@@ -309,6 +309,7 @@
 
   /* Tabs estilo app */
   .wg-tabs-container {
+    display: none;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);

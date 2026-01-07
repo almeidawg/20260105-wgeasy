@@ -109,13 +109,12 @@ export async function criarCategoria(dados: Partial<CategoriaPessoal>): Promise<
 export async function listarLancamentos(filtros?: FiltrosLancamentos): Promise<LancamentoPessoal[]> {
   const usuarioId = await getUsuarioId();
 
+  // Buscar lançamentos sem join de contas (evita erro de FK)
   let query = supabase
     .from('fin_pessoal_lancamentos')
     .select(`
       *,
-      categoria:fin_pessoal_categorias(*),
-      conta:fin_pessoal_contas!conta_id(*),
-      conta_destino:fin_pessoal_contas!conta_destino_id(*)
+      categoria:fin_pessoal_categorias(*)
     `)
     .eq('usuario_id', usuarioId)
     .order('data_lancamento', { ascending: false });
@@ -132,7 +131,31 @@ export async function listarLancamentos(filtros?: FiltrosLancamentos): Promise<L
 
   const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+
+  if (!data || data.length === 0) return [];
+
+  // Buscar contas separadamente
+  const contaIds = [...new Set([
+    ...data.map((l: any) => l.conta_id).filter(Boolean),
+    ...data.map((l: any) => l.conta_destino_id).filter(Boolean)
+  ])];
+
+  let contasMap: Record<string, any> = {};
+  if (contaIds.length > 0) {
+    const { data: contas } = await supabase
+      .from('fin_pessoal_contas')
+      .select('*')
+      .in('id', contaIds);
+    if (contas) {
+      contasMap = Object.fromEntries(contas.map(c => [c.id, c]));
+    }
+  }
+
+  return data.map((l: any) => ({
+    ...l,
+    conta: l.conta_id ? contasMap[l.conta_id] : null,
+    conta_destino: l.conta_destino_id ? contasMap[l.conta_destino_id] : null
+  }));
 }
 
 export async function criarLancamento(dados: NovoLancamentoForm): Promise<LancamentoPessoal> {

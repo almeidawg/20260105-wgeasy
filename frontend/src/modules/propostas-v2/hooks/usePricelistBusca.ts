@@ -51,18 +51,29 @@ export function usePricelistBusca(): UsePricelistBuscaReturn {
     try {
       setLoading(true);
 
+      // Buscar itens sem join de núcleo (evita erro de FK)
       const { data, error } = await supabase
         .from("pricelist_itens")
-        .select(`
-          *,
-          nucleo:nucleos!nucleo_id(id, nome)
-        `)
+        .select("*")
         .eq("ativo", true)
         .order("nome");
 
       if (error) {
         console.error("Erro ao carregar pricelist:", error);
         return;
+      }
+
+      // Buscar núcleos separadamente
+      const nucleoIds = [...new Set((data || []).map((i: any) => i.nucleo_id).filter(Boolean))];
+      let nucleosMap: Record<string, string> = {};
+      if (nucleoIds.length > 0) {
+        const { data: nucleos } = await supabase
+          .from("nucleos")
+          .select("id, nome")
+          .in("id", nucleoIds);
+        if (nucleos) {
+          nucleosMap = Object.fromEntries(nucleos.map(n => [n.id, n.nome]));
+        }
       }
 
       const itensConvertidos: ItemPricelist[] = (data || []).map((item: any) => ({
@@ -75,8 +86,8 @@ export function usePricelistBusca(): UsePricelistBuscaReturn {
         unidade: item.unidade,
         preco: item.preco,
         imagem_url: item.imagem_url,
-        // NOVO: Usar nome do núcleo do join
-        nucleo: normalizarNucleoItem(item.nucleo?.nome),
+        // Usar nome do núcleo do mapa
+        nucleo: normalizarNucleoItem(item.nucleo_id ? nucleosMap[item.nucleo_id] : undefined),
         nucleo_id: item.nucleo_id,
         fabricante: item.fabricante,
         modelo: item.modelo,

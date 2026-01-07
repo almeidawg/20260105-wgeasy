@@ -118,6 +118,7 @@ export async function criarRegistroDiario(
     .select(
       `
       *,
+      cliente:pessoas!obra_registros_cliente_id_fkey (id, nome),
       colaborador:pessoas!obra_registros_colaborador_id_fkey (id, nome, avatar_url),
       obra_registros_fotos (*)
     `
@@ -161,6 +162,7 @@ export async function atualizarRegistroDiario(
     .select(
       `
       *,
+      cliente:pessoas!obra_registros_cliente_id_fkey (id, nome),
       colaborador:pessoas!obra_registros_colaborador_id_fkey (id, nome, avatar_url),
       obra_registros_fotos (*)
     `
@@ -225,6 +227,7 @@ export async function listarDiariosPorColaborador(
     .select(
       `
       *,
+      cliente:pessoas!obra_registros_cliente_id_fkey (id, nome),
       colaborador:pessoas!obra_registros_colaborador_id_fkey (id, nome, avatar_url),
       obra_registros_fotos (*)
     `
@@ -263,6 +266,7 @@ export async function buscarDiario(diarioId: string): Promise<DiarioObra> {
     .select(
       `
       *,
+      cliente:pessoas!obra_registros_cliente_id_fkey (id, nome),
       colaborador:pessoas!obra_registros_colaborador_id_fkey (id, nome, avatar_url),
       obra_registros_fotos (*)
     `

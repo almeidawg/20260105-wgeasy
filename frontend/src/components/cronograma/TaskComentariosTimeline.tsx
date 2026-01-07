@@ -45,7 +45,7 @@ const TaskComentariosTimeline: React.FC<TaskComentariosTimelineProps> = ({
     carregarComentarios();
   }, [task_id]);
 
-  // Carregar dados dos usuários mencionados
+  // Carregar dados dos usuários mencionados (usuarios + pessoas)
   useEffect(() => {
     async function carregarUsuariosMencoes() {
       // Coletar todos os IDs de menções únicos
@@ -59,21 +59,46 @@ const TaskComentariosTimeline: React.FC<TaskComentariosTimelineProps> = ({
       if (todosIds.size === 0) return;
 
       try {
-        const { data } = await supabase
+        const usuariosMap = new Map<string, { id: string; nome: string }>();
+        const idsArray = Array.from(todosIds);
+
+        // 1. Buscar em usuarios
+        const { data: usuariosData } = await supabase
           .from("usuarios")
           .select(`
             id,
             pessoa:pessoas!usuarios_pessoa_id_fkey (nome)
           `)
-          .in("id", Array.from(todosIds));
+          .in("id", idsArray);
 
-        if (data) {
-          const usuarios = data.map((u: any) => ({
-            id: u.id,
-            nome: u.pessoa?.nome || "Usuário",
-          }));
-          setUsuariosMencoes(usuarios);
+        if (usuariosData) {
+          usuariosData.forEach((u: any) => {
+            usuariosMap.set(u.id, {
+              id: u.id,
+              nome: u.pessoa?.nome || "Usuário",
+            });
+          });
         }
+
+        // 2. Buscar IDs não encontrados em pessoas
+        const idsNaoEncontrados = idsArray.filter(id => !usuariosMap.has(id));
+        if (idsNaoEncontrados.length > 0) {
+          const { data: pessoasData } = await supabase
+            .from("pessoas")
+            .select("id, nome")
+            .in("id", idsNaoEncontrados);
+
+          if (pessoasData) {
+            pessoasData.forEach((p: any) => {
+              usuariosMap.set(p.id, {
+                id: p.id,
+                nome: p.nome || "Pessoa",
+              });
+            });
+          }
+        }
+
+        setUsuariosMencoes(Array.from(usuariosMap.values()));
       } catch (err) {
         console.error("Erro ao carregar usuários mencionados:", err);
       }
