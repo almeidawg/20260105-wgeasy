@@ -35,6 +35,8 @@ export interface CadastroPendente {
   empresa: string | null;
   cargo: string | null;
   endereco: string | null;
+  numero: string | null;
+  complemento: string | null;
   cidade: string | null;
   estado: string | null;
   cep: string | null;
@@ -96,6 +98,8 @@ export interface DadosCadastroPublico {
   empresa?: string;
   cargo?: string;
   endereco?: string;
+  numero?: string;
+  complemento?: string;
   cidade?: string;
   estado?: string;
   cep?: string;
@@ -315,6 +319,8 @@ export async function preencherCadastro(
     p_empresa: dados.empresa || null,
     p_cargo: dados.cargo || null,
     p_endereco: dados.endereco || null,
+    p_numero: dados.numero || null,
+    p_complemento: dados.complemento || null,
     p_cidade: dados.cidade || null,
     p_estado: dados.estado || null,
     p_cep: dados.cep || null,

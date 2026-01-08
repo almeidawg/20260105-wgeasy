@@ -85,7 +85,7 @@ const TIPOS_PREVIEW: TipoUsuario[] = [
 
 export default function PlantaSistemaPage() {
   const { toast } = useToast();
-  const { isMaster, isAdmin, loading: loadingUser } = useUsuarioLogado();
+  const { isMaster, loading: loadingUser } = useUsuarioLogado();
   const { previewTipo, isPreviewMode, startPreview, stopPreview } = usePreviewTipoUsuario();
 
   const [modulos, setModulos] = useState<ModuloSistema[]>([]);

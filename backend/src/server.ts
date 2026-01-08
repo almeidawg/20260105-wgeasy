@@ -526,7 +526,111 @@ app.post(
 // GOOGLE CALENDAR API
 // ============================================================
 
-// URL de autenticação OAuth2
+// Status da configuração do Calendar (Service Account)
+app.get("/api/calendar/status", rateLimitMiddleware, (_req: Request, res: Response) => {
+  const configured = calendarService.isServiceAccountConfigured();
+  res.json({
+    configured,
+    message: configured
+      ? "Calendar configurado com Service Account"
+      : "Service Account não configurada para Calendar",
+  });
+});
+
+// Listar eventos via Service Account (sempre ativo, sem login)
+app.get(
+  "/api/calendar/sa/events",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { timeMin, timeMax, maxResults } = req.query;
+
+      const events = await calendarService.listEventsWithServiceAccount(
+        "primary",
+        {
+          timeMin: timeMin as string,
+          timeMax: timeMax as string,
+          maxResults: maxResults ? parseInt(maxResults as string) : 100,
+        }
+      );
+
+      res.json({ events, count: events.length });
+    } catch (error: any) {
+      console.error("[Calendar SA Error]:", error);
+      res.status(500).json({
+        error: "Erro ao listar eventos",
+        message: error.message,
+      });
+    }
+  }
+);
+
+// Criar evento via Service Account
+app.post(
+  "/api/calendar/sa/events",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const event = req.body;
+
+      if (!event.summary) {
+        return res.status(400).json({ error: "Título do evento é obrigatório" });
+      }
+
+      const created = await calendarService.createEventWithServiceAccount(event);
+      res.json({ success: true, event: created });
+    } catch (error: any) {
+      console.error("[Calendar SA Create Error]:", error);
+      res.status(500).json({
+        error: "Erro ao criar evento",
+        message: error.message,
+      });
+    }
+  }
+);
+
+// Atualizar evento via Service Account
+app.put(
+  "/api/calendar/sa/events/:eventId",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { eventId } = req.params;
+      const event = req.body;
+
+      const updated = await calendarService.updateEventWithServiceAccount(eventId, event);
+      res.json({ success: true, event: updated });
+    } catch (error: any) {
+      console.error("[Calendar SA Update Error]:", error);
+      res.status(500).json({
+        error: "Erro ao atualizar evento",
+        message: error.message,
+      });
+    }
+  }
+);
+
+// Deletar evento via Service Account
+app.delete(
+  "/api/calendar/sa/events/:eventId",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { eventId } = req.params;
+
+      await calendarService.deleteEventWithServiceAccount(eventId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Calendar SA Delete Error]:", error);
+      res.status(500).json({
+        error: "Erro ao deletar evento",
+        message: error.message,
+      });
+    }
+  }
+);
+
+// URL de autenticação OAuth2 (fallback se Service Account não estiver configurada)
 app.get("/api/calendar/auth-url", (_req: Request, res: Response) => {
   const url = calendarService.getAuthUrl();
   res.json({ url });
@@ -862,9 +966,522 @@ app.post(
   }
 );
 
+// Listar imagens do Diário de Obra de uma pasta do cliente
+app.get(
+  "/api/drive/diario-obra-images",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { folderId } = req.query;
+
+      if (!folderId) {
+        return res.status(400).json({ error: "folderId é obrigatório" });
+      }
+
+      // Importar função de listar imagens
+      const { listDiarioObraImages } = await import("./shared/driveService");
+
+      const images = await listDiarioObraImages(folderId as string);
+
+      res.json({
+        success: true,
+        groups: images,
+        totalImages: images.reduce((sum, g) => sum + g.files.length, 0),
+      });
+    } catch (error: any) {
+      console.error("[Drive List Diario Images Error]:", error);
+      res.status(500).json({
+        error: "Erro ao listar imagens do diário de obra",
+        message: error.message,
+      });
+    }
+  }
+);
+
+// Listar arquivos de uma pasta específica
+app.get(
+  "/api/drive/list-files",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { folderId, mimeType } = req.query;
+
+      if (!folderId) {
+        return res.status(400).json({ error: "folderId é obrigatório" });
+      }
+
+      const { listFilesInFolder } = await import("./shared/driveService");
+
+      const files = await listFilesInFolder(
+        folderId as string,
+        mimeType as string | undefined
+      );
+
+      res.json({
+        success: true,
+        files,
+        total: files.length,
+      });
+    } catch (error: any) {
+      console.error("[Drive List Files Error]:", error);
+      res.status(500).json({
+        error: "Erro ao listar arquivos",
+        message: error.message,
+      });
+    }
+  }
+);
+
 // ============================================================
 // INICIALIZAÇÃO DO SERVIDOR
 // ============================================================
+
+
+// ============================================================
+// GOOGLE KEEP API
+// ============================================================
+import * as googleKeepApi from "./shared/googleKeepApi";
+
+// Status da configuração do Google Keep
+app.get(
+  "/api/keep/status",
+  rateLimitMiddleware,
+  async (_req: Request, res: Response) => {
+    const hasUserEmail = Boolean(process.env.GOOGLE_KEEP_USER_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_SUBJECT);
+    const hasServiceAccount = Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH);
+
+    const configured = hasUserEmail && hasServiceAccount;
+
+    res.json({
+      configured,
+      hasUserEmail,
+      hasServiceAccount,
+      message: configured
+        ? "Google Keep configurado"
+        : "Configure GOOGLE_KEEP_USER_EMAIL e GOOGLE_SERVICE_ACCOUNT_KEY no .env"
+    });
+  }
+);
+
+// Testar conexão com Google Keep
+app.get(
+  "/api/keep/test",
+  rateLimitMiddleware,
+  async (_req: Request, res: Response) => {
+    try {
+      const result = await googleKeepApi.checkConnection();
+      res.json(result);
+    } catch (error: any) {
+      res.json({
+        success: false,
+        message: error.message || "Erro ao conectar com Google Keep"
+      });
+    }
+  }
+);
+
+app.get(
+  "/api/keep/notes",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      // Parâmetro ?all=true retorna todas as notas (não apenas WG-Easy)
+      const includeAll = req.query.all === "true";
+      const notes = await googleKeepApi.listNotes(includeAll);
+      res.json(notes);
+    } catch (error: any) {
+      console.error("[Google Keep Error]:", error);
+      res.status(500).json({ error: "Erro ao buscar notas do Google Keep", message: error.message });
+    }
+  }
+);
+
+// Criar nova nota no Google Keep
+app.post(
+  "/api/keep/notes",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { title, text, items, clienteId, clienteNome } = req.body;
+
+      if (!title) {
+        return res.status(400).json({ error: "Título é obrigatório" });
+      }
+
+      // Se tiver cliente, adiciona tag no título
+      const tituloFinal = clienteNome
+        ? `[${clienteNome}] ${title}`
+        : title;
+
+      const result = await googleKeepApi.createNote({
+        title: tituloFinal,
+        text,
+        items,
+      });
+
+      res.json({
+        success: true,
+        ...result,
+        clienteId,
+        clienteNome,
+      });
+    } catch (error: any) {
+      console.error("[Google Keep Error - Create]:", error);
+      res.status(500).json({ error: "Erro ao criar nota", message: error.message });
+    }
+  }
+);
+
+// ============================================================
+// GOOGLE KEEP - COMPARTILHAMENTO
+// ============================================================
+
+// Compartilhar nota com clientes ou usuarios internos
+app.post(
+  "/api/keep/notes/:noteId/share",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { noteId } = req.params;
+      const { compartilhar_com, titulo, criado_por_usuario_id } = req.body;
+
+      if (!supabase) {
+        return res.status(500).json({ error: "Supabase não configurado" });
+      }
+
+      if (!noteId || !compartilhar_com || !Array.isArray(compartilhar_com)) {
+        return res.status(400).json({ error: "noteId e compartilhar_com são obrigatórios" });
+      }
+
+      const results = [];
+
+      for (const target of compartilhar_com) {
+        const { tipo, id, permissoes } = target;
+
+        const insertData: any = {
+          keep_note_id: noteId,
+          titulo: titulo || null,
+          criado_por_usuario_id: criado_por_usuario_id || null,
+          pode_editar: permissoes?.pode_editar || false,
+          pode_marcar_itens: permissoes?.pode_marcar_itens ?? true,
+          pode_adicionar_itens: permissoes?.pode_adicionar_itens || false,
+        };
+
+        if (tipo === "pessoa") {
+          insertData.compartilhado_com_pessoa_id = id;
+        } else if (tipo === "usuario") {
+          insertData.compartilhado_com_usuario_id = id;
+        } else {
+          continue;
+        }
+
+        const { data, error } = await supabase
+          .from("keep_notes_compartilhamentos")
+          .upsert(insertData, {
+            onConflict: tipo === "pessoa"
+              ? "keep_note_id,compartilhado_com_pessoa_id"
+              : "keep_note_id,compartilhado_com_usuario_id"
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("[Keep Share] Erro ao compartilhar:", error);
+        } else {
+          results.push(data);
+        }
+      }
+
+      res.json({ success: true, compartilhamentos: results });
+    } catch (error: any) {
+      console.error("[Keep Share Error]:", error);
+      res.status(500).json({ error: "Erro ao compartilhar nota", message: error.message });
+    }
+  }
+);
+
+// Listar compartilhamentos de uma nota
+app.get(
+  "/api/keep/notes/:noteId/shares",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { noteId } = req.params;
+
+      if (!supabase) {
+        return res.status(500).json({ error: "Supabase não configurado" });
+      }
+
+      // Buscar compartilhamentos (usuarios não tem nome/email, usa pessoa_id)
+      const { data, error } = await supabase
+        .from("keep_notes_compartilhamentos")
+        .select(`
+          *,
+          pessoa:pessoas!compartilhado_com_pessoa_id(id, nome, email),
+          usuario:usuarios!compartilhado_com_usuario_id(id, pessoa_id, tipo_usuario)
+        `)
+        .eq("keep_note_id", noteId);
+
+      // Se tiver usuarios, buscar dados da pessoa vinculada
+      if (data && data.length > 0) {
+        for (const share of data) {
+          if (share.usuario?.pessoa_id) {
+            const { data: pessoaData } = await supabase
+              .from("pessoas")
+              .select("nome, email")
+              .eq("id", share.usuario.pessoa_id)
+              .single();
+            if (pessoaData) {
+              share.usuario.nome = pessoaData.nome;
+              share.usuario.email = pessoaData.email;
+            }
+          }
+        }
+      }
+
+      if (error) {
+        console.error("[Keep Shares] Erro:", error);
+        return res.status(500).json({ error: "Erro ao buscar compartilhamentos" });
+      }
+
+      // Formatar resposta
+      const shares = (data || []).map((s: any) => ({
+        id: s.id,
+        tipo: s.compartilhado_com_pessoa_id ? "pessoa" : "usuario",
+        target_id: s.compartilhado_com_pessoa_id || s.compartilhado_com_usuario_id,
+        nome: s.pessoa?.nome || s.usuario?.nome || "Desconhecido",
+        email: s.pessoa?.email || s.usuario?.email || null,
+        permissoes: {
+          pode_editar: s.pode_editar,
+          pode_marcar_itens: s.pode_marcar_itens,
+          pode_adicionar_itens: s.pode_adicionar_itens,
+        },
+        created_at: s.created_at,
+      }));
+
+      res.json({ note_id: noteId, shares });
+    } catch (error: any) {
+      console.error("[Keep Shares Error]:", error);
+      res.status(500).json({ error: "Erro ao buscar compartilhamentos", message: error.message });
+    }
+  }
+);
+
+// Remover compartilhamento
+app.delete(
+  "/api/keep/notes/:noteId/share/:shareId",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { noteId, shareId } = req.params;
+
+      if (!supabase) {
+        return res.status(500).json({ error: "Supabase não configurado" });
+      }
+
+      const { error } = await supabase
+        .from("keep_notes_compartilhamentos")
+        .delete()
+        .eq("id", shareId)
+        .eq("keep_note_id", noteId);
+
+      if (error) {
+        console.error("[Keep Unshare] Erro:", error);
+        return res.status(500).json({ error: "Erro ao remover compartilhamento" });
+      }
+
+      res.json({ success: true, message: "Compartilhamento removido" });
+    } catch (error: any) {
+      console.error("[Keep Unshare Error]:", error);
+      res.status(500).json({ error: "Erro ao remover compartilhamento", message: error.message });
+    }
+  }
+);
+
+// Buscar notas compartilhadas comigo (para area do cliente)
+app.get(
+  "/api/keep/notes/shared-with-me",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const pessoaId = req.query.pessoa_id as string;
+      const usuarioId = req.query.usuario_id as string;
+
+      if (!supabase) {
+        return res.status(500).json({ error: "Supabase não configurado" });
+      }
+
+      if (!pessoaId && !usuarioId) {
+        return res.status(400).json({ error: "pessoa_id ou usuario_id é obrigatório" });
+      }
+
+      // Buscar compartilhamentos
+      let query = supabase
+        .from("keep_notes_compartilhamentos")
+        .select("*");
+
+      if (pessoaId) {
+        query = query.eq("compartilhado_com_pessoa_id", pessoaId);
+      } else {
+        query = query.eq("compartilhado_com_usuario_id", usuarioId);
+      }
+
+      const { data: shares, error: sharesError } = await query;
+
+      if (sharesError) {
+        console.error("[Keep Shared With Me] Erro:", sharesError);
+        return res.status(500).json({ error: "Erro ao buscar compartilhamentos" });
+      }
+
+      if (!shares || shares.length === 0) {
+        return res.json([]);
+      }
+
+      // Buscar notas do Google Keep
+      const allNotes = await googleKeepApi.listNotes(false);
+
+      // Filtrar apenas as notas compartilhadas
+      const noteIds = shares.map((s: any) => s.keep_note_id);
+      const sharedNotes = allNotes.filter((n: any) => noteIds.includes(n.id));
+
+      // Adicionar informações de permissão a cada nota
+      const notesWithPermissions = sharedNotes.map((note: any) => {
+        const share = shares.find((s: any) => s.keep_note_id === note.id);
+        return {
+          ...note,
+          permissoes: {
+            pode_editar: share?.pode_editar || false,
+            pode_marcar_itens: share?.pode_marcar_itens || true,
+            pode_adicionar_itens: share?.pode_adicionar_itens || false,
+          },
+          share_id: share?.id,
+        };
+      });
+
+      res.json(notesWithPermissions);
+    } catch (error: any) {
+      console.error("[Keep Shared With Me Error]:", error);
+      res.status(500).json({ error: "Erro ao buscar notas compartilhadas", message: error.message });
+    }
+  }
+);
+
+// Atualizar item de nota (para cliente marcar/desmarcar)
+app.patch(
+  "/api/keep/notes/:noteId/items/:itemIndex",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { noteId, itemIndex } = req.params;
+      const { checked, pessoaId } = req.body;
+
+      if (!supabase) {
+        return res.status(500).json({ error: "Supabase não configurado" });
+      }
+
+      // Verificar permissão
+      if (pessoaId) {
+        const { data: share } = await supabase
+          .from("keep_notes_compartilhamentos")
+          .select("pode_marcar_itens")
+          .eq("keep_note_id", noteId)
+          .eq("compartilhado_com_pessoa_id", pessoaId)
+          .single();
+
+        if (!share?.pode_marcar_itens) {
+          return res.status(403).json({ error: "Sem permissão para marcar itens" });
+        }
+      }
+
+      // Buscar nota atual do Keep
+      const note = await googleKeepApi.getNote(noteId);
+
+      if (!note.items || !Array.isArray(note.items)) {
+        return res.status(400).json({ error: "Nota não possui itens de checklist" });
+      }
+
+      const idx = parseInt(itemIndex, 10);
+      if (isNaN(idx) || idx < 0 || idx >= note.items.length) {
+        return res.status(400).json({ error: "Índice de item inválido" });
+      }
+
+      // Atualizar item
+      note.items[idx].checked = checked;
+
+      // Google Keep API não suporta update, então deletamos e recriamos
+      await googleKeepApi.deleteNote(noteId);
+      const newNote = await googleKeepApi.createNote({
+        title: note.title,
+        items: note.items,
+      });
+
+      // Atualizar referências de compartilhamento para o novo ID
+      if (newNote.id !== noteId) {
+        await supabase
+          .from("keep_notes_compartilhamentos")
+          .update({ keep_note_id: newNote.id })
+          .eq("keep_note_id", noteId);
+      }
+
+      res.json({
+        success: true,
+        note: newNote,
+        message: "Item atualizado com sucesso"
+      });
+    } catch (error: any) {
+      console.error("[Keep Update Item Error]:", error);
+      res.status(500).json({ error: "Erro ao atualizar item", message: error.message });
+    }
+  }
+);
+
+// Deletar nota do Google Keep
+app.delete(
+  "/api/keep/notes/:noteId",
+  rateLimitMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      // Express já decodifica params automaticamente
+      const { noteId } = req.params;
+
+      console.log("[Google Keep Delete] Tentando deletar nota ID:", noteId);
+      console.log("[Google Keep Delete] URL completa:", req.originalUrl);
+
+      if (!noteId) {
+        return res.status(400).json({ error: "ID da nota é obrigatório" });
+      }
+
+      await googleKeepApi.deleteNote(noteId);
+      console.log("[Google Keep Delete] Nota deletada com sucesso:", noteId);
+      res.json({ success: true, message: "Nota excluída com sucesso" });
+    } catch (error: any) {
+      console.error("[Google Keep Error - Delete]:", error.message);
+
+      // Log detalhado para erros da API do Google
+      if (error.code) {
+        console.error("[Google Keep Error - Delete] Código:", error.code);
+      }
+      if (error.errors) {
+        console.error("[Google Keep Error - Delete] Errors:", JSON.stringify(error.errors, null, 2));
+      }
+      if (error.response?.data) {
+        console.error("[Google Keep Error - Delete] Response Data:", JSON.stringify(error.response.data, null, 2));
+      }
+
+      // Determinar status code apropriado
+      let statusCode = 500;
+      if (error.code === 404) statusCode = 404;
+      if (error.code === 403) statusCode = 403;
+
+      res.status(statusCode).json({
+        error: "Erro ao excluir nota",
+        message: error.message,
+        code: error.code || null,
+        details: error.response?.data || error.errors || null
+      });
+    }
+  }
+);
 
 app.listen(PORT, () => {
   console.log(`[Server] Backend rodando em http://localhost:${PORT}`);
@@ -872,4 +1489,5 @@ app.listen(PORT, () => {
   console.log(`[Server] Anthropic proxy: POST /api/anthropic/messages`);
   console.log(`[Server] Email API: POST /api/email/send`);
   console.log(`[Server] Calendar API: GET /api/calendar/events`);
+  console.log(`[Server] Google Keep API: GET/POST/DELETE /api/keep/notes`);
 });

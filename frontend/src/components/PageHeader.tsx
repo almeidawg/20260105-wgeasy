@@ -12,7 +12,6 @@ export function PageHeader({ title, subtitle, className }: PageHeaderProps) {
     >
       <div className="page-header-first-line">
         <h1 className="page-header-title">{title}</h1>
-        <span className="page-header-line" />
       </div>
       {subtitle && (
         <p className="page-header-subtitle-inline">{subtitle}</p>

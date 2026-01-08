@@ -2,6 +2,7 @@
 // WIDGET: Google Calendar para Dashboard
 // Sistema WG Easy - Grupo WG Almeida
 // Calendario mensal com sincronizacao Google Calendar
+// Usa Service Account (sempre ativo, sem login)
 // ============================================================
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -27,14 +28,33 @@ import {
   Plus,
   RefreshCw,
   Loader2,
-  LogIn,
-  LogOut,
+  CheckCircle2,
+  AlertCircle,
   Clock,
   MapPin,
   ExternalLink,
 } from 'lucide-react';
-import googleCalendarService, { type GoogleCalendarEvent } from '@/services/googleCalendarService';
 import NovoEventoModal from './NovoEventoModal';
+
+// Interface para eventos
+interface GoogleCalendarEvent {
+  id?: string;
+  summary: string;
+  description?: string;
+  location?: string;
+  start: {
+    dateTime?: string;
+    date?: string;
+    timeZone?: string;
+  };
+  end: {
+    dateTime?: string;
+    date?: string;
+    timeZone?: string;
+  };
+  colorId?: string;
+  htmlLink?: string;
+}
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 
@@ -60,22 +80,37 @@ export default function GoogleCalendarWidget() {
   const [eventos, setEventos] = useState<GoogleCalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [conectado, setConectado] = useState(false);
-  const [conectando, setConectando] = useState(false);
+  const [verificando, setVerificando] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
   const [eventoEditando, setEventoEditando] = useState<GoogleCalendarEvent | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
-  // Verificar conexao ao montar
+  // Verificar se Service Account está configurada
   useEffect(() => {
-    setConectado(googleCalendarService.isConnected());
+    async function verificarStatus() {
+      try {
+        const res = await fetch('/api/calendar/status');
+        const data = await res.json();
+        setConectado(data.configured);
+        if (data.configured) {
+          carregarEventos();
+        }
+      } catch (error) {
+        console.error('[GoogleCalendarWidget] Erro ao verificar status:', error);
+        setConectado(false);
+      } finally {
+        setVerificando(false);
+      }
+    }
+    verificarStatus();
   }, []);
 
-  // Carregar eventos quando conectado ou mes mudar
+  // Carregar eventos quando mes mudar
   useEffect(() => {
     if (conectado) {
       carregarEventos();
     }
-  }, [conectado, mesAtual]);
+  }, [mesAtual]);
 
   // Auto-refresh a cada 5 minutos
   useEffect(() => {
@@ -88,50 +123,36 @@ export default function GoogleCalendarWidget() {
     return () => clearInterval(interval);
   }, [conectado]);
 
-  // Carregar eventos do mes
+  // Carregar eventos do mes via backend Service Account
   const carregarEventos = useCallback(async () => {
     try {
       setLoading(true);
       setErro(null);
 
-      const year = mesAtual.getFullYear();
-      const month = mesAtual.getMonth();
-      const eventosDoMes = await googleCalendarService.getEventsForMonth(year, month);
+      const inicioMes = startOfMonth(mesAtual);
+      const fimMes = endOfMonth(mesAtual);
 
-      setEventos(eventosDoMes);
+      const params = new URLSearchParams({
+        timeMin: inicioMes.toISOString(),
+        timeMax: fimMes.toISOString(),
+        maxResults: '100',
+      });
+
+      const res = await fetch(`/api/calendar/sa/events?${params}`);
+      const data = await res.json();
+
+      if (data.events) {
+        setEventos(data.events);
+      } else if (data.error) {
+        throw new Error(data.message || data.error);
+      }
     } catch (error: any) {
       console.error('[GoogleCalendarWidget] Erro ao carregar eventos:', error);
       setErro(error.message || 'Erro ao carregar eventos');
-
-      if (error.message?.includes('expirada')) {
-        setConectado(false);
-      }
     } finally {
       setLoading(false);
     }
   }, [mesAtual]);
-
-  // Conectar com Google
-  const handleConectar = async () => {
-    try {
-      setConectando(true);
-      setErro(null);
-      await googleCalendarService.authenticate();
-      setConectado(true);
-    } catch (error: any) {
-      console.error('[GoogleCalendarWidget] Erro ao conectar:', error);
-      setErro(error.message || 'Erro ao conectar com Google');
-    } finally {
-      setConectando(false);
-    }
-  };
-
-  // Desconectar
-  const handleDesconectar = () => {
-    googleCalendarService.disconnect();
-    setConectado(false);
-    setEventos([]);
-  };
 
   // Abrir modal para novo evento
   const handleNovoEvento = (data?: Date) => {
@@ -205,7 +226,29 @@ export default function GoogleCalendarWidget() {
     return EVENT_COLORS[evento.colorId || 'default'] || EVENT_COLORS.default;
   };
 
-  // Tela de conexao
+  // Tela de verificação
+  if (verificando) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-[#F25C26] to-[#FF7A45] text-white">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-white/20">
+              <CalendarIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Google Calendar</h3>
+              <p className="text-sm text-white/80">Verificando conexão...</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-8 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#F25C26]" />
+        </div>
+      </div>
+    );
+  }
+
+  // Tela quando Service Account não está configurada
   if (!conectado) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
@@ -222,15 +265,16 @@ export default function GoogleCalendarWidget() {
         </div>
 
         <div className="p-8 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-            <CalendarIcon className="w-10 h-10 text-gray-400" />
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+            <AlertCircle className="w-10 h-10 text-amber-500" />
           </div>
 
           <h4 className="text-lg font-semibold text-gray-900 mb-2">
-            Conecte sua Agenda Google
+            Aguardando Configuração
           </h4>
-          <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
-            Visualize e gerencie seus compromissos diretamente no dashboard do WG Easy.
+          <p className="text-sm text-gray-600 mb-4 max-w-sm mx-auto">
+            O Google Calendar será ativado automaticamente quando a Service Account estiver configurada
+            com permissões de Calendar.
           </p>
 
           {erro && (
@@ -239,23 +283,10 @@ export default function GoogleCalendarWidget() {
             </div>
           )}
 
-          <button
-            onClick={handleConectar}
-            disabled={conectando}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#F25C26] text-white rounded-xl font-medium hover:bg-[#e04a1a] transition-colors disabled:opacity-50"
-          >
-            {conectando ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Conectando...
-              </>
-            ) : (
-              <>
-                <LogIn className="w-5 h-5" />
-                Conectar Google Calendar
-              </>
-            )}
-          </button>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm">
+            <CheckCircle2 className="w-4 h-4 text-green-500" />
+            Conexão automática (sem login)
+          </div>
         </div>
       </div>
     );
@@ -312,13 +343,6 @@ export default function GoogleCalendarWidget() {
                 title="Novo Evento"
               >
                 <Plus className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleDesconectar}
-                className="p-2 rounded-lg hover:bg-white/20 transition-colors"
-                title="Desconectar"
-              >
-                <LogOut className="w-5 h-5" />
               </button>
             </div>
           </div>

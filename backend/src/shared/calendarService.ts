@@ -29,6 +29,11 @@ const CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
 ];
 
+// Email do usuário Workspace para impersonar (Domain-wide Delegation)
+const CALENDAR_USER_EMAIL = process.env.GOOGLE_CALENDAR_USER_EMAIL ||
+                            process.env.GOOGLE_KEEP_USER_EMAIL ||
+                            process.env.GOOGLE_SERVICE_ACCOUNT_SUBJECT;
+
 // ============================================================
 // TIPOS
 // ============================================================
@@ -286,6 +291,152 @@ export async function quickAdd(
   }
 }
 
+// ============================================================
+// FUNÇÕES COM SERVICE ACCOUNT (SEMPRE ATIVO)
+// ============================================================
+
+/**
+ * Cria cliente Calendar com Service Account + Domain-wide Delegation
+ */
+function createCalendarServiceAccountClient() {
+  if (!CALENDAR_USER_EMAIL) {
+    return null;
+  }
+
+  const auth = createServiceAccountClient(CALENDAR_SCOPES);
+  if (!auth) {
+    return null;
+  }
+
+  // Definir o subject (usuário a impersonar)
+  auth.subject = CALENDAR_USER_EMAIL;
+  return auth;
+}
+
+/**
+ * Verifica se Service Account está configurada para Calendar
+ */
+export function isServiceAccountConfigured(): boolean {
+  return Boolean(createCalendarServiceAccountClient());
+}
+
+/**
+ * Lista eventos usando Service Account (sempre ativo, sem login)
+ */
+export async function listEventsWithServiceAccount(
+  calendarId: string = 'primary',
+  options?: {
+    timeMin?: string;
+    timeMax?: string;
+    maxResults?: number;
+  }
+): Promise<CalendarEvent[]> {
+  const auth = createCalendarServiceAccountClient();
+  if (!auth) {
+    throw new Error('Service Account não configurada para Calendar');
+  }
+
+  try {
+    const response = await calendar.events.list({
+      auth,
+      calendarId,
+      timeMin: options?.timeMin || new Date().toISOString(),
+      timeMax: options?.timeMax,
+      maxResults: options?.maxResults || 100,
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+
+    return (response.data.items || []) as CalendarEvent[];
+  } catch (error) {
+    console.error('[Calendar Service Account] Erro ao listar eventos:', error);
+    throw error;
+  }
+}
+
+/**
+ * Cria evento usando Service Account
+ */
+export async function createEventWithServiceAccount(
+  event: CalendarEvent,
+  calendarId: string = 'primary'
+): Promise<CalendarEvent | null> {
+  const auth = createCalendarServiceAccountClient();
+  if (!auth) {
+    throw new Error('Service Account não configurada para Calendar');
+  }
+
+  try {
+    const response = await calendar.events.insert({
+      auth,
+      calendarId,
+      requestBody: event as calendar_v3.Schema$Event,
+      sendUpdates: 'all',
+    });
+
+    return response.data as CalendarEvent;
+  } catch (error) {
+    console.error('[Calendar Service Account] Erro ao criar evento:', error);
+    throw error;
+  }
+}
+
+/**
+ * Atualiza evento usando Service Account
+ */
+export async function updateEventWithServiceAccount(
+  eventId: string,
+  event: Partial<CalendarEvent>,
+  calendarId: string = 'primary'
+): Promise<CalendarEvent | null> {
+  const auth = createCalendarServiceAccountClient();
+  if (!auth) {
+    throw new Error('Service Account não configurada para Calendar');
+  }
+
+  try {
+    const response = await calendar.events.patch({
+      auth,
+      calendarId,
+      eventId,
+      requestBody: event as calendar_v3.Schema$Event,
+      sendUpdates: 'all',
+    });
+
+    return response.data as CalendarEvent;
+  } catch (error) {
+    console.error('[Calendar Service Account] Erro ao atualizar evento:', error);
+    throw error;
+  }
+}
+
+/**
+ * Deleta evento usando Service Account
+ */
+export async function deleteEventWithServiceAccount(
+  eventId: string,
+  calendarId: string = 'primary'
+): Promise<boolean> {
+  const auth = createCalendarServiceAccountClient();
+  if (!auth) {
+    throw new Error('Service Account não configurada para Calendar');
+  }
+
+  try {
+    await calendar.events.delete({
+      auth,
+      calendarId,
+      eventId,
+      sendUpdates: 'all',
+    });
+
+    return true;
+  } catch (error) {
+    console.error('[Calendar Service Account] Erro ao deletar evento:', error);
+    throw error;
+  }
+}
+
 export default {
   getAuthUrl,
   getTokensFromCode,
@@ -296,4 +447,10 @@ export default {
   deleteEvent,
   listCalendars,
   quickAdd,
+  // Service Account functions
+  isServiceAccountConfigured,
+  listEventsWithServiceAccount,
+  createEventWithServiceAccount,
+  updateEventWithServiceAccount,
+  deleteEventWithServiceAccount,
 };

@@ -11,7 +11,6 @@ import {
   BadgeDollarSign,
   FileText,
   ClipboardList,
-  FolderKanban,
   Building2,
   Wrench,
   ShoppingCart,
@@ -30,7 +29,11 @@ import {
   Circle,
   X,
   Scale,
-  Truck
+  Truck,
+  HardHat,
+  Landmark,
+  Cog,
+  TreeDeciduous
 } from "lucide-react";
 
 type SidebarProps = {
@@ -49,16 +52,18 @@ function sectionIcon(section: string) {
       return <BadgeDollarSign size={size} />;
     case "comercial":
       return <FileText size={size} />;
-    case "nucleos":
-    case "núcleos":
-    case "nÇ§cleos":
-    case "n¶œcleos":
-      return <FolderKanban size={size} />;
+    case "arquitetura":
+      return <Landmark size={size} />;
+    case "engenharia":
+      return <Cog size={size} />;
+    case "marcenaria":
+      return <TreeDeciduous size={size} />;
     case "planejamento":
       return <ClipboardList size={size} />;
     case "cronograma":
       return <CalendarCheck size={size} />;
     case "wg experience":
+    case "wgxperience":
       return <CheckSquare size={size} />;
     case "financeiro":
       return <Coins size={size} />;
@@ -88,6 +93,9 @@ function sectionIcon(section: string) {
     case "serviços":
     case "servicos":
       return <Truck size={size} />;
+    case "minha área":
+    case "minha area":
+      return <HardHat size={size} />;
     default:
       return <Circle size={size} />;
   }
@@ -102,9 +110,6 @@ function itemIcon(section: string) {
       return <BadgeDollarSign size={size} />;
     case "comercial":
       return <FileText size={size} />;
-    case "nucleos":
-    case "núcleos":
-      return <FolderKanban size={size} />;
     case "planejamento":
       return <ClipboardList size={size} />;
     case "cronograma":
@@ -121,10 +126,12 @@ function itemIcon(section: string) {
 }
 
 // Mapeamento de seções permitidas por tipo de usuário restrito
-// JURIDICO e FINANCEIRO só veem seu módulo específico (sem Dashboard geral)
+// Usuários listados aqui só veem as seções especificadas
 const MENU_POR_TIPO: Record<string, string[]> = {
   JURIDICO: ["Jurídico", "Sessão"],
   FINANCEIRO: ["Financeiro", "Sessão"],
+  COLABORADOR: ["Minha Área", "Sessão"], // Colaborador só vê sua área exclusiva
+  CLIENTE: ["Área do Cliente", "Sessão"], // Cliente só vê sua área exclusiva
 };
 
 export default function Sidebar({ open = false, onToggle }: SidebarProps) {
@@ -149,22 +156,33 @@ export default function Sidebar({ open = false, onToggle }: SidebarProps) {
     }
 
     // Tipos com acesso total (MASTER, ADMIN, COMERCIAL, etc)
-    // Filtrar itens com restrictTo baseado no tipo de usuário
-    return wgMenus.map((section) => ({
-      ...section,
-      items: section.items.filter((item) => {
-        // Se o item tem restrictTo, verificar se o usuário tem permissão
-        if (item.restrictTo) {
-          // Suporta string única ou array de strings
-          if (Array.isArray(item.restrictTo)) {
-            return tipoUsuario && item.restrictTo.includes(tipoUsuario);
+    // Filtrar seções e itens com restrictTo baseado no tipo de usuário
+    return wgMenus
+      .filter((section) => {
+        // Se a seção tem restrictTo, verificar se o usuário tem permissão
+        if (section.restrictTo) {
+          if (Array.isArray(section.restrictTo)) {
+            return tipoUsuario && section.restrictTo.includes(tipoUsuario);
           }
-          return tipoUsuario === item.restrictTo;
+          return tipoUsuario === section.restrictTo;
         }
-        // Se não tem restrictTo, mostrar para todos
         return true;
       })
-    }));
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          // Se o item tem restrictTo, verificar se o usuário tem permissão
+          if (item.restrictTo) {
+            // Suporta string única ou array de strings
+            if (Array.isArray(item.restrictTo)) {
+              return tipoUsuario && item.restrictTo.includes(tipoUsuario);
+            }
+            return tipoUsuario === item.restrictTo;
+          }
+          // Se não tem restrictTo, mostrar para todos
+          return true;
+        })
+      }));
   }, [usuario?.tipo_usuario, previewTipo, isPreviewMode]);
 
   const toggleSection = (section: string, path?: string, hasItems?: boolean) => {

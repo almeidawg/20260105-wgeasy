@@ -36,6 +36,12 @@ import DiarioObra from "@/components/cliente/DiarioObra";
 import PastasClienteDrive from "@/components/cliente/PastasClienteDrive";
 import ControleCobrancas from "@/components/cliente/ControleCobrancas";
 import SpotifyPlayer, { SpotifyFloatingButton } from "@/components/cliente/SpotifyPlayer";
+import NotasCompartilhadas from "@/components/cliente/NotasCompartilhadas";
+
+// Componentes de Onboarding/Checklist por núcleo
+import OnboardingArquitetura from "@/components/cliente/OnboardingArquitetura";
+import OnboardingEngenharia from "@/components/cliente/OnboardingEngenharia";
+import OnboardingMarcenaria from "@/components/cliente/OnboardingMarcenaria";
 
 import "@/styles/dashboard.css";
 
@@ -516,6 +522,46 @@ export default function AreaClientePage() {
               </div>
             ))}
           </section>
+
+          {/* ============================================================ */}
+          {/* SEÇÃO: ACOMPANHAMENTO DO PROJETO (Checklists por núcleo) */}
+          {/* ============================================================ */}
+          {clienteInfo.nucleosContratados.length > 0 && (
+            <section className="space-y-6">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-gray-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Acompanhamento do Projeto</h2>
+              </div>
+              <div className="grid gap-6 lg:grid-cols-1">
+                {clienteInfo.nucleosContratados.includes('arquitetura') && (
+                  <OnboardingArquitetura
+                    contratoId={clienteInfo.contratoId || undefined}
+                    oportunidadeId={clienteInfo.oportunidadeId}
+                    clienteId={clienteInfo.pessoaId}
+                  />
+                )}
+                {clienteInfo.nucleosContratados.includes('engenharia') && (
+                  <OnboardingEngenharia
+                    contratoId={clienteInfo.contratoId || undefined}
+                    oportunidadeId={clienteInfo.oportunidadeId}
+                    clienteId={clienteInfo.pessoaId}
+                  />
+                )}
+                {clienteInfo.nucleosContratados.includes('marcenaria') && (
+                  <OnboardingMarcenaria
+                    contratoId={clienteInfo.contratoId || undefined}
+                    oportunidadeId={clienteInfo.oportunidadeId}
+                    clienteId={clienteInfo.pessoaId}
+                  />
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* ============================================================ */}
+          {/* NOTAS COMPARTILHADAS (Google Keep) */}
+          {/* ============================================================ */}
+          <NotasCompartilhadas pessoaId={clienteInfo.pessoaId} />
 
           {/* ============================================================ */}
           {/* SEÇÃO 1: DIÁRIO DE OBRA E PASTA DO PROJETO (Grid lado a lado) */}

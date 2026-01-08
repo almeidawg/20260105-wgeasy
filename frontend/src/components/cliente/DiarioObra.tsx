@@ -3,6 +3,7 @@
 // Sistema WG Easy - Grupo WG Almeida
 // ============================================================
 // Galeria de fotos da obra organizada por semana
+// Combina fotos do banco de dados + Google Drive
 // ============================================================
 
 import { useState, useEffect } from "react";
@@ -13,12 +14,12 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
-  Image,
   Loader2,
-  ExternalLink,
   X,
   ZoomIn
 } from "lucide-react";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
 
 interface Foto {
   id: string;
@@ -26,6 +27,7 @@ interface Foto {
   nome: string;
   data: string;
   semana?: string;
+  source?: "database" | "drive";
 }
 
 interface GrupoSemana {
@@ -39,19 +41,72 @@ interface DiarioObraProps {
   oportunidadeId?: string;
 }
 
+// Extrai o folder ID do link do Google Drive
+function extrairDriveFolderId(driveLink: string): string | null {
+  if (!driveLink) return null;
+  // Se já é apenas o ID (sem URL)
+  if (!driveLink.includes("/")) {
+    return driveLink;
+  }
+  // Extrair ID do formato URL
+  const regex = /folders\/([a-zA-Z0-9_-]+)/;
+  const match = driveLink.match(regex);
+  return match ? match[1] : null;
+}
+
 export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: DiarioObraProps) {
   const [grupos, setGrupos] = useState<GrupoSemana[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedSemana, setExpandedSemana] = useState<string | null>("FOTOS DO IMOVEL");
+  const [expandedSemana, setExpandedSemana] = useState<string | null>(null);
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null);
 
   useEffect(() => {
     carregarFotos();
   }, [clienteId, contratoId, oportunidadeId]);
 
+  // Buscar fotos do Google Drive via backend
+  async function carregarFotosDoDrive(driveLink: string): Promise<GrupoSemana[]> {
+    const folderId = extrairDriveFolderId(driveLink);
+    if (!folderId) return [];
+
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/api/drive/diario-obra-images?folderId=${folderId}`
+      );
+
+      if (!response.ok) {
+        console.error("Erro ao buscar fotos do Drive:", response.statusText);
+        return [];
+      }
+
+      const data = await response.json();
+
+      if (!data.success || !data.groups || data.groups.length === 0) {
+        return [];
+      }
+
+      // Converter para formato GrupoSemana
+      return data.groups.map((group: any) => ({
+        semana: group.folder.toUpperCase(),
+        fotos: group.files.map((file: any) => ({
+          id: file.id,
+          url: file.thumbnailLink || file.webContentLink || file.webViewLink,
+          nome: file.name,
+          data: file.createdTime || new Date().toISOString(),
+          semana: group.folder.toUpperCase(),
+          source: "drive" as const,
+        })),
+      }));
+    } catch (error) {
+      console.error("Erro ao carregar fotos do Drive:", error);
+      return [];
+    }
+  }
+
   async function carregarFotos() {
     // Validar se temos um clienteId antes de fazer a query
     if (!clienteId) {
+      console.log("[DiarioObra] Sem clienteId");
       setGrupos([]);
       setLoading(false);
       return;
@@ -59,9 +114,76 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
 
     try {
       setLoading(true);
+      console.log("[DiarioObra] Carregando fotos para clienteId:", clienteId);
 
-      // Buscar registros da obra com suas fotos
-      // A estrutura é: pessoas (cliente) -> obra_registros (via cliente_id) -> obra_registros_fotos (via registro_id)
+      // Buscar drive_link do cliente
+      const { data: pessoa, error: pessoaError } = await supabase
+        .from("pessoas")
+        .select("drive_link, nome")
+        .eq("id", clienteId)
+        .single();
+
+      console.log("[DiarioObra] Pessoa encontrada:", pessoa, "Erro:", pessoaError);
+      console.log("[DiarioObra] drive_link:", pessoa?.drive_link);
+
+      // Promise.all para buscar do banco E do Drive em paralelo
+      const [gruposDb, gruposDrive] = await Promise.all([
+        carregarFotosDoDatabase(),
+        pessoa?.drive_link ? carregarFotosDoDrive(pessoa.drive_link) : Promise.resolve([]),
+      ]);
+
+      console.log("[DiarioObra] Fotos do DB:", gruposDb.length, "grupos | Fotos do Drive:", gruposDrive.length, "grupos");
+
+      // Combinar resultados
+      const gruposMap = new Map<string, Foto[]>();
+
+      // Adicionar fotos do banco de dados
+      gruposDb.forEach((grupo) => {
+        if (!gruposMap.has(grupo.semana)) {
+          gruposMap.set(grupo.semana, []);
+        }
+        gruposMap.get(grupo.semana)!.push(...grupo.fotos);
+      });
+
+      // Adicionar fotos do Drive
+      gruposDrive.forEach((grupo) => {
+        if (!gruposMap.has(grupo.semana)) {
+          gruposMap.set(grupo.semana, []);
+        }
+        gruposMap.get(grupo.semana)!.push(...grupo.fotos);
+      });
+
+      // Converter para array
+      const gruposArray: GrupoSemana[] = [];
+      gruposMap.forEach((fotos, semana) => {
+        gruposArray.push({ semana, fotos });
+      });
+
+      // Ordenar por data mais recente primeiro
+      gruposArray.sort((a, b) => {
+        const dataA = new Date(a.fotos[0]?.data || 0);
+        const dataB = new Date(b.fotos[0]?.data || 0);
+        return dataB.getTime() - dataA.getTime();
+      });
+
+      setGrupos(gruposArray);
+
+      // Expandir primeiro grupo automaticamente
+      if (gruposArray.length > 0 && !expandedSemana) {
+        setExpandedSemana(gruposArray[0].semana);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar fotos:", error);
+      setGrupos([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Buscar fotos do banco de dados (Supabase)
+  async function carregarFotosDoDatabase(): Promise<GrupoSemana[]> {
+    try {
+      console.log("[DiarioObra] Buscando registros de obra para cliente_id:", clienteId);
       const { data: registros, error } = await supabase
         .from("obra_registros")
         .select(`
@@ -81,15 +203,16 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
         .eq("cliente_id", clienteId)
         .order("data_registro", { ascending: false });
 
+      console.log("[DiarioObra] Registros encontrados:", registros?.length || 0, "Erro:", error);
+
       if (error) {
         console.error("Erro ao buscar registros:", error);
-        setGrupos([]);
-        return;
+        return [];
       }
 
       if (!registros || registros.length === 0) {
-        setGrupos([]);
-        return;
+        console.log("[DiarioObra] Nenhum registro de obra encontrado para este cliente");
+        return [];
       }
 
       // Agrupar fotos por semana baseado na data do registro
@@ -118,6 +241,7 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
             nome: foto.descricao || registro.descricao || "Foto da obra",
             data: foto.criado_em || registro.data_registro,
             semana: semanaLabel,
+            source: "database" as const,
           });
         });
       });
@@ -127,19 +251,10 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
         gruposArray.push({ semana, fotos });
       });
 
-      // Ordenar por data mais recente primeiro
-      gruposArray.sort((a, b) => {
-        const dataA = new Date(a.fotos[0]?.data || 0);
-        const dataB = new Date(b.fotos[0]?.data || 0);
-        return dataB.getTime() - dataA.getTime();
-      });
-
-      setGrupos(gruposArray);
+      return gruposArray;
     } catch (error) {
-      console.error("Erro ao carregar fotos:", error);
-      setGrupos([]);
-    } finally {
-      setLoading(false);
+      console.error("Erro ao carregar fotos do database:", error);
+      return [];
     }
   }
 
@@ -184,6 +299,7 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
             {grupos.map((grupo) => (
               <div key={grupo.semana}>
                 <button
+                  type="button"
                   onClick={() => setExpandedSemana(
                     expandedSemana === grupo.semana ? null : grupo.semana
                   )}
@@ -208,7 +324,9 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
                     <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                       {grupo.fotos.map((foto) => (
                         <button
+                          type="button"
                           key={foto.id}
+                          title={foto.nome}
                           onClick={() => setFotoAmpliada(foto.url)}
                           className="aspect-square bg-gray-100 rounded-lg overflow-hidden hover:opacity-90 transition-opacity group relative"
                         >
@@ -237,10 +355,17 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
       {/* Modal de foto ampliada */}
       {fotoAmpliada && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Foto ampliada"
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
           onClick={() => setFotoAmpliada(null)}
+          onKeyDown={(e) => e.key === "Escape" && setFotoAmpliada(null)}
         >
           <button
+            type="button"
+            title="Fechar"
+            aria-label="Fechar foto"
             onClick={() => setFotoAmpliada(null)}
             className="absolute top-4 right-4 p-2 text-white hover:bg-white/20 rounded-full transition-colors"
           >

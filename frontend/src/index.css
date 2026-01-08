@@ -51,7 +51,7 @@ h3 { font-size: var(--wg-text-h3); }
 
 .page-header-inline {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
@@ -70,13 +70,6 @@ h3 { font-size: var(--wg-text-h3); }
   line-height: 1.2;
 }
 
-.page-header-line {
-  width: 3.75rem;
-  height: 0.25rem;
-  border-radius: 999px;
-  background: #f5a623;
-  display: inline-block;
-}
 
 .page-header-subtitle-inline {
   margin: 0;

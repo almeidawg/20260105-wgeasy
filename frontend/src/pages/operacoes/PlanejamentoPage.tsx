@@ -11,7 +11,6 @@ export default function PlanejamentoPage() {
             <div className="page-header-inline text-left">
               <div className="page-header-first-line">
                 <h1 className={`${styles.label} page-header-title`}>Planejamento</h1>
-                <span className="page-header-line" />
               </div>
               <p className="page-header-subtitle-inline text-gray-600 font-poppins">
                 Módulo de planejamento operacional em desenvolvimento

@@ -259,7 +259,7 @@ export default function IntroVideoWGAlmeida({
                 }}
               >
                 <img
-                  src="/imagens/logogrupoWgAlmeida.png"
+                  src="/imagens/logoscomfundotransparente/logogrupoWgAlmeida.png"
                   alt="Grupo WG Almeida"
                   className="w-full h-full object-contain"
                 />
@@ -428,7 +428,7 @@ export default function IntroVideoWGAlmeida({
                       style={{ background: WG_COLORS.branco }}
                     >
                       <img
-                        src="/imagens/logogrupoWgAlmeida.png"
+                        src="/imagens/logoscomfundotransparente/logogrupoWgAlmeida.png"
                         alt="WG"
                         className="w-full h-full object-contain"
                       />
@@ -532,7 +532,7 @@ export default function IntroVideoWGAlmeida({
       {/* Logo pequeno no canto */}
       <div className="absolute top-6 left-6 z-30">
         <motion.img
-          src="/imagens/logogrupoWgAlmeida.png"
+          src="/imagens/logoscomfundotransparente/logogrupoWgAlmeida.png"
           alt="WG"
           className="h-10 opacity-70"
           animate={{ opacity: [0.5, 0.8, 0.5] }}

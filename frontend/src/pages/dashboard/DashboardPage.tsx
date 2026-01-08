@@ -8,23 +8,13 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useUsuarioLogado } from "@/hooks/useUsuarioLogado";
-import {
-  obterChecklistDiario,
-  adicionarItemComMencoes,
-  toggleItemConcluido,
-  removerItem,
-  calcularProgresso,
-  buscarMencoesUsuario,
-  importarMencaoParaChecklist,
-  type CEOChecklist,
-  type CEOChecklistItem,
-} from "@/lib/ceoChecklistApi";
+// CEO Checklist API removida - agora usamos Google Keep
 import {
   obterFraseDoDiaComFallback,
   type FraseMotivacional,
 } from "@/lib/frasesMotivacionaisApi";
 import GoogleCalendarWidget from "@/components/dashboard/GoogleCalendarWidget";
-import MentionInput from "@/components/common/MentionInput";
+// MentionInput removido - não é mais usado após remoção do CEO Checklist
 import { useDashboardPessoal } from "@/modules/financeiro-pessoal/hooks";
 import {
   AreaChart,
@@ -76,7 +66,6 @@ import {
   Trash2,
   Quote,
   X,
-  AtSign,
   MessageSquare,
   ArrowRight,
   Wallet,
@@ -84,9 +73,11 @@ import {
   PiggyBank,
   ArrowUpCircle,
   ArrowDownCircle,
+  RefreshCw,
+  Share2,
 } from "lucide-react";
 import WGStarIcon from "@/components/icons/WGStarIcon";
-import GoogleKeepChecklist from "@/components/GoogleKeepChecklist";
+import KeepSharingModal from "@/components/keep/KeepSharingModal";
 
 // Redirecionamento por tipo de usuário
 const REDIRECT_POR_TIPO: Record<string, string> = {
@@ -171,20 +162,6 @@ interface Alerta {
   link?: string;
 }
 
-interface Mencao {
-  id: string;
-  comentario: string;
-  created_at: string;
-  task?: {
-    id: string;
-    titulo: string;
-    project?: {
-      id: string;
-      nome: string;
-    };
-  };
-}
-
 export default function DashboardPage() {
   // VERSÃO 2.0 - Layout com 3 colunas e Dashboard Financeiro
   useEffect(() => {
@@ -227,18 +204,8 @@ export default function DashboardPage() {
 
   const [eventos, setEventos] = useState<Evento[]>([]);
 
-  // Checklist persistente do banco de dados
-  const [ceoChecklist, setCeoChecklist] = useState<CEOChecklist | null>(null);
-  const [novoItemTexto, setNovoItemTexto] = useState("");
-  const [adicionandoItem, setAdicionandoItem] = useState(false);
-  const [salvandoItem, setSalvandoItem] = useState(false);
-
   // Frase motivacional do dia
   const [fraseDoDia, setFraseDoDia] = useState<FraseMotivacional | null>(null);
-
-  // Menções do CEO em tarefas
-  const [mencoes, setMencoes] = useState<Mencao[]>([]);
-  const [importandoMencao, setImportandoMencao] = useState<string | null>(null);
 
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [dadosMensais, setDadosMensais] = useState<any[]>([]);
@@ -253,6 +220,51 @@ export default function DashboardPage() {
     nucleo: string | null;
   }
   const [clientesAtivos, setClientesAtivos] = useState<ClienteAtivo[]>([]);
+
+  // Google Keep status e notas
+  interface KeepNote {
+    id: string;
+    title: string;
+    text: string;
+    items: Array<{ text: string; checked: boolean }> | null;
+    createTime: string;
+    updateTime: string;
+  }
+  const [keepStatus, setKeepStatus] = useState<{
+    configured: boolean;
+    testing: boolean;
+    loading: boolean;
+    message: string;
+  }>({ configured: false, testing: false, loading: false, message: "" });
+  const [keepNotes, setKeepNotes] = useState<KeepNote[]>([]);
+
+  // Modal de nova nota Keep
+  const [modalNotaAberto, setModalNotaAberto] = useState(false);
+  const [novaNota, setNovaNota] = useState({
+    titulo: "",
+    texto: "",
+    clienteId: "",
+    clienteNome: "",
+    tipo: "texto" as "texto" | "lista",
+    itens: [] as string[],
+  });
+  const [criandoNota, setCriandoNota] = useState(false);
+  const [clientesLista, setClientesLista] = useState<Array<{ id: string; nome: string }>>([]);
+
+  // Modal de visualização/edição de nota
+  const [notaSelecionada, setNotaSelecionada] = useState<KeepNote | null>(null);
+  const [editandoNota, setEditandoNota] = useState(false);
+  const [notaEditada, setNotaEditada] = useState({
+    titulo: "",
+    texto: "",
+    itens: [] as Array<{ text: string; checked: boolean }>,
+  });
+  const [salvandoNota, setSalvandoNota] = useState(false);
+  const [novoKeepItemTexto, setNovoKeepItemTexto] = useState("");
+
+  // Modal de compartilhamento Keep
+  const [modalCompartilharAberto, setModalCompartilharAberto] = useState(false);
+  const [notaParaCompartilhar, setNotaParaCompartilhar] = useState<KeepNote | null>(null);
 
   // Saudação baseada na hora
   const saudacao = useMemo(() => {
@@ -696,24 +708,6 @@ export default function DashboardPage() {
         // Carregar frase do dia
         const frase = await obterFraseDoDiaComFallback();
         setFraseDoDia(frase);
-
-        // Carregar checklist do CEO
-        if (usuario?.id) {
-          try {
-            const checklistDiario = await obterChecklistDiario(usuario.id);
-            setCeoChecklist(checklistDiario);
-          } catch (err) {
-            console.error("Erro ao carregar checklist:", err);
-          }
-
-          // Carregar menções do CEO
-          try {
-            const mencoesRecentes = await buscarMencoesUsuario(usuario.id, 7);
-            setMencoes(mencoesRecentes);
-          } catch (err) {
-            console.error("Erro ao carregar menções:", err);
-          }
-        }
       } catch (error) {
         console.error("Erro ao carregar Dashboard:", error);
       } finally {
@@ -725,133 +719,284 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuario?.id, loadingUsuario]);
 
-  // Toggle checklist item (persistente)
-  const toggleChecklist = useCallback(
-    async (itemId: string) => {
-      if (!ceoChecklist?.itens) return;
-
-      const item = ceoChecklist.itens.find((i) => i.id === itemId);
-      if (!item) return;
-
+  // Auto-conectar Google Keep ao carregar a página
+  useEffect(() => {
+    // Carregar notas do Keep automaticamente (Service Account está sempre ativo)
+    const autoConnectKeep = async () => {
       try {
-        const itemAtualizado = await toggleItemConcluido(
-          itemId,
-          !item.concluido
-        );
-        setCeoChecklist((prev) =>
-          prev
-            ? {
-                ...prev,
-                itens: prev.itens?.map((i) =>
-                  i.id === itemId ? itemAtualizado : i
-                ),
-              }
-            : null
-        );
-      } catch (err) {
-        console.error("Erro ao atualizar item:", err);
+        const res = await fetch("/api/keep/notes");
+        if (res.ok) {
+          const notes = await res.json();
+          setKeepNotes(notes);
+          setKeepStatus({
+            configured: true,
+            testing: false,
+            loading: false,
+            message: `${notes.length} notas carregadas`,
+          });
+        }
+      } catch (error) {
+        // Silenciosamente falha - usuário pode clicar em Conectar manualmente
+        console.log("Keep não configurado ou erro de conexão");
       }
-    },
-    [ceoChecklist]
-  );
+    };
 
-  // Adicionar novo item ao checklist
-  const handleAdicionarItem = useCallback(async () => {
-    if (!ceoChecklist?.id || !novoItemTexto.trim() || !usuario?.id) return;
+    autoConnectKeep();
+  }, []);
 
-    setSalvandoItem(true);
+  // Carregar lista de clientes para o modal
+  const carregarClientes = useCallback(async () => {
     try {
-      const novoItem = await adicionarItemComMencoes(
-        ceoChecklist.id,
-        {
-          texto: novoItemTexto.trim(),
-          prioridade: "media",
-        },
-        usuario.id
-      );
-      setCeoChecklist((prev) =>
-        prev
-          ? {
-              ...prev,
-              itens: [novoItem, ...(prev.itens || [])],
-            }
-          : null
-      );
-      setNovoItemTexto("");
-      setAdicionandoItem(false);
-    } catch (err) {
-      console.error("Erro ao adicionar item:", err);
-      window.alert(
-        err instanceof Error ? err.message : "Erro ao adicionar item."
-      );
-    } finally {
-      setSalvandoItem(false);
+      const { data } = await supabase
+        .from("pessoas")
+        .select("id, nome")
+        .eq("tipo", "CLIENTE")
+        .eq("ativo", true)
+        .order("nome");
+      setClientesLista(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar clientes:", error);
     }
-  }, [ceoChecklist?.id, novoItemTexto, usuario?.id]);
+  }, []);
 
-  // Remover item do checklist
-  const handleRemoverItem = useCallback(
-    async (itemId: string) => {
-      if (!ceoChecklist?.itens) return;
+  // Carregar clientes quando o modal abrir
+  useEffect(() => {
+    if (modalNotaAberto && clientesLista.length === 0) {
+      carregarClientes();
+    }
+  }, [modalNotaAberto, clientesLista.length, carregarClientes]);
 
-      try {
-        await removerItem(itemId);
-        setCeoChecklist((prev) =>
-          prev
-            ? {
-                ...prev,
-                itens: prev.itens?.filter((i) => i.id !== itemId),
-              }
-            : null
-        );
-      } catch (err) {
-        console.error("Erro ao remover item:", err);
+  // Carregar notas do Google Keep
+  const carregarNotasKeep = useCallback(async () => {
+    setKeepStatus((prev) => ({ ...prev, loading: true }));
+    try {
+      const res = await fetch("/api/keep/notes");
+      if (!res.ok) throw new Error("Erro ao carregar notas");
+      const notes = await res.json();
+      setKeepNotes(notes);
+      setKeepStatus((prev) => ({
+        ...prev,
+        configured: true,
+        loading: false,
+        message: `${notes.length} notas carregadas`,
+      }));
+    } catch (error: any) {
+      setKeepStatus((prev) => ({
+        ...prev,
+        loading: false,
+        message: error.message || "Erro ao carregar notas",
+      }));
+    }
+  }, []);
+
+  // Criar nova nota no Google Keep
+  const handleCriarNota = useCallback(async () => {
+    if (!novaNota.titulo.trim()) return;
+
+    setCriandoNota(true);
+    try {
+      const payload: any = {
+        title: novaNota.titulo,
+        clienteId: novaNota.clienteId || null,
+        clienteNome: novaNota.clienteNome || null,
+      };
+
+      if (novaNota.tipo === "lista" && novaNota.itens.length > 0) {
+        payload.items = novaNota.itens
+          .filter((item) => item.trim())
+          .map((item) => ({ text: item, checked: false }));
+      } else {
+        payload.text = novaNota.texto;
       }
-    },
-    [ceoChecklist]
-  );
 
-  // Importar menção para o checklist
-  const handleImportarMencao = useCallback(
-    async (mencao: Mencao) => {
-      if (!ceoChecklist?.id) return;
+      const res = await fetch("/api/keep/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      setImportandoMencao(mencao.id);
-      try {
-        const textoTarefa = mencao.task?.titulo
-          ? `[Menção] ${mencao.task.titulo}`
-          : `[Menção] ${mencao.comentario.substring(0, 50)}...`;
+      const result = await res.json();
 
-        const novoItem = await importarMencaoParaChecklist(
-          ceoChecklist.id,
-          mencao.id,
-          textoTarefa
-        );
-        setCeoChecklist((prev) =>
-          prev
-            ? {
-                ...prev,
-                itens: [novoItem, ...(prev.itens || [])],
-              }
-            : null
-        );
-
-        // Remover da lista de menções exibidas
-        setMencoes((prev) => prev.filter((m) => m.id !== mencao.id));
-      } catch (err) {
-        console.error("Erro ao importar menção:", err);
-      } finally {
-        setImportandoMencao(null);
+      if (result.success) {
+        setModalNotaAberto(false);
+        setNovaNota({
+          titulo: "",
+          texto: "",
+          clienteId: "",
+          clienteNome: "",
+          tipo: "texto",
+          itens: [],
+        });
+        carregarNotasKeep();
+      } else {
+        alert(result.message || "Erro ao criar nota");
       }
-    },
-    [ceoChecklist?.id]
-  );
+    } catch (error: any) {
+      console.error("Erro ao criar nota:", error);
+      alert("Erro ao criar nota");
+    } finally {
+      setCriandoNota(false);
+    }
+  }, [novaNota, carregarNotasKeep]);
 
-  // Calcular progresso do checklist
-  const checklistProgress = useMemo(() => {
-    if (!ceoChecklist?.itens || ceoChecklist.itens.length === 0) return 0;
-    return calcularProgresso(ceoChecklist.itens);
-  }, [ceoChecklist?.itens]);
+  // Testar conexão com Google Keep
+  const handleTestarGoogleKeep = useCallback(async () => {
+    setKeepStatus((prev) => ({ ...prev, testing: true, message: "" }));
+    try {
+      const res = await fetch("/api/keep/test");
+      const data = await res.json();
+      setKeepStatus({
+        configured: data.success,
+        testing: false,
+        loading: false,
+        message: data.message,
+      });
+      // Se conectou, carregar as notas
+      if (data.success) {
+        carregarNotasKeep();
+      }
+    } catch (error: any) {
+      setKeepStatus({
+        configured: false,
+        testing: false,
+        loading: false,
+        message: error.message || "Erro ao testar conexão",
+      });
+    }
+  }, [carregarNotasKeep]);
+
+  // Abrir nota para visualização/edição
+  const handleAbrirNota = useCallback((note: KeepNote) => {
+    setNotaSelecionada(note);
+    setNotaEditada({
+      titulo: note.title,
+      texto: note.text || "",
+      itens: note.items || [],
+    });
+    setEditandoNota(false);
+  }, []);
+
+  // Fechar modal de nota
+  const handleFecharNota = useCallback(() => {
+    setNotaSelecionada(null);
+    setEditandoNota(false);
+    setNotaEditada({ titulo: "", texto: "", itens: [] });
+    setNovoKeepItemTexto("");
+  }, []);
+
+  // Deletar nota
+  const handleDeletarNota = useCallback(async () => {
+    if (!notaSelecionada) return;
+
+    if (!confirm("Tem certeza que deseja excluir esta nota?")) return;
+
+    setSalvandoNota(true);
+    try {
+      const noteId = encodeURIComponent(notaSelecionada.id);
+      console.log("[Keep Delete] Deletando nota ID:", notaSelecionada.id, "-> encoded:", noteId);
+
+      const res = await fetch(`/api/keep/notes/${noteId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        handleFecharNota();
+        carregarNotasKeep();
+      } else {
+        const data = await res.json();
+        console.error("[Keep Delete] Erro resposta:", data);
+        alert(data.message || "Erro ao excluir nota");
+      }
+    } catch (error) {
+      console.error("[Keep Delete] Erro:", error);
+      alert("Erro ao excluir nota");
+    } finally {
+      setSalvandoNota(false);
+    }
+  }, [notaSelecionada, handleFecharNota, carregarNotasKeep]);
+
+  // Toggle item do checklist Keep
+  const handleToggleKeepItem = useCallback((index: number) => {
+    setNotaEditada((prev) => {
+      const novosItens = [...prev.itens];
+      novosItens[index] = { ...novosItens[index], checked: !novosItens[index].checked };
+      return { ...prev, itens: novosItens };
+    });
+    setEditandoNota(true);
+  }, []);
+
+  // Adicionar novo item ao checklist Keep
+  const handleAdicionarKeepItem = useCallback(() => {
+    if (!novoKeepItemTexto.trim()) return;
+    setNotaEditada((prev) => ({
+      ...prev,
+      itens: [...prev.itens, { text: novoKeepItemTexto.trim(), checked: false }],
+    }));
+    setNovoKeepItemTexto("");
+    setEditandoNota(true);
+  }, [novoKeepItemTexto]);
+
+  // Remover item do checklist Keep
+  const handleRemoverKeepItem = useCallback((index: number) => {
+    setNotaEditada((prev) => ({
+      ...prev,
+      itens: prev.itens.filter((_, i) => i !== index),
+    }));
+    setEditandoNota(true);
+  }, []);
+
+  // Salvar nota (delete + create pois API não suporta update)
+  const handleSalvarNota = useCallback(async () => {
+    if (!notaSelecionada) return;
+
+    setSalvandoNota(true);
+    try {
+      // 1. Deletar nota antiga
+      const noteId = encodeURIComponent(notaSelecionada.id);
+      console.log("[Keep Save] Deletando nota antiga ID:", notaSelecionada.id);
+
+      const deleteRes = await fetch(`/api/keep/notes/${noteId}`, {
+        method: "DELETE",
+      });
+
+      if (!deleteRes.ok) {
+        const deleteError = await deleteRes.json();
+        console.error("[Keep Save] Erro ao deletar nota antiga:", deleteError);
+        throw new Error(deleteError.message || "Erro ao atualizar nota");
+      }
+
+      // 2. Criar nova nota com os dados atualizados
+      const payload: any = {
+        title: notaEditada.titulo,
+      };
+
+      if (notaEditada.itens.length > 0) {
+        payload.items = notaEditada.itens;
+      } else {
+        payload.text = notaEditada.texto;
+      }
+
+      const res = await fetch("/api/keep/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        handleFecharNota();
+        carregarNotasKeep();
+      } else {
+        alert(result.message || "Erro ao salvar nota");
+      }
+    } catch (error) {
+      console.error("Erro ao salvar nota:", error);
+      alert("Erro ao salvar nota");
+    } finally {
+      setSalvandoNota(false);
+    }
+  }, [notaSelecionada, notaEditada, handleFecharNota, carregarNotasKeep]);
 
   // Variação percentual
   const variacaoReceita = useMemo(() => {
@@ -1146,11 +1291,568 @@ export default function DashboardPage() {
           {/* COLUNA 2: Google Calendar (CENTRO) */}
           <GoogleCalendarWidget />
 
-          {/* COLUNA 3: Google Keep Checklist */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-full">
-            <GoogleKeepChecklist />
+          {/* COLUNA 3: Google Keep (Substituiu CEO Checklist) */}
+          <div className={`rounded-2xl p-6 shadow-sm border transition-all h-full flex flex-col ${
+            keepStatus.configured
+              ? "bg-white border-yellow-200"
+              : "bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 border-dashed"
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-yellow-100">
+                  <Sparkles className="w-5 h-5 text-yellow-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900">Checklists</h3>
+                    {keepStatus.configured ? (
+                      <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 rounded-full">
+                        {keepNotes.length}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded-full">
+                        Não conectado
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">Google Keep sincronizado</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {keepStatus.configured && (
+                  <button
+                    type="button"
+                    onClick={() => setModalNotaAberto(true)}
+                    className="p-2 text-xs font-medium bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
+                    title="Nova Nota"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={keepStatus.configured ? carregarNotasKeep : handleTestarGoogleKeep}
+                  disabled={keepStatus.testing || keepStatus.loading}
+                  className={`p-2 text-xs font-medium rounded-lg transition-colors ${
+                    keepStatus.testing || keepStatus.loading
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : keepStatus.configured
+                        ? "bg-yellow-100 hover:bg-yellow-200 text-yellow-700"
+                        : "bg-yellow-500 hover:bg-yellow-600 text-white"
+                  }`}
+                  title={keepStatus.configured ? "Atualizar" : "Conectar"}
+                >
+                  {keepStatus.testing || keepStatus.loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : keepStatus.configured ? (
+                    <RefreshCw className="w-4 h-4" />
+                  ) : (
+                    <Zap className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Lista de notas do Keep */}
+            {keepStatus.configured && keepNotes.length > 0 ? (
+              <div className="flex-1 overflow-y-auto space-y-2 max-h-[300px]">
+                {keepNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="p-3 bg-yellow-50 rounded-xl border border-yellow-100 hover:shadow-md hover:border-yellow-300 transition-all group relative"
+                  >
+                    {/* Botão compartilhar (aparece no hover) */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNotaParaCompartilhar(note);
+                        setModalCompartilharAberto(true);
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-white/80 hover:bg-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                      title="Compartilhar"
+                    >
+                      <Share2 className="w-3 h-3 text-yellow-600" />
+                    </button>
+
+                    {/* Área clicável para abrir nota */}
+                    <button
+                      type="button"
+                      onClick={() => handleAbrirNota(note)}
+                      className="w-full text-left cursor-pointer"
+                    >
+                      <h4 className="font-medium text-gray-900 text-sm mb-1.5 line-clamp-1 pr-6">
+                        {note.title || "Sem título"}
+                      </h4>
+                      {note.items ? (
+                        <ul className="space-y-0.5">
+                          {note.items.slice(0, 4).map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5 text-xs">
+                              <span className={`mt-0.5 ${item.checked ? "text-emerald-500" : "text-gray-400"}`}>
+                                {item.checked ? "☑" : "☐"}
+                              </span>
+                              <span className={`line-clamp-1 ${item.checked ? "text-gray-400 line-through" : "text-gray-600"}`}>
+                                {item.text}
+                              </span>
+                            </li>
+                          ))}
+                          {note.items.length > 4 && (
+                            <li className="text-[10px] text-gray-400 pl-4">
+                              +{note.items.length - 4} itens
+                            </li>
+                          )}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-gray-600 line-clamp-2">{note.text}</p>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : keepStatus.configured && keepNotes.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
+                <Sparkles className="w-10 h-10 text-gray-200 mb-2" />
+                <p className="text-sm text-gray-400">Nenhuma nota</p>
+                <button
+                  type="button"
+                  onClick={() => setModalNotaAberto(true)}
+                  className="mt-2 text-xs text-yellow-600 hover:text-yellow-700"
+                >
+                  + Criar primeira nota
+                </button>
+              </div>
+            ) : !keepStatus.configured && keepStatus.message ? (
+              <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                <div className="flex items-center gap-2 text-sm text-red-700">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-xs">{keepStatus.message}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-4 bg-white/50 rounded-xl border border-gray-200">
+                <Sparkles className="w-8 h-8 text-gray-300 mb-2" />
+                <p className="text-sm text-gray-500 text-center">
+                  Clique para conectar
+                </p>
+                <p className="text-xs text-gray-400 text-center mt-1">
+                  Google Keep
+                </p>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* ====== MODAL NOVA NOTA KEEP ====== */}
+        {modalNotaAberto && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-yellow-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">Nova Nota</h2>
+                      <p className="text-xs text-gray-500">Criar nota no Google Keep</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setModalNotaAberto(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Seletor de Cliente */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vincular a Cliente (opcional)
+                  </label>
+                  <select
+                    value={novaNota.clienteId}
+                    onChange={(e) => {
+                      const cliente = clientesLista.find((c) => c.id === e.target.value);
+                      setNovaNota({
+                        ...novaNota,
+                        clienteId: e.target.value,
+                        clienteNome: cliente?.nome || "",
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  >
+                    <option value="">Sem vínculo (nota geral)</option>
+                    {clientesLista.map((cliente) => (
+                      <option key={cliente.id} value={cliente.id}>
+                        {cliente.nome}
+                      </option>
+                    ))}
+                  </select>
+                  {novaNota.clienteNome && (
+                    <p className="mt-1 text-xs text-yellow-600">
+                      Título terá prefixo: [{novaNota.clienteNome}]
+                    </p>
+                  )}
+                </div>
+
+                {/* Título */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Título *
+                  </label>
+                  <input
+                    type="text"
+                    value={novaNota.titulo}
+                    onChange={(e) => setNovaNota({ ...novaNota, titulo: e.target.value })}
+                    placeholder="Digite o título da nota"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Tipo de nota */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de Nota
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNovaNota({ ...novaNota, tipo: "texto" })}
+                      className={`flex-1 px-4 py-2 text-sm rounded-lg border transition-colors ${
+                        novaNota.tipo === "texto"
+                          ? "bg-yellow-100 border-yellow-300 text-yellow-700"
+                          : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      Texto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNovaNota({ ...novaNota, tipo: "lista", itens: [""] })}
+                      className={`flex-1 px-4 py-2 text-sm rounded-lg border transition-colors ${
+                        novaNota.tipo === "lista"
+                          ? "bg-yellow-100 border-yellow-300 text-yellow-700"
+                          : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      Lista / Checklist
+                    </button>
+                  </div>
+                </div>
+
+                {/* Conteúdo */}
+                {novaNota.tipo === "texto" ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Conteúdo
+                    </label>
+                    <textarea
+                      value={novaNota.texto}
+                      onChange={(e) => setNovaNota({ ...novaNota, texto: e.target.value })}
+                      placeholder="Digite o conteúdo da nota..."
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Itens da Lista
+                    </label>
+                    <div className="space-y-2">
+                      {novaNota.itens.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="text-gray-400">☐</span>
+                          <input
+                            type="text"
+                            value={item}
+                            onChange={(e) => {
+                              const novosItens = [...novaNota.itens];
+                              novosItens[idx] = e.target.value;
+                              setNovaNota({ ...novaNota, itens: novosItens });
+                            }}
+                            placeholder={`Item ${idx + 1}`}
+                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                          />
+                          {novaNota.itens.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const novosItens = novaNota.itens.filter((_, i) => i !== idx);
+                                setNovaNota({ ...novaNota, itens: novosItens });
+                              }}
+                              className="p-1 text-red-500 hover:bg-red-50 rounded"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setNovaNota({ ...novaNota, itens: [...novaNota.itens, ""] })}
+                        className="w-full py-2 text-sm text-yellow-600 hover:bg-yellow-50 rounded-lg border border-dashed border-yellow-300 transition-colors"
+                      >
+                        + Adicionar item
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setModalNotaAberto(false)}
+                  className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCriarNota}
+                  disabled={criandoNota || !novaNota.titulo.trim()}
+                  className="px-4 py-2 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {criandoNota ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Criar Nota
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ====== MODAL VISUALIZAR/EDITAR NOTA KEEP ====== */}
+        {notaSelecionada && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-100 bg-yellow-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-yellow-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {notaEditada.titulo || "Sem título"}
+                      </h2>
+                      <p className="text-xs text-gray-500">
+                        {notaSelecionada.createTime
+                          ? new Date(notaSelecionada.createTime).toLocaleDateString("pt-BR", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleFecharNota}
+                    className="p-2 hover:bg-yellow-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {/* Conteúdo - Checklist */}
+                {notaEditada.itens && notaEditada.itens.length > 0 ? (
+                  <div className="space-y-2">
+                    {notaEditada.itens.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
+                          item.checked
+                            ? "bg-emerald-50 border-emerald-200"
+                            : "bg-gray-50 border-gray-200"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleToggleKeepItem(idx)}
+                          className={`mt-0.5 text-lg ${
+                            item.checked ? "text-emerald-500" : "text-gray-400"
+                          }`}
+                        >
+                          {item.checked ? "☑" : "☐"}
+                        </button>
+                        <span
+                          className={`flex-1 ${
+                            item.checked
+                              ? "text-gray-400 line-through"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {item.text}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoverKeepItem(idx)}
+                          className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Remover item"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Campo para adicionar novo item */}
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200">
+                      <input
+                        type="text"
+                        value={novoKeepItemTexto}
+                        onChange={(e) => setNovoKeepItemTexto(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAdicionarKeepItem()}
+                        placeholder="Adicionar novo item..."
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAdicionarKeepItem}
+                        disabled={!novoKeepItemTexto.trim()}
+                        className="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Progresso */}
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-gray-600">Progresso</span>
+                        <span className="font-medium text-gray-900">
+                          {notaEditada.itens.filter((i) => i.checked).length} de{" "}
+                          {notaEditada.itens.length}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all"
+                          style={{
+                            width: `${
+                              (notaEditada.itens.filter((i) => i.checked).length /
+                                notaEditada.itens.length) *
+                              100
+                            }%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Conteúdo - Texto ou vazio (adicionar primeiro item) */
+                  <div className="space-y-4">
+                    {notaEditada.texto ? (
+                      <div className="prose prose-sm max-w-none">
+                        <p className="text-gray-700 whitespace-pre-wrap">
+                          {notaEditada.texto}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 text-center py-4">
+                        Nenhum item ainda
+                      </p>
+                    )}
+
+                    {/* Campo para adicionar primeiro item */}
+                    <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+                      <input
+                        type="text"
+                        value={novoKeepItemTexto}
+                        onChange={(e) => setNovoKeepItemTexto(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAdicionarKeepItem()}
+                        placeholder="Adicionar item ao checklist..."
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAdicionarKeepItem}
+                        disabled={!novoKeepItemTexto.trim()}
+                        className="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-gray-100 flex justify-between">
+                <button
+                  type="button"
+                  onClick={handleDeletarNota}
+                  disabled={salvandoNota}
+                  className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Excluir
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleFecharNota}
+                    className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  {editandoNota && (
+                    <button
+                      type="button"
+                      onClick={handleSalvarNota}
+                      disabled={salvandoNota}
+                      className="px-4 py-2 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {salvandoNota ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Salvar
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ====== MODAL COMPARTILHAMENTO KEEP ====== */}
+        {notaParaCompartilhar && (
+          <KeepSharingModal
+            noteId={notaParaCompartilhar.id}
+            noteTitle={notaParaCompartilhar.title || "Sem título"}
+            isOpen={modalCompartilharAberto}
+            onClose={() => {
+              setModalCompartilharAberto(false);
+              setNotaParaCompartilhar(null);
+            }}
+            onShareUpdated={carregarNotasKeep}
+            criadoPorUsuarioId={usuario?.id}
+          />
+        )}
 
         {/* ====== TERCEIRA LINHA: DASHBOARD FINANCEIRO ====== */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -1759,71 +2461,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* COLUNA DIREITA - Menções e Alertas */}
+          {/* COLUNA DIREITA - Alertas */}
           <div className="lg:col-span-4 space-y-6">
-            {/* Menções do CEO */}
-            {mencoes.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                      <AtSign className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Você foi Mencionado
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        {mencoes.length}{" "}
-                        {mencoes.length === 1
-                          ? "menção recente"
-                          : "menções recentes"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                  {mencoes.map((mencao) => (
-                    <div
-                      key={mencao.id}
-                      className="group flex items-start gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all"
-                    >
-                      <MessageSquare className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        {mencao.task?.titulo && (
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {mencao.task.titulo}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
-                          {mencao.comentario.substring(0, 100)}...
-                        </p>
-                        {mencao.task?.project?.nome && (
-                          <p className="text-xs text-purple-600 mt-1">
-                            {mencao.task.project.nome}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleImportarMencao(mencao)}
-                        disabled={importandoMencao === mencao.id}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 bg-purple-100 hover:bg-purple-200 rounded-lg transition-all"
-                        title="Adicionar ao checklist"
-                      >
-                        {importandoMencao === mencao.id ? (
-                          <Loader2 className="w-3.5 h-3.5 text-purple-600 animate-spin" />
-                        ) : (
-                          <ArrowRight className="w-3.5 h-3.5 text-purple-600" />
-                        )}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Alertas */}
             {alertas.length > 0 && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">

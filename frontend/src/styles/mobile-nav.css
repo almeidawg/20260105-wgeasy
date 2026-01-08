@@ -78,6 +78,23 @@
     text-overflow: ellipsis;
   }
 
+  /* Indicador de que tem subitens (pequeno ponto) */
+  .mobile-nav-item.has-subitems::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    width: 4px;
+    height: 4px;
+    background: #F25C26;
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+
+  .mobile-nav-item.has-subitems.active::after {
+    opacity: 1;
+  }
+
   .mobile-submenu-bar {
     display: flex;
     position: fixed;

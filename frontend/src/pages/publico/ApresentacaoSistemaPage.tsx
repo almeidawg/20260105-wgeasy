@@ -240,7 +240,7 @@ export default function ApresentacaoSistemaPage() {
       {/* Logo WG */}
       <div className="absolute top-6 left-6 z-30">
         <motion.img
-          src="/imagens/logogrupoWgAlmeida.png"
+          src="/imagens/logoscomfundotransparente/logogrupoWgAlmeida.png"
           alt="WG Almeida"
           className="h-10 opacity-80"
           animate={{ opacity: [0.6, 0.9, 0.6] }}
@@ -271,7 +271,7 @@ export default function ApresentacaoSistemaPage() {
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <img
-                  src="/imagens/logogrupoWgAlmeida.png"
+                  src="/imagens/logoscomfundotransparente/logogrupoWgAlmeida.png"
                   alt="WG Almeida"
                   className="w-full h-full object-contain"
                 />

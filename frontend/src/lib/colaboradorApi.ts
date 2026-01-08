@@ -266,35 +266,44 @@ export async function atualizarPerfilColaborador(
 export async function listarProjetosColaborador(
   colaboradorId: string
 ): Promise<ColaboradorProjeto[]> {
+  // Buscar projetos do colaborador sem join (FK não existe)
   const { data, error } = await supabase
     .from("colaborador_projetos")
-    .select(
-      `
-      *,
-      projeto:contratos(
-        id,
-        numero,
-        status,
-        valor_total,
-        cliente:pessoas!contratos_cliente_id_fkey(nome)
-      )
-    `
-    )
+    .select("*")
     .eq("colaborador_id", colaboradorId)
     .eq("ativo", true)
     .order("criado_em", { ascending: false });
 
   if (error) throw error;
 
-  return (data || []).map((item: any) => ({
-    ...item,
-    projeto: item.projeto
-      ? {
-          ...item.projeto,
-          cliente_nome: item.projeto.cliente?.nome,
+  // Buscar dados dos contratos separadamente
+  const projetosComDados = await Promise.all(
+    (data || []).map(async (item: any) => {
+      let projeto = undefined;
+
+      if (item.projeto_id) {
+        const { data: contrato } = await supabase
+          .from("contratos")
+          .select("id, numero, status, valor_total, cliente:pessoas!contratos_cliente_id_fkey(nome)")
+          .eq("id", item.projeto_id)
+          .single();
+
+        if (contrato) {
+          projeto = {
+            id: contrato.id,
+            numero: contrato.numero,
+            status: contrato.status,
+            valor_total: contrato.valor_total,
+            cliente_nome: (contrato.cliente as any)?.nome,
+          };
         }
-      : undefined,
-  }));
+      }
+
+      return { ...item, projeto };
+    })
+  );
+
+  return projetosComDados;
 }
 
 export async function vincularColaboradorProjeto(

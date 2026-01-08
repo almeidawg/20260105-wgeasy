@@ -17,6 +17,7 @@ export interface MenuSection {
   items: MenuItem[];
   maxVisible?: number; // Limite de itens visíveis antes do "Ver mais"
   path?: string; // Caminho direto ao clicar no título da seção
+  restrictTo?: string | string[]; // Restringir seção inteira a tipo(s) de usuário
 }
 
 const wgMenus: MenuSection[] = [
@@ -58,14 +59,24 @@ const wgMenus: MenuSection[] = [
     ]
   },
   {
-    section: "Núcleos",
-    icon: "🏗️",
-    maxVisible: 3,
+    section: "Arquitetura",
+    icon: "🏛️",
+    path: "/oportunidades/kanban/arquitetura", // Verde Mineral #5E9B94
     items: [
-      { label: "Arquitetura", path: "/oportunidades/kanban/arquitetura", hoverColor: "#5E9B94" }, // Verde Mineral
-      { label: "Engenharia", path: "/oportunidades/kanban/engenharia", hoverColor: "#2B4580" }, // Azul Técnico
-      { label: "Marcenaria", path: "/oportunidades/kanban/marcenaria", hoverColor: "#8B5E3C" } // Marrom Carvalho
+      { label: "Templates de Checklists", path: "/sistema/checklists", icon: "✅" }
     ]
+  },
+  {
+    section: "Engenharia",
+    icon: "⚙️",
+    path: "/oportunidades/kanban/engenharia", // Azul Técnico #2B4580
+    items: []
+  },
+  {
+    section: "Marcenaria",
+    icon: "🪵",
+    path: "/oportunidades/kanban/marcenaria", // Marrom Carvalho #8B5E3C
+    items: []
   },
   {
     section: "Planejamento",
@@ -99,14 +110,15 @@ const wgMenus: MenuSection[] = [
     icon: "💰",
     maxVisible: 7,
     path: "/financeiro", // Clique no título navega direto para o Dashboard
+    restrictTo: ["MASTER", "FINANCEIRO"], // ADMIN não vê esta seção
     items: [
-      { label: "Projetos", path: "/financeiro/obras" },
-      { label: "Lançamentos", path: "/financeiro/lancamentos" },
-      { label: "SDP - Solicitações", path: "/financeiro/solicitacoes" },
-      { label: "Reembolsos", path: "/financeiro/reembolsos" },
-      { label: "Cobranças", path: "/financeiro/cobrancas" },
-      { label: "Relatórios", path: "/financeiro/relatorios" },
-      { label: "Comissões", path: "/financeiro/comissionamento" }
+      { label: "Projetos", path: "/financeiro/obras", restrictTo: ["MASTER", "FINANCEIRO"] },
+      { label: "Lançamentos", path: "/financeiro/lancamentos", restrictTo: ["MASTER", "FINANCEIRO"] },
+      { label: "SDP - Solicitações", path: "/financeiro/solicitacoes", restrictTo: ["MASTER", "FINANCEIRO"] },
+      { label: "Reembolsos", path: "/financeiro/reembolsos", restrictTo: ["MASTER", "FINANCEIRO"] },
+      { label: "Cobranças", path: "/financeiro/cobrancas", restrictTo: ["MASTER", "FINANCEIRO"] },
+      { label: "Relatórios", path: "/financeiro/relatorios", restrictTo: ["MASTER", "FINANCEIRO"] },
+      { label: "Comissões", path: "/financeiro/comissionamento", restrictTo: ["MASTER", "FINANCEIRO"] }
     ]
   },
   {
@@ -114,14 +126,14 @@ const wgMenus: MenuSection[] = [
     icon: "⚖️",
     path: "/juridico", // Clique no título navega direto (Dashboard com Clientes Ativos)
     items: [
-      { label: "Assistência Jurídica", path: "/juridico/assistencia", icon: "🆘" },
-      { label: "Financeiro Jurídico", path: "/juridico/financeiro", icon: "💰" },
-      { label: "Empresas do Grupo WG", path: "/juridico/empresas", icon: "🏢" },
-      { label: "Modelos de Contrato", path: "/juridico/modelos", icon: "📝" }
+      { label: "Assistência Jurídica", path: "/juridico/assistencia", icon: "🆘" }, // Visível para todos incluindo ADMIN
+      { label: "Financeiro Jurídico", path: "/juridico/financeiro", icon: "💰", restrictTo: ["MASTER", "JURIDICO"] },
+      { label: "Empresas do Grupo WG", path: "/juridico/empresas", icon: "🏢", restrictTo: ["MASTER", "JURIDICO"] },
+      { label: "Modelos de Contrato", path: "/juridico/modelos", icon: "📝", restrictTo: ["MASTER", "JURIDICO"] }
     ]
   },
   {
-    section: "Área WGXperience",
+    section: "WGXperience",
     icon: "⭐",
     items: [
       { label: "Portal do Cliente", path: "/portal-cliente" },
@@ -163,17 +175,17 @@ const wgMenus: MenuSection[] = [
     section: "Sistema",
     icon: "🔧",
     maxVisible: 11,
+    restrictTo: "MASTER", // Apenas MASTER vê esta seção
     items: [
-      { label: "Cadastros Pendentes", path: "/sistema/cadastros-pendentes" },
-      { label: "Central de Links", path: "/sistema/central-links" },
-      { label: "Central Import/Export", path: "/sistema/importar-exportar" },
-      { label: "Empresas do Grupo WG", path: "/empresas", restrictTo: "MASTER" }, // Apenas CEO
-      { label: "Planta do Sistema", path: "/sistema/planta", restrictTo: "MASTER" }, // Apenas CEO
-      { label: "Precificação", path: "/sistema/precificacao" },
-      { label: "Price List", path: "/pricelist" },
-      { label: "Saúde do Sistema", path: "/sistema/saude", restrictTo: "MASTER" }, // Apenas CEO
-      { label: "Templates de Checklists", path: "/sistema/checklists" },
-      { label: "Usuários", path: "/usuarios", restrictTo: ["MASTER", "ADMIN"] } // MASTER e ADMIN podem gerenciar usuários
+      { label: "Cadastros Pendentes", path: "/sistema/cadastros-pendentes", restrictTo: "MASTER" },
+      { label: "Central de Links", path: "/sistema/central-links", restrictTo: "MASTER" },
+      { label: "Central Import/Export", path: "/sistema/importar-exportar", restrictTo: "MASTER" },
+      { label: "Empresas do Grupo WG", path: "/empresas", restrictTo: "MASTER" },
+      { label: "Planta do Sistema", path: "/sistema/planta", restrictTo: "MASTER" },
+      { label: "Precificação", path: "/sistema/precificacao", restrictTo: "MASTER" },
+      { label: "Price List", path: "/pricelist", restrictTo: "MASTER" },
+      { label: "Saúde do Sistema", path: "/sistema/saude", restrictTo: "MASTER" },
+      { label: "Usuários", path: "/usuarios", restrictTo: "MASTER" }
     ]
   },
   {
@@ -181,6 +193,36 @@ const wgMenus: MenuSection[] = [
     icon: "🚪",
     path: "/logout", // Clique no título faz logout direto
     items: []
+  },
+  // ============================================================
+  // ÁREAS EXCLUSIVAS POR TIPO DE USUÁRIO
+  // ============================================================
+  {
+    section: "Minha Área",
+    icon: "👷",
+    path: "/colaborador", // Área exclusiva do colaborador
+    items: [
+      { label: "Dashboard", path: "/colaborador", icon: "📊" },
+      { label: "Meus Projetos", path: "/colaborador/projetos", icon: "📁" },
+      { label: "Serviços", path: "/colaborador/servicos", icon: "🔧" },
+      { label: "Materiais", path: "/colaborador/materiais", icon: "📦" },
+      { label: "Diário de Obra", path: "/colaborador/diario-obra", icon: "📝" },
+      { label: "Solicitações", path: "/colaborador/solicitacoes", icon: "📋" },
+      { label: "Financeiro", path: "/colaborador/financeiro", icon: "💰" },
+      { label: "Meu Perfil", path: "/colaborador/perfil", icon: "👤" }
+    ]
+  },
+  {
+    section: "Área do Cliente",
+    icon: "🏠",
+    path: "/area-cliente", // Área exclusiva do cliente
+    items: [
+      { label: "Meu Projeto", path: "/area-cliente", icon: "🏗️" },
+      { label: "Arquivos", path: "/area-cliente/arquivos", icon: "📁" },
+      { label: "Cronograma", path: "/wgx/cronograma", icon: "📅" },
+      { label: "Financeiro", path: "/wgx/financeiro", icon: "💰" },
+      { label: "Pós-Vendas", path: "/wgx/pos-vendas", icon: "🛠️" }
+    ]
   }
 ];
 

@@ -27,6 +27,13 @@ export default defineConfig({
     strictPort: false,
     host: true,
     allowedHosts: true, // ← ADICIONADO: permite acesso de qualquer host
+    proxy: {
+      "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   build: {
     outDir: "dist",

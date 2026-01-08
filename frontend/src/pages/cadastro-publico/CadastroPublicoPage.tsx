@@ -129,6 +129,8 @@ export default function CadastroPublicoPage() {
     empresa: "",
     cargo: "",
     endereco: "",
+    numero: "",
+    complemento: "",
     cidade: "",
     estado: "",
     cep: "",
@@ -237,7 +239,9 @@ export default function CadastroPublicoPage() {
         setFormData((prev) => ({
           ...prev,
           empresa: data.razao_social || data.nome_fantasia || prev.empresa,
-          endereco: data.logradouro ? `${data.logradouro}, ${data.numero}` : prev.endereco,
+          endereco: data.logradouro || prev.endereco,
+          numero: data.numero || prev.numero,
+          complemento: data.complemento || prev.complemento,
           cidade: data.municipio || prev.cidade,
           estado: data.uf || prev.estado,
           cep: data.cep ? formatCep(data.cep) : prev.cep,
@@ -654,16 +658,40 @@ export default function CadastroPublicoPage() {
                     </p>
                   </div>
 
-                  {/* Endereço */}
+                  {/* Endereço (Rua) */}
                   <div>
-                    <Label htmlFor="endereco" className="text-xs">Endereço</Label>
+                    <Label htmlFor="endereco" className="text-xs">Rua/Logradouro</Label>
                     <Input
                       id="endereco"
                       value={formData.endereco}
                       onChange={(e) => handleChange("endereco", e.target.value)}
-                      placeholder="Rua, número, complemento"
+                      placeholder="Nome da rua, avenida..."
                       className="h-11"
                     />
+                  </div>
+
+                  {/* Número e Complemento em linha */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="numero" className="text-xs">Número</Label>
+                      <Input
+                        id="numero"
+                        value={formData.numero}
+                        onChange={(e) => handleChange("numero", e.target.value)}
+                        placeholder="Nº"
+                        className="h-11"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="complemento" className="text-xs">Complemento</Label>
+                      <Input
+                        id="complemento"
+                        value={formData.complemento}
+                        onChange={(e) => handleChange("complemento", e.target.value)}
+                        placeholder="Apto, Sala, Bloco..."
+                        className="h-11"
+                      />
+                    </div>
                   </div>
 
                   {/* Cidade e Estado em linha */}
@@ -881,7 +909,7 @@ export default function CadastroPublicoPage() {
                 className="text-center mb-4 sm:mb-6"
               >
                 <img
-                  src="/imagens/logogrupoWgAlmeida.png"
+                  src="/imagens/logoscomfundotransparente/logogrupoWgAlmeida.png"
                   alt="Grupo WG Almeida"
                   className="h-12 sm:h-16 mx-auto drop-shadow-lg"
                 />
@@ -903,7 +931,7 @@ export default function CadastroPublicoPage() {
                 transition={{ delay: 0.5 }}
                 className="text-center text-[10px] text-white/70 mt-4 drop-shadow"
               >
-                © 2025 Grupo WG Almeida
+                © 2026 Grupo WG Almeida
               </motion.p>
             </div>
           </div>

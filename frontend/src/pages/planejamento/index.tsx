@@ -218,7 +218,6 @@ export default function PlanejamentoDashboard() {
             <div className="page-header-inline">
               <div className="page-header-first-line">
                 <h1 className="page-header-title">Planejamento</h1>
-                <span className="page-header-line" />
               </div>
               <p className="page-header-subtitle-inline">
                 Gerencie orçamentos, materiais e aprovações

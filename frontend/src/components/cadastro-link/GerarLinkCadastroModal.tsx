@@ -123,7 +123,8 @@ export default function GerarLinkCadastroModal({
   // Enviar por WhatsApp
   function handleSendWhatsApp() {
     const mensagem = gerarMensagemWhatsApp(generatedUrl, tipo);
-    window.open(`https://wa.me/?text=${mensagem}`, "_blank");
+    const mensagemEncoded = encodeURIComponent(mensagem);
+    window.open(`https://wa.me/?text=${mensagemEncoded}`, "_blank");
     toast({
       title: "Abrindo WhatsApp",
       description: "Escolha o contato para enviar.",

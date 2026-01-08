@@ -313,6 +313,205 @@ export async function uploadFileToFolder(
   }
 }
 
+// ============================================================
+// FUNÇÕES DE LISTAGEM DE ARQUIVOS
+// ============================================================
+
+export interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  webViewLink: string;
+  webContentLink?: string;
+  thumbnailLink?: string;
+  size?: string;
+  createdTime?: string;
+  modifiedTime?: string;
+}
+
+/**
+ * Lista arquivos de uma pasta do Google Drive
+ * @param folderId ID da pasta
+ * @param mimeTypeFilter Filtro opcional de mimeType (ex: 'image/' para imagens)
+ */
+export async function listFilesInFolder(
+  folderId: string,
+  mimeTypeFilter?: string,
+  accessToken?: string
+): Promise<DriveFile[]> {
+  try {
+    const auth = await resolveDriveAuth(accessToken);
+
+    let query = `'${folderId}' in parents and trashed = false`;
+
+    // Adicionar filtro de mimeType se especificado
+    if (mimeTypeFilter) {
+      query += ` and mimeType contains '${mimeTypeFilter}'`;
+    }
+
+    const response = await drive.files.list({
+      auth,
+      q: query,
+      fields: 'files(id, name, mimeType, webViewLink, webContentLink, thumbnailLink, size, createdTime, modifiedTime)',
+      orderBy: 'createdTime desc',
+      pageSize: 100,
+    });
+
+    if (response.data.files) {
+      return response.data.files.map((file: any) => ({
+        id: file.id || '',
+        name: file.name || '',
+        mimeType: file.mimeType || '',
+        webViewLink: file.webViewLink || '',
+        webContentLink: file.webContentLink,
+        thumbnailLink: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s400') : undefined,
+        size: file.size,
+        createdTime: file.createdTime,
+        modifiedTime: file.modifiedTime,
+      }));
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Erro ao listar arquivos da pasta:', error);
+    return [];
+  }
+}
+
+/**
+ * Lista subpastas de uma pasta do Google Drive
+ */
+export async function listSubfolders(
+  folderId: string,
+  accessToken?: string
+): Promise<DriveFolder[]> {
+  try {
+    const auth = await resolveDriveAuth(accessToken);
+
+    const query = `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+
+    const response = await drive.files.list({
+      auth,
+      q: query,
+      fields: 'files(id, name, webViewLink, createdTime)',
+      orderBy: 'name',
+      pageSize: 50,
+    });
+
+    if (response.data.files) {
+      return response.data.files.map((file: any) => ({
+        id: file.id || '',
+        name: file.name || '',
+        webViewLink: file.webViewLink || `https://drive.google.com/drive/folders/${file.id}`,
+        createdTime: file.createdTime,
+      }));
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Erro ao listar subpastas:', error);
+    return [];
+  }
+}
+
+/**
+ * Busca recursivamente por uma subpasta específica (ex: "Diário de Obra", "Fotos")
+ */
+export async function findSubfolderByPattern(
+  folderId: string,
+  patterns: string[],
+  maxDepth: number = 3,
+  accessToken?: string
+): Promise<DriveFolder | null> {
+  try {
+    const subfolders = await listSubfolders(folderId, accessToken);
+
+    // Verificar no nível atual
+    for (const folder of subfolders) {
+      const folderNameLower = folder.name.toLowerCase();
+      for (const pattern of patterns) {
+        if (folderNameLower.includes(pattern.toLowerCase())) {
+          return folder;
+        }
+      }
+    }
+
+    // Se não encontrou e ainda pode ir mais fundo, buscar recursivamente
+    if (maxDepth > 0) {
+      for (const folder of subfolders) {
+        const found = await findSubfolderByPattern(folder.id, patterns, maxDepth - 1, accessToken);
+        if (found) return found;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Erro ao buscar subpasta:', error);
+    return null;
+  }
+}
+
+/**
+ * Lista todas as imagens de uma pasta e suas subpastas "Diário de Obra" ou "Fotos"
+ */
+export async function listDiarioObraImages(
+  clienteFolderId: string,
+  accessToken?: string
+): Promise<{ folder: string; files: DriveFile[] }[]> {
+  const results: { folder: string; files: DriveFile[] }[] = [];
+
+  try {
+    // Padrões de nomes de pastas de fotos
+    const fotoPastaPatterns = [
+      'diário de obra',
+      'diario de obra',
+      'fotos da obra',
+      'fotos do imóvel',
+      'fotos do imovel',
+      '04 . diário',
+      '05 . diário',
+      '06 . fotos',
+      'fotos',
+      'durante',
+      'antes',
+      'depois',
+    ];
+
+    // Buscar pasta de fotos/diário
+    const fotoPasta = await findSubfolderByPattern(clienteFolderId, fotoPastaPatterns, 3, accessToken);
+
+    if (fotoPasta) {
+      // Listar imagens da pasta encontrada
+      const images = await listFilesInFolder(fotoPasta.id, 'image/', accessToken);
+      if (images.length > 0) {
+        results.push({ folder: fotoPasta.name, files: images });
+      }
+
+      // Verificar subpastas (ex: Antes, Durante, Depois)
+      const subfolders = await listSubfolders(fotoPasta.id, accessToken);
+      for (const sub of subfolders) {
+        const subImages = await listFilesInFolder(sub.id, 'image/', accessToken);
+        if (subImages.length > 0) {
+          results.push({ folder: `${fotoPasta.name}/${sub.name}`, files: subImages });
+        }
+      }
+    }
+
+    // Se não encontrou nada específico, listar imagens diretamente da pasta principal
+    if (results.length === 0) {
+      const rootImages = await listFilesInFolder(clienteFolderId, 'image/', accessToken);
+      if (rootImages.length > 0) {
+        results.push({ folder: 'Fotos', files: rootImages });
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Erro ao listar imagens do diário de obra:', error);
+    return results;
+  }
+}
+
 export default {
   getDriveAuthUrl,
   setDriveCredentials,
@@ -320,4 +519,8 @@ export default {
   createClienteFolderStructure,
   findFolderByName,
   getOrCreateClienteFolder,
+  listFilesInFolder,
+  listSubfolders,
+  findSubfolderByPattern,
+  listDiarioObraImages,
 };

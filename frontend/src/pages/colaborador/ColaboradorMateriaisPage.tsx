@@ -164,7 +164,7 @@ const STATUS_CONFIG: Record<
 
 export default function ColaboradorMateriaisPage() {
   const navigate = useNavigate();
-  const { usuarioCompleto } = useAuth();
+  const { user, usuarioCompleto } = useAuth();
   const { toast } = useToast();
 
   const [pedidos, setPedidos] = useState<PedidoMaterial[]>([]);
@@ -186,6 +186,7 @@ export default function ColaboradorMateriaisPage() {
     prioridade: "normal",
     observacoes: "",
   });
+  const [enviando, setEnviando] = useState(false);
   const [itensNovoPedido, setItensNovoPedido] = useState<ItemPedido[]>([
     { nome: "", quantidade: 1, unidade: "un" },
   ]);
@@ -196,25 +197,17 @@ export default function ColaboradorMateriaisPage() {
   const [loadingBusca, setLoadingBusca] = useState<{ [key: number]: boolean }>({});
 
   const carregarPedidos = useCallback(async () => {
-    if (!usuarioCompleto?.pessoa_id) return;
+    if (!user?.id) return;
 
     try {
       setLoading(true);
 
-      // Buscar pedidos de materiais do colaborador
+      // Buscar pedidos de materiais do colaborador (sem join - FK não existe)
+      // Usa user.id (auth.uid()) para corresponder à RLS policy
       const { data, error } = await supabase
         .from("pedidos_materiais")
-        .select(
-          `
-          *,
-          projeto:contratos(
-            id,
-            numero,
-            cliente:pessoas!contratos_cliente_id_fkey(nome)
-          )
-        `
-        )
-        .eq("criado_por", usuarioCompleto.id)
+        .select("*")
+        .eq("criado_por", user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -223,21 +216,42 @@ export default function ColaboradorMateriaisPage() {
         return;
       }
 
-      const pedidosFormatados = (data || []).map((p: any) => ({
-        ...p,
-        projeto_nome: p.projeto?.numero,
-        cliente_nome: p.projeto?.cliente?.nome,
-        itens: p.itens || [],
-      }));
+      // Buscar dados do projeto/cliente separadamente se necessário
+      const pedidosComDados = await Promise.all(
+        (data || []).map(async (p: any) => {
+          let projeto_nome = "";
+          let cliente_nome = "";
 
-      setPedidos(pedidosFormatados);
+          if (p.projeto_id) {
+            const { data: contrato } = await supabase
+              .from("contratos")
+              .select("numero, cliente:pessoas!contratos_cliente_id_fkey(nome)")
+              .eq("id", p.projeto_id)
+              .single();
+
+            if (contrato) {
+              projeto_nome = contrato.numero || "";
+              cliente_nome = (contrato.cliente as any)?.nome || "";
+            }
+          }
+
+          return {
+            ...p,
+            projeto_nome,
+            cliente_nome,
+            itens: p.itens || [],
+          };
+        })
+      );
+
+      setPedidos(pedidosComDados);
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error);
       setPedidos([]);
     } finally {
       setLoading(false);
     }
-  }, [usuarioCompleto?.id, usuarioCompleto?.pessoa_id]);
+  }, [user?.id]);
 
   // Carregar clientes ao abrir modal (exclui concluídos)
   const carregarClientes = useCallback(async () => {
@@ -398,6 +412,7 @@ export default function ColaboradorMateriaisPage() {
       return;
     }
 
+    setEnviando(true);
     try {
       // Buscar projeto ativo do cliente (se existir)
       // Se não houver projeto, usa o cliente_id diretamente via a tabela contratos
@@ -427,7 +442,7 @@ export default function ColaboradorMateriaisPage() {
         observacoes: novoPedido.observacoes || null,
         itens: itensValidos,
         status: "enviado",
-        criado_por: usuarioCompleto?.id,
+        criado_por: user?.id, // Deve ser auth.uid() para passar na RLS
       });
 
       if (error) throw error;
@@ -456,6 +471,8 @@ export default function ColaboradorMateriaisPage() {
         description: "Não foi possível criar o pedido",
         variant: "destructive",
       });
+    } finally {
+      setEnviando(false);
     }
   };
 
@@ -508,11 +525,11 @@ export default function ColaboradorMateriaisPage() {
               Novo Pedido
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col p-0">
+            <DialogHeader className="px-4 pt-4 sm:px-6 sm:pt-6 pb-2 shrink-0">
               <DialogTitle>Novo Pedido de Materiais</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-4">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 space-y-4">
               {/* Campo de busca de cliente com autocomplete */}
               <div className="relative">
                 <Label>Cliente / Obra *</Label>
@@ -603,7 +620,7 @@ export default function ColaboradorMateriaisPage() {
                     Adicionar Item
                   </Button>
                 </div>
-                <div className="space-y-3 max-h-[300px] overflow-y-auto border rounded-lg p-3">
+                <div className="space-y-3 max-h-[180px] sm:max-h-[250px] overflow-y-auto border rounded-lg p-2 sm:p-3">
                   {itensNovoPedido.map((item, index) => (
                     <div key={index} className="space-y-2 pb-3 border-b last:border-b-0 last:pb-0">
                       <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-start">
@@ -643,7 +660,7 @@ export default function ColaboradorMateriaisPage() {
 
                           {/* Dropdown de sugestões */}
                           {showSugestoes[index] && sugestoesPricelist[index]?.length > 0 && (
-                            <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            <div className="fixed left-1/2 -translate-x-1/2 z-[9999] w-[calc(100%-2rem)] max-w-[400px] bg-white border rounded-lg shadow-xl max-h-48 overflow-y-auto">
                               {sugestoesPricelist[index].map((pricelistItem) => (
                                 <button
                                   key={pricelistItem.id}
@@ -753,44 +770,54 @@ export default function ColaboradorMateriaisPage() {
               </div>
 
               {/* Fluxo explicativo */}
-              <div className="bg-blue-50 rounded-lg p-4">
-                <p className="text-sm font-medium text-blue-900 mb-2">
+              <div className="bg-blue-50 rounded-lg p-3 sm:p-4 mb-2">
+                <p className="text-xs sm:text-sm font-medium text-blue-900 mb-2">
                   Fluxo do Pedido:
                 </p>
-                <div className="flex items-center gap-2 text-xs text-blue-700 flex-wrap">
-                  <span className="bg-blue-100 px-2 py-1 rounded">
+                <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-blue-700 flex-wrap">
+                  <span className="bg-blue-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                     1. Pedido
                   </span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="bg-blue-100 px-2 py-1 rounded">
+                  <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  <span className="bg-blue-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                     2. Orçamento
                   </span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="bg-blue-100 px-2 py-1 rounded">
+                  <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  <span className="bg-blue-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                     3. Aprovação
                   </span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="bg-blue-100 px-2 py-1 rounded">
+                  <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  <span className="bg-blue-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                     4. Compras
                   </span>
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowNovoModal(false)}
-                  className="w-full sm:w-auto"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleCriarPedido}
-                  className="bg-[#F25C26] hover:bg-[#D94E1F] w-full sm:w-auto"
-                >
-                  Enviar Pedido
-                </Button>
-              </div>
+            {/* Footer sticky com botões */}
+            <div className="shrink-0 border-t bg-gray-50 px-4 py-3 sm:px-6 sm:py-4 flex flex-col-reverse sm:flex-row justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowNovoModal(false)}
+                disabled={enviando}
+                className="w-full sm:w-auto"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCriarPedido}
+                disabled={enviando}
+                className="bg-[#F25C26] hover:bg-[#D94E1F] w-full sm:w-auto"
+              >
+                {enviando ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Enviando...
+                  </>
+                ) : (
+                  "Enviar Pedido"
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
