@@ -77,10 +77,11 @@ CREATE INDEX IF NOT EXISTS idx_cadastros_pendentes_nucleo ON cadastros_pendentes
 
 -- 3. View para listagem
 -- ============================================================================
+-- Nota: usuarios não tem coluna 'nome' diretamente, tem pessoa_id que liga a pessoas
 CREATE OR REPLACE VIEW vw_cadastros_pendentes AS
 SELECT
   cp.*,
-  COALESCE(p.nome, u.nome) AS enviado_por_nome,
+  COALESCE(p.nome, pu.nome) AS enviado_por_nome,
   CASE
     WHEN p.id IS NOT NULL THEN p.tipo
     WHEN u.id IS NOT NULL THEN u.tipo_usuario
@@ -90,6 +91,7 @@ SELECT
 FROM cadastros_pendentes cp
 LEFT JOIN pessoas p ON p.id = cp.enviado_por
 LEFT JOIN usuarios u ON u.id = cp.enviado_por
+LEFT JOIN pessoas pu ON pu.id = u.pessoa_id
 LEFT JOIN cadastros_pendentes pai ON pai.id = cp.link_pai_id;
 
 -- 4. RLS (Row Level Security)
@@ -141,6 +143,8 @@ GRANT SELECT ON vw_cadastros_pendentes TO anon;
 
 -- 6. Função preencher_cadastro (para formulário público)
 -- ============================================================================
+DROP FUNCTION IF EXISTS preencher_cadastro(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION preencher_cadastro(
   p_token TEXT,
   p_nome TEXT,
@@ -250,6 +254,8 @@ $$;
 
 -- 7. Função aprovar_cadastro
 -- ============================================================================
+DROP FUNCTION IF EXISTS aprovar_cadastro(UUID, TEXT, UUID, BOOLEAN, UUID, UUID);
+
 CREATE OR REPLACE FUNCTION aprovar_cadastro(
   p_cadastro_id UUID,
   p_tipo_usuario TEXT,
@@ -369,6 +375,8 @@ $$;
 
 -- 8. Função rejeitar_cadastro
 -- ============================================================================
+DROP FUNCTION IF EXISTS rejeitar_cadastro(UUID, TEXT, UUID);
+
 CREATE OR REPLACE FUNCTION rejeitar_cadastro(
   p_cadastro_id UUID,
   p_motivo TEXT,

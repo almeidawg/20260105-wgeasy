@@ -1,125 +1,18 @@
 -- ============================================================
--- MIGRATION: Sistema de Permissões por Módulo
+-- SEED: Populacao da tabela sistema_modulos + Funcoes RPC
 -- Sistema WG Easy - Grupo WG Almeida
--- Data: 2026-01-08
--- Descrição: Cria tabelas e funções RPC para controle de permissões
+-- Execute este script no Supabase SQL Editor
 -- ============================================================
 
 -- ============================================================
--- TABELA: sistema_modulos
+-- PARTE 1: CRIAR FUNCOES RPC PARA PERMISSOES
 -- ============================================================
-CREATE TABLE IF NOT EXISTS sistema_modulos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  codigo TEXT NOT NULL,
-  nome TEXT NOT NULL,
-  descricao TEXT,
-  secao TEXT NOT NULL,
-  path TEXT,
-  icone TEXT,
-  ordem INTEGER DEFAULT 0,
-  ativo BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
 
--- Adicionar constraint UNIQUE se não existir
-DO $$
-BEGIN
-  -- Primeiro tenta dropar se existir com problemas
-  BEGIN
-    ALTER TABLE sistema_modulos DROP CONSTRAINT IF EXISTS sistema_modulos_codigo_key;
-  EXCEPTION WHEN OTHERS THEN
-    NULL;
-  END;
-
-  -- Criar a constraint
-  ALTER TABLE sistema_modulos ADD CONSTRAINT sistema_modulos_codigo_key UNIQUE (codigo);
-EXCEPTION WHEN duplicate_object THEN
-  -- Já existe, ignora
-  NULL;
-WHEN OTHERS THEN
-  RAISE NOTICE 'Erro ao criar constraint: %', SQLERRM;
-END $$;
-
-CREATE INDEX IF NOT EXISTS idx_sistema_modulos_codigo ON sistema_modulos(codigo);
-CREATE INDEX IF NOT EXISTS idx_sistema_modulos_secao ON sistema_modulos(secao);
-CREATE INDEX IF NOT EXISTS idx_sistema_modulos_ativo ON sistema_modulos(ativo);
-CREATE INDEX IF NOT EXISTS idx_sistema_modulos_ordem ON sistema_modulos(ordem);
-
--- ============================================================
--- TABELA: permissoes_tipo_usuario
--- ============================================================
-CREATE TABLE IF NOT EXISTS permissoes_tipo_usuario (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tipo_usuario TEXT NOT NULL,
-  modulo_id UUID NOT NULL REFERENCES sistema_modulos(id) ON DELETE CASCADE,
-  pode_visualizar BOOLEAN DEFAULT false,
-  pode_criar BOOLEAN DEFAULT false,
-  pode_editar BOOLEAN DEFAULT false,
-  pode_excluir BOOLEAN DEFAULT false,
-  pode_exportar BOOLEAN DEFAULT false,
-  pode_importar BOOLEAN DEFAULT false,
-  criado_em TIMESTAMPTZ DEFAULT NOW(),
-  atualizado_em TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Adicionar constraint UNIQUE se não existir
-DO $$
-BEGIN
-  -- Primeiro tenta dropar se existir com problemas
-  BEGIN
-    ALTER TABLE permissoes_tipo_usuario DROP CONSTRAINT IF EXISTS permissoes_tipo_usuario_tipo_modulo_key;
-  EXCEPTION WHEN OTHERS THEN
-    NULL;
-  END;
-
-  -- Criar a constraint
-  ALTER TABLE permissoes_tipo_usuario ADD CONSTRAINT permissoes_tipo_usuario_tipo_modulo_key UNIQUE (tipo_usuario, modulo_id);
-EXCEPTION WHEN duplicate_object THEN
-  -- Já existe, ignora
-  NULL;
-WHEN OTHERS THEN
-  RAISE NOTICE 'Erro ao criar constraint: %', SQLERRM;
-END $$;
-
-CREATE INDEX IF NOT EXISTS idx_permissoes_tipo_usuario_tipo ON permissoes_tipo_usuario(tipo_usuario);
-CREATE INDEX IF NOT EXISTS idx_permissoes_tipo_usuario_modulo ON permissoes_tipo_usuario(modulo_id);
-
--- ============================================================
--- HABILITAR RLS
--- ============================================================
-ALTER TABLE sistema_modulos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE permissoes_tipo_usuario ENABLE ROW LEVEL SECURITY;
-
--- Políticas para sistema_modulos (leitura para todos autenticados)
-DROP POLICY IF EXISTS "Usuarios autenticados podem ver modulos" ON sistema_modulos;
-CREATE POLICY "Usuarios autenticados podem ver modulos"
-  ON sistema_modulos FOR SELECT
-  USING (auth.role() = 'authenticated');
-
--- Políticas para permissoes_tipo_usuario (leitura para todos autenticados)
-DROP POLICY IF EXISTS "Usuarios autenticados podem ver permissoes" ON permissoes_tipo_usuario;
-CREATE POLICY "Usuarios autenticados podem ver permissoes"
-  ON permissoes_tipo_usuario FOR SELECT
-  USING (auth.role() = 'authenticated');
-
--- Admins podem gerenciar permissões
-DROP POLICY IF EXISTS "Admins podem gerenciar permissoes" ON permissoes_tipo_usuario;
-CREATE POLICY "Admins podem gerenciar permissoes"
-  ON permissoes_tipo_usuario FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM usuarios u
-      WHERE u.auth_user_id = auth.uid()
-      AND u.tipo_usuario IN ('MASTER', 'ADMIN')
-    )
-  );
-
--- ============================================================
--- FUNÇÃO: verificar_permissao
--- ============================================================
+-- Remover funcoes existentes (necessario quando o tipo de retorno muda)
 DROP FUNCTION IF EXISTS verificar_permissao(UUID, TEXT, TEXT);
+DROP FUNCTION IF EXISTS listar_modulos_permitidos(UUID);
 
+-- Funcao: Verificar permissao de um usuario para um modulo
 CREATE OR REPLACE FUNCTION verificar_permissao(
   p_auth_user_id UUID,
   p_codigo_modulo TEXT,
@@ -140,22 +33,9 @@ BEGIN
   WHERE auth_user_id = p_auth_user_id
   LIMIT 1;
 
-  -- Se não encontrou usuário, tentar pela tabela pessoas
-  IF v_tipo_usuario IS NULL THEN
-    SELECT tipo INTO v_tipo_usuario
-    FROM pessoas
-    WHERE email = (SELECT email FROM auth.users WHERE id = p_auth_user_id)
-    LIMIT 1;
-  END IF;
-
   -- MASTER sempre tem permissao total
   IF v_tipo_usuario = 'MASTER' THEN
     RETURN true;
-  END IF;
-
-  -- Se ainda não tem tipo, sem permissão
-  IF v_tipo_usuario IS NULL THEN
-    RETURN false;
   END IF;
 
   -- Buscar ID do modulo
@@ -165,7 +45,6 @@ BEGIN
   LIMIT 1;
 
   IF v_modulo_id IS NULL THEN
-    -- Módulo não existe, retorna false
     RETURN false;
   END IF;
 
@@ -180,11 +59,7 @@ BEGIN
 END;
 $$;
 
--- ============================================================
--- FUNÇÃO: listar_modulos_permitidos
--- ============================================================
-DROP FUNCTION IF EXISTS listar_modulos_permitidos(UUID);
-
+-- Funcao: Listar modulos permitidos para um usuario
 CREATE OR REPLACE FUNCTION listar_modulos_permitidos(p_auth_user_id UUID)
 RETURNS TABLE (
   codigo TEXT,
@@ -209,14 +84,6 @@ BEGIN
   FROM usuarios u
   WHERE u.auth_user_id = p_auth_user_id
   LIMIT 1;
-
-  -- Se não encontrou, tentar pela tabela pessoas
-  IF v_tipo_usuario IS NULL THEN
-    SELECT p.tipo INTO v_tipo_usuario
-    FROM pessoas p
-    WHERE p.email = (SELECT email FROM auth.users WHERE id = p_auth_user_id)
-    LIMIT 1;
-  END IF;
 
   -- MASTER ve tudo
   IF v_tipo_usuario = 'MASTER' THEN
@@ -261,15 +128,22 @@ BEGIN
 END;
 $$;
 
--- ============================================================
--- CONCEDER PERMISSÕES PARA EXECUTAR AS FUNÇÕES
--- ============================================================
+-- Conceder permissao para executar as funcoes
 GRANT EXECUTE ON FUNCTION verificar_permissao(UUID, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION listar_modulos_permitidos(UUID) TO authenticated;
 
 -- ============================================================
--- INSERIR MÓDULOS DO SISTEMA
+-- PARTE 2: POPULAR TABELA DE MODULOS
 -- ============================================================
+
+-- Limpar tabela existente (opcional - descomente se quiser resetar)
+-- TRUNCATE TABLE permissoes_tipo_usuario CASCADE;
+-- TRUNCATE TABLE sistema_modulos CASCADE;
+
+-- ============================================================
+-- INSERIR MODULOS DO SISTEMA
+-- ============================================================
+
 INSERT INTO sistema_modulos (codigo, nome, descricao, secao, path, icone, ordem, ativo)
 VALUES
   -- DASHBOARD
@@ -361,7 +235,7 @@ VALUES
   ('checklists', 'Templates de Checklists', 'Templates de checklists', 'Sistema', '/sistema/checklists', 'CheckSquare', 158, true),
   ('usuarios', 'Usuarios', 'Gestao de usuarios', 'Sistema', '/usuarios', 'Users', 159, true)
 
-ON CONFLICT ON CONSTRAINT sistema_modulos_codigo_key DO UPDATE SET
+ON CONFLICT (codigo) DO UPDATE SET
   nome = EXCLUDED.nome,
   descricao = EXCLUDED.descricao,
   secao = EXCLUDED.secao,
@@ -371,19 +245,21 @@ ON CONFLICT ON CONSTRAINT sistema_modulos_codigo_key DO UPDATE SET
   ativo = EXCLUDED.ativo;
 
 -- ============================================================
--- CRIAR PERMISSÕES PADRÃO PARA CADA TIPO DE USUÁRIO
+-- CRIAR PERMISSOES PADRAO PARA CADA TIPO DE USUARIO
 -- ============================================================
+
+-- Funcao auxiliar para criar permissoes em massa
 DO $$
 DECLARE
   modulo RECORD;
-  tipos_usuario TEXT[] := ARRAY['MASTER', 'ADMIN', 'COMERCIAL', 'ATENDIMENTO', 'COLABORADOR', 'CLIENTE', 'ESPECIFICADOR', 'FORNECEDOR', 'JURIDICO', 'FINANCEIRO', 'GERENTE'];
+  tipos_usuario TEXT[] := ARRAY['MASTER', 'ADMIN', 'COMERCIAL', 'ATENDIMENTO', 'COLABORADOR', 'CLIENTE', 'ESPECIFICADOR', 'FORNECEDOR', 'JURIDICO', 'FINANCEIRO'];
   tipo TEXT;
 BEGIN
   -- Para cada modulo
   FOR modulo IN SELECT id, codigo FROM sistema_modulos WHERE ativo = true LOOP
     -- Para cada tipo de usuario
     FOREACH tipo IN ARRAY tipos_usuario LOOP
-      -- Inserir permissao padrao
+      -- Inserir permissao padrao (visualizar = true para todos, exceto modulos restritos)
       INSERT INTO permissoes_tipo_usuario (
         tipo_usuario,
         modulo_id,
@@ -397,58 +273,68 @@ BEGIN
       VALUES (
         tipo,
         modulo.id,
-        -- pode_visualizar
-        CASE
-          WHEN tipo IN ('MASTER', 'ADMIN', 'GERENTE') THEN true
-          WHEN modulo.codigo IN ('meu-financeiro', 'dashboard-executivo', 'empresas', 'planta-sistema', 'saude-sistema', 'usuarios') AND tipo NOT IN ('MASTER', 'ADMIN') THEN false
-          WHEN modulo.codigo LIKE 'financeiro%' AND tipo NOT IN ('MASTER', 'ADMIN', 'FINANCEIRO', 'GERENTE') THEN false
-          WHEN modulo.codigo LIKE 'juridico%' AND tipo NOT IN ('MASTER', 'ADMIN', 'JURIDICO', 'GERENTE') THEN false
-          ELSE true
-        END,
+        -- MASTER sempre tem tudo
+        CASE WHEN tipo = 'MASTER' THEN true
+        -- Modulos restritos por tipo
+        WHEN modulo.codigo IN ('meu-financeiro', 'dashboard-executivo', 'empresas', 'planta-sistema', 'saude-sistema') AND tipo != 'MASTER' THEN false
+        -- Modulos financeiros apenas para ADMIN, FINANCEIRO e MASTER
+        WHEN modulo.codigo LIKE 'financeiro%' AND tipo NOT IN ('MASTER', 'ADMIN', 'FINANCEIRO') THEN false
+        -- Modulos juridicos apenas para ADMIN, JURIDICO e MASTER
+        WHEN modulo.codigo LIKE 'juridico%' AND tipo NOT IN ('MASTER', 'ADMIN', 'JURIDICO') THEN false
+        -- Usuarios apenas MASTER e ADMIN
+        WHEN modulo.codigo = 'usuarios' AND tipo NOT IN ('MASTER', 'ADMIN') THEN false
+        -- Padrao: visualizar permitido
+        ELSE true END,
         -- pode_criar
-        CASE
-          WHEN tipo IN ('MASTER', 'ADMIN', 'GERENTE') THEN true
-          WHEN tipo IN ('COMERCIAL', 'ATENDIMENTO') AND modulo.codigo IN ('clientes', 'oportunidades', 'propostas', 'evf', 'analise-projeto') THEN true
-          WHEN tipo = 'COLABORADOR' AND modulo.codigo IN ('planejamento', 'planejamento-novo') THEN true
-          WHEN tipo = 'JURIDICO' AND modulo.codigo LIKE 'juridico%' THEN true
-          WHEN tipo = 'FINANCEIRO' AND modulo.codigo LIKE 'financeiro%' THEN true
-          ELSE false
-        END,
+        CASE WHEN tipo = 'MASTER' THEN true
+        WHEN tipo = 'ADMIN' THEN true
+        WHEN tipo IN ('COMERCIAL', 'ATENDIMENTO') AND modulo.codigo IN ('clientes', 'oportunidades', 'propostas', 'evf', 'analise-projeto') THEN true
+        ELSE false END,
         -- pode_editar
-        CASE
-          WHEN tipo IN ('MASTER', 'ADMIN', 'GERENTE') THEN true
-          WHEN tipo IN ('COMERCIAL', 'ATENDIMENTO') AND modulo.codigo IN ('clientes', 'oportunidades', 'propostas', 'evf', 'analise-projeto') THEN true
-          WHEN tipo = 'JURIDICO' AND modulo.codigo LIKE 'juridico%' THEN true
-          WHEN tipo = 'FINANCEIRO' AND modulo.codigo LIKE 'financeiro%' THEN true
-          ELSE false
-        END,
+        CASE WHEN tipo = 'MASTER' THEN true
+        WHEN tipo = 'ADMIN' THEN true
+        WHEN tipo IN ('COMERCIAL', 'ATENDIMENTO') AND modulo.codigo IN ('clientes', 'oportunidades', 'propostas', 'evf', 'analise-projeto') THEN true
+        ELSE false END,
         -- pode_excluir
-        CASE
-          WHEN tipo IN ('MASTER', 'ADMIN') THEN true
-          ELSE false
-        END,
+        CASE WHEN tipo = 'MASTER' THEN true
+        WHEN tipo = 'ADMIN' THEN true
+        ELSE false END,
         -- pode_exportar
-        CASE
-          WHEN tipo IN ('MASTER', 'ADMIN', 'GERENTE') THEN true
-          ELSE false
-        END,
+        CASE WHEN tipo IN ('MASTER', 'ADMIN') THEN true
+        ELSE false END,
         -- pode_importar
-        CASE
-          WHEN tipo IN ('MASTER', 'ADMIN') THEN true
-          ELSE false
-        END
+        CASE WHEN tipo IN ('MASTER', 'ADMIN') THEN true
+        ELSE false END
       )
-      ON CONFLICT ON CONSTRAINT permissoes_tipo_usuario_tipo_modulo_key DO NOTHING;
+      ON CONFLICT (tipo_usuario, modulo_id) DO NOTHING;
     END LOOP;
   END LOOP;
 END $$;
 
 -- ============================================================
--- LOG
+-- VERIFICAR RESULTADOS
 -- ============================================================
-DO $$
-BEGIN
-  RAISE NOTICE 'Migration 20260108190000_create_permissoes_sistema executada com sucesso!';
-  RAISE NOTICE 'Tabelas criadas: sistema_modulos, permissoes_tipo_usuario';
-  RAISE NOTICE 'Funcoes criadas: verificar_permissao, listar_modulos_permitidos';
-END $$;
+
+-- Contar modulos inseridos
+SELECT 'Modulos inseridos:' as info, COUNT(*) as total FROM sistema_modulos WHERE ativo = true;
+
+-- Contar permissoes criadas
+SELECT 'Permissoes criadas:' as info, COUNT(*) as total FROM permissoes_tipo_usuario;
+
+-- Listar modulos por secao
+SELECT secao, COUNT(*) as qtd_modulos
+FROM sistema_modulos
+WHERE ativo = true
+GROUP BY secao
+ORDER BY MIN(ordem);
+
+-- Listar permissoes por tipo de usuario
+SELECT tipo_usuario,
+       COUNT(*) as total_modulos,
+       SUM(CASE WHEN pode_visualizar THEN 1 ELSE 0 END) as pode_ver,
+       SUM(CASE WHEN pode_criar THEN 1 ELSE 0 END) as pode_criar,
+       SUM(CASE WHEN pode_editar THEN 1 ELSE 0 END) as pode_editar,
+       SUM(CASE WHEN pode_excluir THEN 1 ELSE 0 END) as pode_excluir
+FROM permissoes_tipo_usuario
+GROUP BY tipo_usuario
+ORDER BY tipo_usuario;

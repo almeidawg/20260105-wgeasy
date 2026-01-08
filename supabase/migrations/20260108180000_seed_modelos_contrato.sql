@@ -6,6 +6,68 @@
 -- ============================================================
 
 -- ============================================================
+-- 0. GARANTIR QUE A CONSTRAINT UNIQUE EXISTE NA COLUNA codigo
+-- ============================================================
+DO $$
+BEGIN
+  -- Criar tabela se não existir
+  CREATE TABLE IF NOT EXISTS juridico_modelos_contrato (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    codigo TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    descricao TEXT,
+    nucleo TEXT,
+    conteudo_html TEXT,
+    clausulas JSONB,
+    variaveis_obrigatorias JSONB,
+    prazo_execucao_padrao INTEGER,
+    prorrogacao_padrao INTEGER,
+    status TEXT DEFAULT 'rascunho',
+    versao INTEGER DEFAULT 1,
+    versao_texto TEXT DEFAULT '1.0.0',
+    ativo BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  );
+
+  -- Tentar dropar constraint existente (se houver problema)
+  BEGIN
+    ALTER TABLE juridico_modelos_contrato DROP CONSTRAINT IF EXISTS juridico_modelos_contrato_codigo_key;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+
+  -- Criar a constraint UNIQUE
+  ALTER TABLE juridico_modelos_contrato ADD CONSTRAINT juridico_modelos_contrato_codigo_key UNIQUE (codigo);
+EXCEPTION
+  WHEN duplicate_object THEN
+    -- Constraint já existe, OK
+    NULL;
+  WHEN OTHERS THEN
+    RAISE NOTICE 'Aviso ao criar constraint: %', SQLERRM;
+END $$;
+
+-- Habilitar RLS se não estiver
+ALTER TABLE juridico_modelos_contrato ENABLE ROW LEVEL SECURITY;
+
+-- Políticas RLS
+DROP POLICY IF EXISTS "juridico_modelos_contrato_select" ON juridico_modelos_contrato;
+CREATE POLICY "juridico_modelos_contrato_select" ON juridico_modelos_contrato
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "juridico_modelos_contrato_insert" ON juridico_modelos_contrato;
+CREATE POLICY "juridico_modelos_contrato_insert" ON juridico_modelos_contrato
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "juridico_modelos_contrato_update" ON juridico_modelos_contrato;
+CREATE POLICY "juridico_modelos_contrato_update" ON juridico_modelos_contrato
+  FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "juridico_modelos_contrato_delete" ON juridico_modelos_contrato;
+CREATE POLICY "juridico_modelos_contrato_delete" ON juridico_modelos_contrato
+  FOR DELETE USING (true);
+
+-- ============================================================
 -- 1. MODELO: CONTRATO DE PROJETO ARQUITETÔNICO
 -- Empresa: WG ALMEIDA ARQUITETURA E COMERCIO LTDA
 -- ============================================================

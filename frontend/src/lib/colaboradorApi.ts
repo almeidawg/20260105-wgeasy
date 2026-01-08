@@ -405,7 +405,7 @@ export async function listarLancamentosFavorecido(
       vencimento,
       data_pagamento,
       data_competencia,
-      contrato:contratos(numero),
+      contrato_id,
       projeto:projetos(nome)
     `
     )

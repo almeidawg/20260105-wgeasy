@@ -40,11 +40,14 @@ test-results/
 *.pem
 *.key
 client_secret*.json
+*-service-account*.json
+wg-easy-sistema-*.json
 service_role_key.txt
 service_role_key.zip
 wg-easy.env
 data/
 DockerDesktopWSL/
+dwd_clients.csv
 
 # Temporary files
 *.tmp
