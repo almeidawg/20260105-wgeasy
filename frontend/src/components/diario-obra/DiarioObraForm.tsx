@@ -20,10 +20,10 @@ import DiarioFotoCapture from "./DiarioFotoCapture";
 import { supabase } from "@/lib/supabaseClient";
 import {
   criarRegistroDiario,
-  uploadFotoDiario,
   buscarPastaDiarioObraDoCliente,
   obterPastaDiarioPorData,
 } from "@/lib/diarioObraApi";
+import { uploadFotoDiarioBackend } from "@/lib/diarioObraBackendApi";
 import type { FotoCapturaPreview } from "@/types/diarioObra";
 
 interface DiarioObraFormProps {
@@ -158,7 +158,7 @@ function DiarioObraForm({
           const foto = fotos[i];
           setUploadProgress({ current: i + 1, total: fotos.length });
           try {
-            await uploadFotoDiario(
+            await uploadFotoDiarioBackend(
               diario.id,
               foto.file,
               foto.descricao,

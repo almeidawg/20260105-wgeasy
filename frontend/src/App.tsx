@@ -11,8 +11,6 @@ import ClienteProtectedRoute, {
 } from "@/auth/ClienteProtectedRoute";
 import PublicRoute from "@/auth/PublicRoute";
 import { Loader2 } from "lucide-react";
-import GoogleKeepChecklist from "./components/GoogleKeepChecklist";
-
 /* ===================== LOADING COMPONENT ===================== */
 const PageLoader = () => (
   <div className="min-h-screen w-full flex items-center justify-center bg-[#FAFAFA]">
@@ -1289,7 +1287,6 @@ export default function App() {
           </Route>
         </Routes>
       </Suspense>
-      <GoogleKeepChecklist />
     </BrowserRouter>
   );
 }

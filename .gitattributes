@@ -1,0 +1,6 @@
+# força LF para arquivos de texto (evita vários diffs só por CRLF)
+* text=auto
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.json text eol=lf

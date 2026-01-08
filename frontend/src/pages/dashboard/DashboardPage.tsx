@@ -1031,22 +1031,6 @@ export default function DashboardPage() {
             </button>
             <button
               type="button"
-              onClick={() => navigate("/financeiro")}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 rounded-lg transition-all"
-            >
-              <DollarSign className="w-4 h-4 text-emerald-500" />
-              <span className="text-sm text-gray-700">Financeiro</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/meu-financeiro")}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-amber-50 border border-gray-200 hover:border-amber-200 rounded-lg transition-all"
-            >
-              <Wallet className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-gray-700">Meu Financeiro</span>
-            </button>
-            <button
-              type="button"
               onClick={() => navigate("/pessoas/clientes")}
               className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-violet-50 border border-gray-200 hover:border-violet-200 rounded-lg transition-all"
             >
@@ -1064,7 +1048,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ====== SEGUNDA LINHA: 3 COLUNAS ====== */}
+        {/* ====== SEGUNDA LINHA: CONTRATOS | CALENDÁRIO | CHECKLIST ====== */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* COLUNA 1: Contratos Ativos do Dia */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -1162,8 +1146,8 @@ export default function DashboardPage() {
           {/* COLUNA 2: Google Calendar (CENTRO) */}
           <GoogleCalendarWidget />
 
-          {/* COLUNA 3: Checklist Diário (DIREITA) */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          {/* COLUNA 3: Google Keep Checklist */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-full">
             <GoogleKeepChecklist />
           </div>
         </div>

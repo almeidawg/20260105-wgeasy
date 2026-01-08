@@ -215,9 +215,14 @@ export default function PlanejamentoDashboard() {
             <div className="w-14 h-14 bg-gradient-to-br from-[#F25C26] to-[#e04a1a] rounded-2xl flex items-center justify-center shadow-lg">
               <ClipboardList className="w-7 h-7 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Planejamento</h1>
-              <p className="text-gray-600">Gerencie orçamentos, materiais e aprovações</p>
+            <div className="page-header-inline">
+              <div className="page-header-first-line">
+                <h1 className="page-header-title">Planejamento</h1>
+                <span className="page-header-line" />
+              </div>
+              <p className="page-header-subtitle-inline">
+                Gerencie orçamentos, materiais e aprovações
+              </p>
             </div>
           </div>
           <button
