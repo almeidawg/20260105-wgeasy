@@ -31,6 +31,11 @@ yarn-debug.log*
 yarn-error.log*
 frontend-dev.err
 
+# Playwright / validações visuais
+playwright-report/
+scrollbar-dashboard-validation.png
+test-results/
+
 # Secrets and credentials
 *.pem
 *.key

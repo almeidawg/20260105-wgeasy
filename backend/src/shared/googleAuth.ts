@@ -53,7 +53,9 @@ export function hasServiceAccount(): boolean {
   return Boolean(loadServiceAccountKey());
 }
 
-export function createServiceAccountClient(scopes: string[]): google.auth.JWT | null {
+type GoogleJWT = InstanceType<typeof google.auth.JWT>;
+
+export function createServiceAccountClient(scopes: string[]): GoogleJWT | null {
   const key = loadServiceAccountKey();
   if (!key) return null;
   return new google.auth.JWT(
@@ -67,7 +69,7 @@ export function createServiceAccountClient(scopes: string[]): google.auth.JWT | 
 
 export async function getServiceAccountAccessToken(
   scopes: string[]
-): Promise<{ client: google.auth.JWT; accessToken: string } | null> {
+): Promise<{ client: GoogleJWT; accessToken: string } | null> {
   const client = createServiceAccountClient(scopes);
   if (!client) return null;
   const { access_token } = await client.authorize();

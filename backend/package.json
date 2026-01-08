@@ -20,6 +20,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.0.0",
     "@types/node": "^22.0.0",
     "@types/nodemailer": "^6.4.0",
     "ts-node": "^10.9.2",

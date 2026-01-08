@@ -21,6 +21,9 @@ const API_KEY = process.env.GOOGLE_CALENDAR_API_KEY;
 // Cliente do Calendar
 const calendar = google.calendar({ version: 'v3' });
 
+type OAuth2ClientInstance = InstanceType<typeof google.auth.OAuth2>;
+type JWTClientInstance = InstanceType<typeof google.auth.JWT>;
+
 const CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.events',
@@ -101,7 +104,7 @@ export function setCredentials(tokens: { access_token: string; refresh_token?: s
 
 async function resolveCalendarAuth(
   accessToken?: string
-): Promise<google.auth.OAuth2 | google.auth.JWT> {
+): Promise<OAuth2ClientInstance | JWTClientInstance> {
   if (accessToken) {
     oauth2Client.setCredentials({ access_token: accessToken });
     return oauth2Client;

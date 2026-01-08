@@ -23,6 +23,8 @@ const upload = multer({
   },
 });
 
+type MulterRequest = Request & { file?: Express.Multer.File };
+
 // ============================================================
 // SUPABASE CLIENT PARA VALIDAÇÃO JWT
 // ============================================================
@@ -487,7 +489,7 @@ app.post(
   requireJWT,
   rateLimitMiddleware,
   upload.single("foto"),
-  async (req: Request, res: Response) => {
+  async (req: MulterRequest, res: Response) => {
     try {
       const { registroId } = req.params;
       const { descricao, driveFolderId } = req.body;

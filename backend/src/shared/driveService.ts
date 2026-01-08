@@ -16,6 +16,9 @@ const oauth2Client = new google.auth.OAuth2(
 // Cliente do Drive
 const drive = google.drive({ version: 'v3' });
 
+type OAuth2ClientInstance = InstanceType<typeof google.auth.OAuth2>;
+type JWTClientInstance = InstanceType<typeof google.auth.JWT>;
+
 const DRIVE_SCOPES = [
   'https://www.googleapis.com/auth/drive',
   'https://www.googleapis.com/auth/drive.file',
@@ -26,7 +29,7 @@ const CLIENTES_ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_CLIENTES_FOLDER_ID || '
 
 async function resolveDriveAuth(
   accessToken?: string
-): Promise<google.auth.OAuth2 | google.auth.JWT> {
+): Promise<OAuth2ClientInstance | JWTClientInstance> {
   if (accessToken) {
     oauth2Client.setCredentials({ access_token: accessToken });
     return oauth2Client;
