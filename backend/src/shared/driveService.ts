@@ -4,6 +4,7 @@
 // ============================================================
 
 import { google, drive_v3 } from 'googleapis';
+import { createServiceAccountClient } from './googleAuth';
 
 // Configuração do OAuth2 (mesmas credenciais do Calendar)
 const oauth2Client = new google.auth.OAuth2(
@@ -15,8 +16,30 @@ const oauth2Client = new google.auth.OAuth2(
 // Cliente do Drive
 const drive = google.drive({ version: 'v3' });
 
+const DRIVE_SCOPES = [
+  'https://www.googleapis.com/auth/drive',
+  'https://www.googleapis.com/auth/drive.file',
+];
+
 // ID da pasta raiz de clientes (configurável via env)
 const CLIENTES_ROOT_FOLDER_ID = process.env.GOOGLE_DRIVE_CLIENTES_FOLDER_ID || '';
+
+async function resolveDriveAuth(
+  accessToken?: string
+): Promise<google.auth.OAuth2 | google.auth.JWT> {
+  if (accessToken) {
+    oauth2Client.setCredentials({ access_token: accessToken });
+    return oauth2Client;
+  }
+
+  const serviceAccount = createServiceAccountClient(DRIVE_SCOPES);
+  if (serviceAccount) {
+    await serviceAccount.authorize();
+    return serviceAccount;
+  }
+
+  return oauth2Client;
+}
 
 // ============================================================
 // TIPOS
@@ -71,9 +94,7 @@ export async function createFolder(
   accessToken?: string
 ): Promise<DriveFolder | null> {
   try {
-    if (accessToken) {
-      oauth2Client.setCredentials({ access_token: accessToken });
-    }
+    const auth = await resolveDriveAuth(accessToken);
 
     const fileMetadata: drive_v3.Schema$File = {
       name: options.name,
@@ -90,7 +111,7 @@ export async function createFolder(
     }
 
     const response = await drive.files.create({
-      auth: oauth2Client,
+      auth,
       requestBody: fileMetadata,
       fields: 'id, name, webViewLink, createdTime',
     });
@@ -98,7 +119,7 @@ export async function createFolder(
     if (response.data.id) {
       // Configurar permissões de compartilhamento (qualquer pessoa com o link pode ver)
       await drive.permissions.create({
-        auth: oauth2Client,
+        auth,
         fileId: response.data.id,
         requestBody: {
           type: 'anyone',
@@ -137,10 +158,6 @@ export async function createClienteFolderStructure(
   accessToken?: string
 ): Promise<DriveFolder | null> {
   try {
-    if (accessToken) {
-      oauth2Client.setCredentials({ access_token: accessToken });
-    }
-
     // 1. Criar pasta principal do cliente
     const mainFolder = await createFolder({
       name: clienteNome,
@@ -185,9 +202,7 @@ export async function findFolderByName(
   accessToken?: string
 ): Promise<DriveFolder | null> {
   try {
-    if (accessToken) {
-      oauth2Client.setCredentials({ access_token: accessToken });
-    }
+    const auth = await resolveDriveAuth(accessToken);
 
     let query = `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
 
@@ -198,7 +213,7 @@ export async function findFolderByName(
     }
 
     const response = await drive.files.list({
-      auth: oauth2Client,
+      auth,
       q: query,
       fields: 'files(id, name, webViewLink, createdTime)',
       pageSize: 1,
@@ -243,6 +258,56 @@ export async function getOrCreateClienteFolder(
   }
 
   return newFolder;
+}
+
+export async function uploadFileToFolder(
+  folderId: string,
+  fileName: string,
+  buffer: Buffer,
+  mimeType: string,
+  accessToken?: string
+): Promise<DriveFolder | null> {
+  try {
+    const auth = await resolveDriveAuth(accessToken);
+
+    const response = await drive.files.create({
+      auth,
+      requestBody: {
+        name: fileName,
+        parents: [folderId],
+      },
+      media: {
+        mimeType,
+        body: buffer,
+      },
+      fields: 'id, name, webViewLink, createdTime',
+    });
+
+    if (response.data.id) {
+      await drive.permissions.create({
+        auth,
+        fileId: response.data.id,
+        requestBody: {
+          type: 'anyone',
+          role: 'reader',
+        },
+      });
+
+      return {
+        id: response.data.id,
+        name: response.data.name || fileName,
+        webViewLink:
+          response.data.webViewLink ||
+          `https://drive.google.com/file/d/${response.data.id}`,
+        createdTime: response.data.createdTime || undefined,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Erro ao enviar arquivo para o Drive:', error);
+    return null;
+  }
 }
 
 export default {

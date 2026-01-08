@@ -1,0 +1,46 @@
+name: Hostinger Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  hostinger-deploy:
+    runs-on: ubuntu-latest
+    env:
+      HOSTINGER_FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
+      HOSTINGER_FTP_USER: ${{ secrets.HOSTINGER_FTP_USER }}
+      HOSTINGER_FTP_PASS: ${{ secrets.HOSTINGER_FTP_PASS }}
+      HOSTINGER_FTP_PATH: ${{ secrets.HOSTINGER_FTP_PATH || '/public_html' }}
+      GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+      GOOGLE_SERVICE_ACCOUNT_SUBJECT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_SUBJECT }}
+      GOOGLE_CALENDAR_REFRESH_TOKEN: ${{ secrets.GOOGLE_CALENDAR_REFRESH_TOKEN }}
+      GOOGLE_KEEP_SCRIPT_URL: ${{ secrets.GOOGLE_KEEP_SCRIPT_URL }}
+      DIARIO_OBRA_BUCKET: ${{ secrets.DIARIO_OBRA_BUCKET || 'diario-obra' }}
+      DIARIO_FOTO_MAX_BYTES: ${{ secrets.DIARIO_FOTO_MAX_BYTES || '12582912' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install backend dependencies
+        run: npm --prefix backend install
+
+      - name: Build backend
+        run: npm --prefix backend run build
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend install
+
+      - name: Deploy frontend to Hostinger
+        run: npm --prefix frontend run deploy:hostinger

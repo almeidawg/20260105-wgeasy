@@ -11,9 +11,17 @@ import emailService from "./shared/emailService";
 import calendarService from "./shared/calendarService";
 import driveService from "./shared/driveService";
 import { buscarImagemProduto } from "./shared/leroyImageScraper";
+import multer from "multer";
+import { uploadDiarioFoto } from "./shared/diarioFotosService";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: Number(process.env.DIARIO_FOTO_MAX_BYTES || 12 * 1024 * 1024),
+  },
+});
 
 // ============================================================
 // SUPABASE CLIENT PARA VALIDAÇÃO JWT
@@ -470,6 +478,44 @@ app.get(
       res.json({ connected });
     } catch (error: any) {
       res.status(500).json({ connected: false, error: error.message });
+    }
+  }
+);
+
+app.post(
+  "/api/diario-obras/:registroId/fotos",
+  requireJWT,
+  rateLimitMiddleware,
+  upload.single("foto"),
+  async (req: Request, res: Response) => {
+    try {
+      const { registroId } = req.params;
+      const { descricao, driveFolderId } = req.body;
+
+      if (!registroId) {
+        return res.status(400).json({ error: "registroId é obrigatório" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "Arquivo da foto não enviado" });
+      }
+
+      const foto = await uploadDiarioFoto({
+        registroId,
+        buffer: req.file.buffer,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        descricao,
+        driveFolderId,
+      });
+
+      res.json({ success: true, foto });
+    } catch (error: any) {
+      console.error("[Diário de Obra Photo Error]:", error);
+      res.status(500).json({
+        error: "Erro ao enviar foto do Diário de Obra",
+        message: error.message,
+      });
     }
   }
 );

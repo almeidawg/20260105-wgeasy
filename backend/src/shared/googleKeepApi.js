@@ -1,49 +1,84 @@
 // Google Keep API Proxy via Apps Script
 // Este arquivo consome o endpoint REST do Apps Script para Google Keep
 const fetch = require("node-fetch");
+const { getServiceAccountAccessToken } = require("./googleAuth.ts");
 
 const GOOGLE_KEEP_SCRIPT_URL = process.env.GOOGLE_KEEP_SCRIPT_URL;
+const KEEP_SCOPES = ["https://www.googleapis.com/auth/keep"];
 
-async function listNotes(token) {
-  const res = await fetch(`${GOOGLE_KEEP_SCRIPT_URL}/notes`, {
-    headers: { Authorization: `Bearer ${token}` },
+let cachedToken = null;
+let tokenExpiry = 0;
+
+async function getAuthToken() {
+  if (!GOOGLE_KEEP_SCRIPT_URL) {
+    throw new Error("GOOGLE_KEEP_SCRIPT_URL não configurado");
+  }
+
+  const now = Date.now();
+  if (cachedToken && tokenExpiry > now + 30 * 1000) {
+    return cachedToken;
+  }
+
+  const override = process.env.GOOGLE_KEEP_ACCESS_TOKEN;
+  if (override) {
+    cachedToken = override;
+    tokenExpiry = now + 60 * 60 * 1000;
+    return cachedToken;
+  }
+
+  const serviceToken = await getServiceAccountAccessToken(KEEP_SCOPES);
+  if (!serviceToken) {
+    throw new Error("Service Account do Keep não configurada");
+  }
+
+  cachedToken = serviceToken.accessToken;
+  tokenExpiry = now + 45 * 60 * 1000;
+  return cachedToken;
+}
+
+async function doFetch(path, options = {}) {
+  const token = await getAuthToken();
+  const res = await fetch(`${GOOGLE_KEEP_SCRIPT_URL}${path}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+    ...options,
   });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Keep API retornou ${res.status}: ${text}`);
+  }
+
   return res.json();
 }
 
-async function createNote(token, note) {
-  const res = await fetch(`${GOOGLE_KEEP_SCRIPT_URL}/notes`, {
+async function listNotes() {
+  return doFetch("/notes");
+}
+
+async function createNote(note) {
+  return doFetch("/notes", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(note),
   });
-  return res.json();
 }
 
-async function updateNote(token, noteId, note) {
-  const res = await fetch(`${GOOGLE_KEEP_SCRIPT_URL}/notes/${noteId}`, {
+async function updateNote(noteId, note) {
+  return doFetch(`/notes/${noteId}`, {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(note),
   });
-  return res.json();
 }
 
-// Sincroniza notas do Google Keep ao logar
-async function syncNotesOnLogin(token) {
+async function syncNotesOnLogin() {
   try {
-    const notes = await listNotes(token);
-    // Aqui você pode salvar as notas no banco local, cache ou retornar para o frontend
-    // Exemplo: return notes;
-    return notes;
-  } catch (err) {
-    console.error("Erro ao sincronizar notas do Keep:", err);
+    return await listNotes();
+  } catch (error) {
+    console.error("Erro ao sincronizar notas do Keep:", error);
     return [];
   }
 }

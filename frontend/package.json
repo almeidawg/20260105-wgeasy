@@ -12,6 +12,7 @@
     "lint:fix": "eslint src --fix",
     "lint:report": "eslint src --format stylish",
     "validate:hostinger-ftp": "node ./validate-hostinger-ftp.js",
+    "deploy:hostinger": "npm run build && npm run validate:hostinger-ftp && node ./deploy-hostinger.js",
     "clean": "rimraf dist node_modules/.vite",
     "fresh": "npm run clean && npm install && npm run dev",
     "analyze": "vite build --mode analyze",

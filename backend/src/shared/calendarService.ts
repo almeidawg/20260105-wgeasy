@@ -4,6 +4,9 @@
 // ============================================================
 
 import { google, calendar_v3 } from 'googleapis';
+import {
+  createServiceAccountClient,
+} from './googleAuth';
 
 // Configuração do OAuth2
 const oauth2Client = new google.auth.OAuth2(
@@ -17,6 +20,11 @@ const API_KEY = process.env.GOOGLE_CALENDAR_API_KEY;
 
 // Cliente do Calendar
 const calendar = google.calendar({ version: 'v3' });
+
+const CALENDAR_SCOPES = [
+  'https://www.googleapis.com/auth/calendar',
+  'https://www.googleapis.com/auth/calendar.events',
+];
 
 // ============================================================
 // TIPOS
@@ -91,6 +99,34 @@ export function setCredentials(tokens: { access_token: string; refresh_token?: s
   oauth2Client.setCredentials(tokens);
 }
 
+async function resolveCalendarAuth(
+  accessToken?: string
+): Promise<google.auth.OAuth2 | google.auth.JWT> {
+  if (accessToken) {
+    oauth2Client.setCredentials({ access_token: accessToken });
+    return oauth2Client;
+  }
+
+  const serviceAccount = createServiceAccountClient(CALENDAR_SCOPES);
+  if (serviceAccount) {
+    await serviceAccount.authorize();
+    return serviceAccount;
+  }
+
+  if (process.env.GOOGLE_CALENDAR_REFRESH_TOKEN) {
+    oauth2Client.setCredentials({
+      refresh_token: process.env.GOOGLE_CALENDAR_REFRESH_TOKEN,
+    });
+    try {
+      await oauth2Client.getAccessToken();
+    } catch (error) {
+      console.warn("Falha ao renovar token com refresh_token:", error);
+    }
+  }
+
+  return oauth2Client;
+}
+
 // ============================================================
 // FUNÇÕES DE LEITURA (API Key)
 // ============================================================
@@ -137,12 +173,10 @@ export async function createEvent(
   accessToken?: string
 ): Promise<CalendarEvent | null> {
   try {
-    if (accessToken) {
-      oauth2Client.setCredentials({ access_token: accessToken });
-    }
+    const auth = await resolveCalendarAuth(accessToken);
 
     const response = await calendar.events.insert({
-      auth: oauth2Client,
+      auth,
       calendarId,
       requestBody: event as calendar_v3.Schema$Event,
       sendUpdates: 'all', // Envia convites para participantes
@@ -165,12 +199,10 @@ export async function updateEvent(
   accessToken?: string
 ): Promise<CalendarEvent | null> {
   try {
-    if (accessToken) {
-      oauth2Client.setCredentials({ access_token: accessToken });
-    }
+    const auth = await resolveCalendarAuth(accessToken);
 
     const response = await calendar.events.patch({
-      auth: oauth2Client,
+      auth,
       calendarId,
       eventId,
       requestBody: event as calendar_v3.Schema$Event,
@@ -193,12 +225,10 @@ export async function deleteEvent(
   accessToken?: string
 ): Promise<boolean> {
   try {
-    if (accessToken) {
-      oauth2Client.setCredentials({ access_token: accessToken });
-    }
+    const auth = await resolveCalendarAuth(accessToken);
 
     await calendar.events.delete({
-      auth: oauth2Client,
+      auth,
       calendarId,
       eventId,
       sendUpdates: 'all',
@@ -216,12 +246,10 @@ export async function deleteEvent(
  */
 export async function listCalendars(accessToken?: string): Promise<any[]> {
   try {
-    if (accessToken) {
-      oauth2Client.setCredentials({ access_token: accessToken });
-    }
+    const auth = await resolveCalendarAuth(accessToken);
 
     const response = await calendar.calendarList.list({
-      auth: oauth2Client,
+      auth,
     });
 
     return response.data.items || [];
@@ -240,12 +268,10 @@ export async function quickAdd(
   accessToken?: string
 ): Promise<CalendarEvent | null> {
   try {
-    if (accessToken) {
-      oauth2Client.setCredentials({ access_token: accessToken });
-    }
+    const auth = await resolveCalendarAuth(accessToken);
 
     const response = await calendar.events.quickAdd({
-      auth: oauth2Client,
+      auth,
       calendarId,
       text, // Ex: "Reunião com cliente amanhã às 14h"
     });
