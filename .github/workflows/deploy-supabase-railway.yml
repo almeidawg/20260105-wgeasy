@@ -51,4 +51,4 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up --service 9673f0b4-0820-4854-935c-b9570a15360f --detach
+          railway up --service 20260105-wgeasy --detach
