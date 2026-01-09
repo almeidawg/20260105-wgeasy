@@ -8,10 +8,11 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabaseRaw as supabase } from "@/lib/supabaseClient";
 import { formatarMoeda } from "@/lib/utils";
+import EnviarParaClienteModal from "./components/EnviarParaClienteModal";
 
 interface ItemPendente {
   id: string;
-  tipo: "orcamento" | "compra" | "solicitacao";
+  tipo: "orcamento" | "compra" | "solicitacao" | "solicitacao_material";
   titulo: string;
   descricao?: string;
   valor: number;
@@ -20,6 +21,7 @@ interface ItemPendente {
   cliente?: string;
   status: string;
   urgencia: "baixa" | "media" | "alta";
+  itens_count?: number; // para pedidos de materiais
 }
 
 interface EstatisticasAprovacao {
@@ -27,6 +29,7 @@ interface EstatisticasAprovacao {
   orcamentos_pendentes: number;
   compras_pendentes: number;
   solicitacoes_pendentes: number;
+  materiais_pendentes: number;
   valor_total_pendente: number;
 }
 
@@ -37,11 +40,16 @@ export default function AprovacoesPage() {
     orcamentos_pendentes: 0,
     compras_pendentes: 0,
     solicitacoes_pendentes: 0,
+    materiais_pendentes: 0,
     valor_total_pendente: 0,
   });
   const [loading, setLoading] = useState(true);
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
   const [filtroUrgencia, setFiltroUrgencia] = useState<string>("todos");
+
+  // Estados do modal de envio para cliente
+  const [modalEnviarAberto, setModalEnviarAberto] = useState(false);
+  const [itemParaEnviar, setItemParaEnviar] = useState<ItemPendente | null>(null);
 
   useEffect(() => {
     carregarPendentes();
@@ -52,10 +60,11 @@ export default function AprovacoesPage() {
       setLoading(true);
       const itensPendentes: ItemPendente[] = [];
 
-      // Buscar orçamentos pendentes sem join (evita erro de FK)
+      // Buscar orçamentos pendentes (status=enviado) sem join (evita erro de FK)
       const { data: orcamentos, error: errOrc } = await supabase
         .from("orcamentos")
-        .select("id, titulo, valor_total, criado_em, cliente_id")
+        .select("id, titulo, valor_total, criado_em, cliente_id, status")
+        .eq("status", "enviado")
         .order("criado_em", { ascending: false })
         .limit(50);
 
@@ -208,6 +217,60 @@ export default function AprovacoesPage() {
         console.log("Tabela projeto_lista_compras não disponível");
       }
 
+      // Buscar pedidos de materiais do colaborador (tabela pedidos_materiais)
+      try {
+        const { data: pedidosMateriais } = await supabase
+          .from("pedidos_materiais")
+          .select("id, descricao, itens, prioridade, created_at, status, projeto_id, criado_por")
+          .eq("status", "enviado")
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if (pedidosMateriais && pedidosMateriais.length > 0) {
+          // Buscar dados de projetos/contratos para obter nomes de clientes
+          const projetoIds = [...new Set(pedidosMateriais.map(p => p.projeto_id).filter(Boolean))];
+          let projetosMap: Record<string, { numero: string; cliente_nome: string }> = {};
+
+          if (projetoIds.length > 0) {
+            const { data: contratos } = await supabase
+              .from("contratos")
+              .select("id, numero, cliente:pessoas!contratos_cliente_id_fkey(nome)")
+              .in("id", projetoIds);
+
+            if (contratos) {
+              projetosMap = Object.fromEntries(
+                contratos.map(c => [c.id, {
+                  numero: c.numero || "",
+                  cliente_nome: (c.cliente as any)?.nome || ""
+                }])
+              );
+            }
+          }
+
+          pedidosMateriais.forEach((pm: any) => {
+            const projetoInfo = pm.projeto_id ? projetosMap[pm.projeto_id] : null;
+            const itensCount = Array.isArray(pm.itens) ? pm.itens.length : 0;
+
+            itensPendentes.push({
+              id: pm.id,
+              tipo: "solicitacao_material",
+              titulo: pm.descricao || "Pedido de Materiais",
+              descricao: projetoInfo
+                ? `${projetoInfo.cliente_nome} | ${itensCount} item(ns)`
+                : `${itensCount} item(ns) solicitado(s)`,
+              valor: 0, // Pedido de materiais ainda não tem valor definido
+              data_criacao: pm.created_at,
+              cliente: projetoInfo?.cliente_nome,
+              status: "pendente",
+              urgencia: pm.prioridade === "urgente" ? "alta" : pm.prioridade === "baixa" ? "baixa" : "media",
+              itens_count: itensCount,
+            });
+          });
+        }
+      } catch (e) {
+        console.log("Tabela pedidos_materiais não disponível");
+      }
+
       // Ordenar por data (mais recentes primeiro)
       itensPendentes.sort((a, b) =>
         new Date(b.data_criacao).getTime() - new Date(a.data_criacao).getTime()
@@ -221,6 +284,7 @@ export default function AprovacoesPage() {
         orcamentos_pendentes: itensPendentes.filter(i => i.tipo === "orcamento").length,
         compras_pendentes: itensPendentes.filter(i => i.tipo === "compra").length,
         solicitacoes_pendentes: itensPendentes.filter(i => i.tipo === "solicitacao").length,
+        materiais_pendentes: itensPendentes.filter(i => i.tipo === "solicitacao_material").length,
         valor_total_pendente: itensPendentes.reduce((sum, i) => sum + i.valor, 0),
       };
       setEstatisticas(stats);
@@ -255,6 +319,16 @@ export default function AprovacoesPage() {
           .eq("projeto_id", item.id);
 
         alert("Projeto de compras aprovado com sucesso!");
+      } else if (item.tipo === "solicitacao_material") {
+        // Aprovar pedido de materiais do colaborador
+        const { error } = await supabase
+          .from("pedidos_materiais")
+          .update({ status: "em_orcamento" })
+          .eq("id", item.id);
+
+        if (error) throw error;
+
+        alert("Pedido de materiais aprovado! Status alterado para 'Em Orçamento'.");
       } else {
         let tabela = "";
         let novoStatus = "aprovado";
@@ -310,6 +384,19 @@ export default function AprovacoesPage() {
         if (error) throw error;
 
         alert("Projeto de compras rejeitado.");
+      } else if (item.tipo === "solicitacao_material") {
+        // Rejeitar pedido de materiais do colaborador
+        const updateData: { status: string; observacoes?: string } = { status: "recusado" };
+        if (motivo) updateData.observacoes = motivo;
+
+        const { error } = await supabase
+          .from("pedidos_materiais")
+          .update(updateData)
+          .eq("id", item.id);
+
+        if (error) throw error;
+
+        alert("Pedido de materiais rejeitado.");
       } else {
         let tabela = "";
         let novoStatus = "rejeitado";
@@ -362,6 +449,9 @@ export default function AprovacoesPage() {
         case "solicitacao":
           tabela = "financeiro_solicitacoes";
           break;
+        case "solicitacao_material":
+          tabela = "pedidos_materiais";
+          break;
         default:
           alert("Tipo de item não suporta exclusão.");
           return;
@@ -394,6 +484,7 @@ export default function AprovacoesPage() {
       case "orcamento": return "Orçamento";
       case "compra": return "Pedido de Compra";
       case "solicitacao": return "Solicitação";
+      case "solicitacao_material": return "Pedido de Materiais";
       default: return tipo;
     }
   }
@@ -403,6 +494,7 @@ export default function AprovacoesPage() {
       case "orcamento": return "bg-blue-100 text-blue-800";
       case "compra": return "bg-purple-100 text-purple-800";
       case "solicitacao": return "bg-amber-100 text-amber-800";
+      case "solicitacao_material": return "bg-green-100 text-green-800";
       default: return "bg-gray-100 text-gray-800";
     }
   }
@@ -421,6 +513,7 @@ export default function AprovacoesPage() {
       case "orcamento": return `/planejamento/orcamentos/${item.id}`;
       case "compra": return `/compras/${item.id}`;
       case "solicitacao": return `/financeiro/solicitacoes`;
+      case "solicitacao_material": return `/colaborador/materiais`; // Por enquanto redireciona para lista geral
       default: return "#";
     }
   }
@@ -451,7 +544,7 @@ export default function AprovacoesPage() {
         </div>
 
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-orange-100 rounded-lg">
@@ -508,6 +601,20 @@ export default function AprovacoesPage() {
             </div>
           </div>
 
+          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-green-100 rounded-lg">
+                <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Materiais</p>
+                <p className="text-2xl font-bold text-green-600">{estatisticas.materiais_pendentes}</p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-gradient-to-br from-[#F25C26] to-[#e04a1a] rounded-lg shadow p-6 text-white">
             <div>
               <p className="text-sm opacity-90">Valor Total Pendente</p>
@@ -531,6 +638,7 @@ export default function AprovacoesPage() {
                 <option value="orcamento">Orçamentos</option>
                 <option value="compra">Pedidos de Compra</option>
                 <option value="solicitacao">Solicitações</option>
+                <option value="solicitacao_material">Pedidos de Materiais</option>
               </select>
             </div>
 
@@ -638,6 +746,21 @@ export default function AprovacoesPage() {
                         >
                           Aprovar
                         </button>
+
+                        {/* Botão Enviar para Cliente - apenas para pedidos de materiais */}
+                        {item.tipo === "solicitacao_material" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setItemParaEnviar(item);
+                              setModalEnviarAberto(true);
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                          >
+                            Enviar p/ Cliente
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => handleRejeitar(item)}
@@ -686,6 +809,23 @@ export default function AprovacoesPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Envio para Cliente */}
+      {itemParaEnviar && (
+        <EnviarParaClienteModal
+          isOpen={modalEnviarAberto}
+          onClose={() => {
+            setModalEnviarAberto(false);
+            setItemParaEnviar(null);
+          }}
+          pedidoId={itemParaEnviar.id}
+          pedidoTitulo={itemParaEnviar.titulo}
+          clienteNome={itemParaEnviar.cliente}
+          onEnviado={() => {
+            carregarPendentes();
+          }}
+        />
+      )}
     </div>
   );
 }

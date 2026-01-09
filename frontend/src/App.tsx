@@ -95,6 +95,9 @@ const ClientePropostasPage = lazy(
 const PropostaAcaoClientePage = lazy(
   () => import("@/pages/propostas/PropostaAcaoClientePage")
 );
+const AprovacaoMaterialPage = lazy(
+  () => import("@/pages/aprovacao/AprovacaoMaterialPage")
+);
 
 /* ===================== LAZY IMPORTS - CONTRATOS ===================== */
 const ContratosPage = lazy(() => import("@/pages/contratos/ContratosPage"));
@@ -593,6 +596,16 @@ export default function App() {
             element={
               <PublicRoute>
                 <AceitarServicoPage />
+              </PublicRoute>
+            }
+          />
+
+          {/* APROVAÇÃO DE MATERIAL - Página pública para clientes */}
+          <Route
+            path="/aprovacao/material/:token"
+            element={
+              <PublicRoute>
+                <AprovacaoMaterialPage />
               </PublicRoute>
             }
           />
