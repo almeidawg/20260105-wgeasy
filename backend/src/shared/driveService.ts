@@ -324,6 +324,8 @@ export interface DriveFile {
   webViewLink: string;
   webContentLink?: string;
   thumbnailLink?: string;
+  /** URL pública direta da imagem (funciona sem autenticação) */
+  directImageUrl?: string;
   size?: string;
   createdTime?: string;
   modifiedTime?: string;
@@ -358,17 +360,29 @@ export async function listFilesInFolder(
     });
 
     if (response.data.files) {
-      return response.data.files.map((file: any) => ({
-        id: file.id || '',
-        name: file.name || '',
-        mimeType: file.mimeType || '',
-        webViewLink: file.webViewLink || '',
-        webContentLink: file.webContentLink,
-        thumbnailLink: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s400') : undefined,
-        size: file.size,
-        createdTime: file.createdTime,
-        modifiedTime: file.modifiedTime,
-      }));
+      return response.data.files.map((file: any) => {
+        const fileId = file.id || '';
+        // Gerar URLs públicas que funcionam sem autenticação OAuth
+        // Formato: https://drive.google.com/thumbnail?id=FILE_ID&sz=w400 (thumbnail)
+        // Formato: https://lh3.googleusercontent.com/d/FILE_ID (imagem direta)
+        const publicThumbnailUrl = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w400` : undefined;
+        const publicImageUrl = fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : undefined;
+
+        return {
+          id: fileId,
+          name: file.name || '',
+          mimeType: file.mimeType || '',
+          webViewLink: file.webViewLink || '',
+          webContentLink: file.webContentLink,
+          // Priorizar URL pública que funciona sem auth
+          thumbnailLink: publicThumbnailUrl,
+          // URL direta da imagem (funciona para arquivos compartilhados)
+          directImageUrl: publicImageUrl,
+          size: file.size,
+          createdTime: file.createdTime,
+          modifiedTime: file.modifiedTime,
+        };
+      });
     }
 
     return [];

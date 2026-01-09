@@ -90,7 +90,8 @@ export default function DiarioObra({ clienteId, contratoId, oportunidadeId }: Di
         semana: group.folder.toUpperCase(),
         fotos: group.files.map((file: any) => ({
           id: file.id,
-          url: file.thumbnailLink || file.webContentLink || file.webViewLink,
+          // Priorizar directImageUrl (URL pública) > thumbnailLink > webContentLink
+          url: file.directImageUrl || file.thumbnailLink || file.webContentLink || file.webViewLink,
           nome: file.name,
           data: file.createdTime || new Date().toISOString(),
           semana: group.folder.toUpperCase(),
