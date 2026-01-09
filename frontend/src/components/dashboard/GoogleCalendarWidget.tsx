@@ -35,6 +35,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import NovoEventoModal from './NovoEventoModal';
+import { getCalendarSAStatus, getCalendarSAEvents } from '@/lib/apiSecure';
 
 // Interface para eventos
 interface GoogleCalendarEvent {
@@ -89,11 +90,13 @@ export default function GoogleCalendarWidget() {
   useEffect(() => {
     async function verificarStatus() {
       try {
-        const res = await fetch('/api/calendar/status');
-        const data = await res.json();
+        const data = await getCalendarSAStatus();
         setConectado(data.configured);
         if (data.configured) {
           carregarEventos();
+        }
+        if (data.error) {
+          console.warn('[GoogleCalendarWidget] Status warning:', data.error);
         }
       } catch (error) {
         console.error('[GoogleCalendarWidget] Erro ao verificar status:', error);
@@ -132,19 +135,16 @@ export default function GoogleCalendarWidget() {
       const inicioMes = startOfMonth(mesAtual);
       const fimMes = endOfMonth(mesAtual);
 
-      const params = new URLSearchParams({
+      const data = await getCalendarSAEvents({
         timeMin: inicioMes.toISOString(),
         timeMax: fimMes.toISOString(),
-        maxResults: '100',
+        maxResults: 100,
       });
-
-      const res = await fetch(`/api/calendar/sa/events?${params}`);
-      const data = await res.json();
 
       if (data.events) {
         setEventos(data.events);
       } else if (data.error) {
-        throw new Error(data.message || data.error);
+        throw new Error(data.error);
       }
     } catch (error: any) {
       console.error('[GoogleCalendarWidget] Erro ao carregar eventos:', error);

@@ -259,6 +259,147 @@ export async function buscarPastaDrive(
   return data.found ? data.folder : null;
 }
 
+// ============================================================
+// CALENDAR SERVICE ACCOUNT (SA) - Para uso sem login do usuário
+// ============================================================
+
+/**
+ * Verifica se Service Account do Calendar está configurada
+ */
+export async function getCalendarSAStatus(): Promise<{ configured: boolean; calendarId?: string; error?: string }> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/calendar/status`, {
+      method: "GET",
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      return { configured: false, error: `HTTP ${response.status}` };
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error("[apiSecure] Erro ao verificar status do calendar:", error);
+    return { configured: false, error: error.message };
+  }
+}
+
+/**
+ * Busca eventos do Calendar via Service Account
+ */
+export async function getCalendarSAEvents(options?: {
+  timeMin?: string;
+  timeMax?: string;
+  maxResults?: number;
+}): Promise<{ events?: any[]; error?: string }> {
+  try {
+    const params = new URLSearchParams();
+    if (options?.timeMin) params.append("timeMin", options.timeMin);
+    if (options?.timeMax) params.append("timeMax", options.timeMax);
+    if (options?.maxResults) params.append("maxResults", String(options.maxResults));
+
+    const response = await fetch(`${BACKEND_URL}/api/calendar/sa/events?${params}`, {
+      method: "GET",
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+      return { error: error.error || `HTTP ${response.status}` };
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error("[apiSecure] Erro ao buscar eventos:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * Cria evento no Calendar via Service Account
+ */
+export async function createCalendarSAEvent(event: {
+  summary: string;
+  description?: string;
+  location?: string;
+  start: { dateTime?: string; date?: string; timeZone?: string };
+  end: { dateTime?: string; date?: string; timeZone?: string };
+  colorId?: string;
+}): Promise<{ event?: any; error?: string }> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/calendar/sa/events`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(event),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+      return { error: error.error || `HTTP ${response.status}` };
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error("[apiSecure] Erro ao criar evento:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * Atualiza evento no Calendar via Service Account
+ */
+export async function updateCalendarSAEvent(
+  eventId: string,
+  event: {
+    summary?: string;
+    description?: string;
+    location?: string;
+    start?: { dateTime?: string; date?: string; timeZone?: string };
+    end?: { dateTime?: string; date?: string; timeZone?: string };
+    colorId?: string;
+  }
+): Promise<{ event?: any; error?: string }> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/calendar/sa/events/${eventId}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(event),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+      return { error: error.error || `HTTP ${response.status}` };
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error("[apiSecure] Erro ao atualizar evento:", error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * Deleta evento no Calendar via Service Account
+ */
+export async function deleteCalendarSAEvent(eventId: string): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/calendar/sa/events/${eventId}`, {
+      method: "DELETE",
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+      return { error: error.error || `HTTP ${response.status}` };
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error("[apiSecure] Erro ao deletar evento:", error);
+    return { error: error.message };
+  }
+}
+
 export default {
   isBackendConfigured,
   openaiChat,
@@ -268,4 +409,10 @@ export default {
   getCalendarEvents,
   criarPastaCliente,
   buscarPastaDrive,
+  // Calendar Service Account
+  getCalendarSAStatus,
+  getCalendarSAEvents,
+  createCalendarSAEvent,
+  updateCalendarSAEvent,
+  deleteCalendarSAEvent,
 };
