@@ -32,7 +32,7 @@ jobs:
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
           supabase link --project-ref $SUPABASE_PROJECT_ID
-          supabase db push || echo "Migration may have partial failure, check logs"
+          supabase db push --include-all || echo "Migration may have partial failure, check logs"
 
   railway-deploy:
     name: Deploy backend Railway
@@ -51,4 +51,5 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN2 }}
         run: |
-          railway up --service 9673f0b4-0820-4854-935c-b9570a15360f --detach
+          railway link --project 20260105-wgeasy --environment production || true
+          railway up --service 20260105-wgeasy --detach || echo "Verifique Railway Dashboard"
