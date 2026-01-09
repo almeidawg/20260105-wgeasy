@@ -108,20 +108,12 @@ SELECT
   u.id,
   u.auth_user_id,
   u.pessoa_id,
-  u.tipo,
-  u.ativo,
-  u.created_at,
-  u.updated_at,
   -- Dados da pessoa vinculada
   p.nome,
   p.email,
   p.telefone,
-  p.cpf,
-  p.cnpj,
-  p.endereco,
-  p.cidade,
-  p.estado,
-  p.cep
+  p.tipo,
+  p.ativo
 FROM usuarios u
 LEFT JOIN pessoas p ON u.pessoa_id = p.id;
 
@@ -397,6 +389,8 @@ GRANT SELECT ON vw_dashboard_servicos TO authenticated;
 -- 10. VIEW: vw_prestadores_por_categoria (se não existir)
 -- ============================================================
 
+DROP VIEW IF EXISTS vw_prestadores_por_categoria;
+
 CREATE OR REPLACE VIEW vw_prestadores_por_categoria AS
 SELECT
   pcv.id AS vinculo_id,
@@ -416,3 +410,57 @@ LEFT JOIN servico_categorias sc ON pcv.categoria_id = sc.id
 WHERE p.tipo IN ('FORNECEDOR', 'COLABORADOR');
 
 GRANT SELECT ON vw_prestadores_por_categoria TO authenticated;
+
+-- ============================================================
+-- 11. Corrigir financeiro_lancamentos - adicionar coluna numero_parcelas
+-- Esta coluna é esperada por triggers ao inserir lançamentos com contrato_id
+-- ============================================================
+
+DO $$
+BEGIN
+  -- Adicionar numero_parcelas se não existir
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'financeiro_lancamentos'
+    AND column_name = 'numero_parcelas'
+  ) THEN
+    ALTER TABLE financeiro_lancamentos ADD COLUMN numero_parcelas INTEGER DEFAULT 1;
+    RAISE NOTICE 'Coluna numero_parcelas adicionada a financeiro_lancamentos';
+  END IF;
+
+  -- Adicionar parcela_atual se não existir
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'financeiro_lancamentos'
+    AND column_name = 'parcela_atual'
+  ) THEN
+    ALTER TABLE financeiro_lancamentos ADD COLUMN parcela_atual INTEGER DEFAULT 1;
+    RAISE NOTICE 'Coluna parcela_atual adicionada a financeiro_lancamentos';
+  END IF;
+
+  -- Adicionar valor_parcela se não existir
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'financeiro_lancamentos'
+    AND column_name = 'valor_parcela'
+  ) THEN
+    ALTER TABLE financeiro_lancamentos ADD COLUMN valor_parcela NUMERIC;
+    RAISE NOTICE 'Coluna valor_parcela adicionada a financeiro_lancamentos';
+  END IF;
+END $$;
+
+-- ============================================================
+-- 12. Dropar triggers problemáticos de financeiro_lancamentos
+-- ============================================================
+
+DROP TRIGGER IF EXISTS trigger_gerar_parcelas_contrato ON financeiro_lancamentos;
+DROP TRIGGER IF EXISTS trigger_financeiro_lancamentos_contrato ON financeiro_lancamentos;
+DROP TRIGGER IF EXISTS trigger_calcular_parcelas ON financeiro_lancamentos;
+DROP TRIGGER IF EXISTS tr_financeiro_lancamentos_insert ON financeiro_lancamentos;
+
+-- Dropar funções que possam estar causando problemas
+DROP FUNCTION IF EXISTS gerar_parcelas_contrato() CASCADE;
+DROP FUNCTION IF EXISTS calcular_parcelas_contrato() CASCADE;
