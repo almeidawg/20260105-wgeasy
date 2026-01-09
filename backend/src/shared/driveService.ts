@@ -4,7 +4,7 @@
 // ============================================================
 
 import { google, drive_v3 } from 'googleapis';
-import { createServiceAccountClient } from './googleAuth';
+import { createServiceAccountClientForService } from './googleAuth';
 
 // Configuração do OAuth2 (mesmas credenciais do Calendar)
 const oauth2Client = new google.auth.OAuth2(
@@ -35,7 +35,9 @@ async function resolveDriveAuth(
     return oauth2Client;
   }
 
-  const serviceAccount = createServiceAccountClient(DRIVE_SCOPES);
+  // Usa chave específica do Drive (GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY)
+  // Se não existir, cai para a chave padrão (GOOGLE_SERVICE_ACCOUNT_KEY)
+  const serviceAccount = createServiceAccountClientForService(DRIVE_SCOPES, 'drive');
   if (serviceAccount) {
     await serviceAccount.authorize();
     return serviceAccount;

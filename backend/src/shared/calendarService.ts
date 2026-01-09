@@ -5,7 +5,7 @@
 
 import { google, calendar_v3 } from 'googleapis';
 import {
-  createServiceAccountClient,
+  createServiceAccountClientForService,
 } from './googleAuth';
 
 // Configuração do OAuth2
@@ -115,7 +115,9 @@ async function resolveCalendarAuth(
     return oauth2Client;
   }
 
-  const serviceAccount = createServiceAccountClient(CALENDAR_SCOPES);
+  // Usa chave específica do Calendar (GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY)
+  // Se não existir, cai para a chave padrão (GOOGLE_SERVICE_ACCOUNT_KEY)
+  const serviceAccount = createServiceAccountClientForService(CALENDAR_SCOPES, 'calendar');
   if (serviceAccount) {
     await serviceAccount.authorize();
     return serviceAccount;
@@ -297,19 +299,19 @@ export async function quickAdd(
 
 /**
  * Cria cliente Calendar com Service Account + Domain-wide Delegation
+ * Usa chave específica do Calendar (GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY)
  */
 function createCalendarServiceAccountClient() {
   if (!CALENDAR_USER_EMAIL) {
     return null;
   }
 
-  const auth = createServiceAccountClient(CALENDAR_SCOPES);
+  // Usa chave específica do Calendar, com fallback para a chave padrão
+  const auth = createServiceAccountClientForService(CALENDAR_SCOPES, 'calendar', CALENDAR_USER_EMAIL);
   if (!auth) {
     return null;
   }
 
-  // Definir o subject (usuário a impersonar)
-  auth.subject = CALENDAR_USER_EMAIL;
   return auth;
 }
 
