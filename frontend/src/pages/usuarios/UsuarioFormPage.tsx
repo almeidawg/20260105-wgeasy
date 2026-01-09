@@ -51,12 +51,12 @@ export default function UsuarioFormPage() {
 
   // Permissões do cliente
   const [permissoes, setPermissoes] = useState<PermissoesCliente>({
-    cliente_pode_ver_valores: false,
+    cliente_pode_ver_valores: true,
     cliente_pode_ver_cronograma: true,
     cliente_pode_ver_documentos: true,
     cliente_pode_ver_proposta: true,
     cliente_pode_ver_contratos: true,
-    cliente_pode_fazer_upload: false,
+    cliente_pode_fazer_upload: true,
     cliente_pode_comentar: true,
   });
 
