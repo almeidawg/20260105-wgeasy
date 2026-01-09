@@ -36,10 +36,12 @@ import {
   buscarContratosPorClienteNucleo,
   buscarContratosPorNucleo,
   obterCategorias,
+  listarEmpresasGrupo,
   type LancamentoFinanceiro,
   type TipoLancamento,
   type StatusLancamento,
   type CategoriaFinanceira,
+  type EmpresaGrupo,
 } from "@/lib/financeiroApi";
 
 
@@ -90,6 +92,7 @@ export default function LancamentosPage() {
   const [pessoas, setPessoas] = useState<any[]>([]);
   const [projetos, setProjetos] = useState<any[]>([]);
   const [contratos, setContratos] = useState<any[]>([]);
+  const [empresasGrupo, setEmpresasGrupo] = useState<EmpresaGrupo[]>([]);
   const [nucleosDisponiveis, setNucleosDisponiveis] = useState<UnidadeNegocio[]>([]);
   const [contratosFiltrados, setContratosFiltrados] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<CategoriaFinanceira[]>([]);
@@ -120,7 +123,7 @@ export default function LancamentosPage() {
   // Estados para edição inline de selects (pessoa, contrato, categoria, cliente_centro_custo)
   const [editingSelectField, setEditingSelectField] = useState<{id: string; field: 'pessoa_id' | 'contrato_id' | 'categoria_id' | 'centro_custo'} | null>(null);
   // Tipo de centro de custo na edição inline
-  const [editingCentroCustoTipo, setEditingCentroCustoTipo] = useState<"contrato" | "cliente">("contrato");
+  const [editingCentroCustoTipo, setEditingCentroCustoTipo] = useState<"contrato" | "cliente" | "empresa">("contrato");
 
   // Estados debounced para campos de texto (evita busca a cada letra)
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -164,8 +167,8 @@ export default function LancamentosPage() {
     conta_tipo: "R" as "R" | "V",
   });
 
-  // Tipo de Centro de Custo: 'contrato' ou 'cliente'
-  const [tipoCentroCusto, setTipoCentroCusto] = useState<"contrato" | "cliente">("contrato");
+  // Tipo de Centro de Custo: 'contrato', 'cliente' ou 'empresa' (empresas do grupo)
+  const [tipoCentroCusto, setTipoCentroCusto] = useState<"contrato" | "cliente" | "empresa">("contrato");
 
   // Estado para busca de favorecido no formulário
   const [buscaFavorecido, setBuscaFavorecido] = useState("");
@@ -232,14 +235,16 @@ export default function LancamentosPage() {
     async function carregar() {
       setLoading(true);
       try {
-        const [lancs, pess, projs, conts, allCats] = await Promise.all([
+        const [lancs, pess, projs, conts, allCats, empresas] = await Promise.all([
           listarFinanceiro(),
           listarPessoas(),
           listarProjetos(),
           listarContratos(),
           obterCategorias(), // Todas as categorias para exibição
+          listarEmpresasGrupo(), // Empresas do grupo para centro de custo
         ]);
         setTodasCategorias(allCats);
+        setEmpresasGrupo(empresas);
 
         let filtrados = lancs;
 
@@ -630,7 +635,7 @@ export default function LancamentosPage() {
     try {
       const payload: any = {};
 
-      // Tratamento especial para centro_custo (pode ser contrato ou cliente)
+      // Tratamento especial para centro_custo (pode ser contrato, cliente ou empresa do grupo)
       if (field === 'centro_custo') {
         if (editingCentroCustoTipo === 'contrato') {
           payload.contrato_id = value || null;
@@ -642,6 +647,11 @@ export default function LancamentosPage() {
               payload.nucleo = contratoSelecionado.unidade_negocio;
             }
           }
+        } else if (editingCentroCustoTipo === 'empresa') {
+          // Empresa do grupo - o ID já é o ID da pessoa correspondente
+          payload.cliente_centro_custo_id = value || null;
+          payload.contrato_id = null; // Limpa o outro
+          payload.nucleo = 'grupo'; // Marca como empresa do grupo
         } else {
           payload.cliente_centro_custo_id = value || null;
           payload.contrato_id = null; // Limpa o outro
@@ -1317,7 +1327,7 @@ _Sistema WG Easy - Grupo WG Almeida_
                         <td className="px-2 py-1.5">
                           {editingSelectField?.id === l.id && editingSelectField?.field === 'centro_custo' ? (
                             <div className="space-y-1 max-w-[160px]">
-                              {/* Toggle Contrato/Cliente */}
+                              {/* Toggle Contrato/Cliente/Empresa */}
                               <div className="flex gap-1">
                                 <button
                                   type="button"
@@ -1341,6 +1351,17 @@ _Sistema WG Easy - Grupo WG Almeida_
                                 >
                                   Cliente
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingCentroCustoTipo("empresa")}
+                                  className={`flex-1 py-0.5 px-1 text-[9px] font-medium rounded border ${
+                                    editingCentroCustoTipo === "empresa"
+                                      ? "bg-green-100 border-green-300 text-green-700"
+                                      : "bg-gray-50 border-gray-200 text-gray-500"
+                                  }`}
+                                >
+                                  Empresa
+                                </button>
                               </div>
                               {/* Select baseado no tipo */}
                               {editingCentroCustoTipo === "contrato" ? (
@@ -1358,7 +1379,7 @@ _Sistema WG Easy - Grupo WG Almeida_
                                     </option>
                                   ))}
                                 </select>
-                              ) : (
+                              ) : editingCentroCustoTipo === "cliente" ? (
                                 <select
                                   autoFocus
                                   value={l.cliente_centro_custo_id || ''}
@@ -1370,6 +1391,21 @@ _Sistema WG Easy - Grupo WG Almeida_
                                   {pessoasClientes.map((c) => (
                                     <option key={c.id} value={c.id}>
                                       {c.nome}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <select
+                                  autoFocus
+                                  value={l.cliente_centro_custo_id || ''}
+                                  onChange={(e) => salvarSelectInline(l.id!, 'centro_custo', e.target.value)}
+                                  className="w-full px-1 py-0.5 text-[10px] border border-green-300 rounded bg-green-50 focus:outline-none"
+                                  title="Selecionar empresa do grupo"
+                                >
+                                  <option value="">Selecione empresa</option>
+                                  {empresasGrupo.map((emp) => (
+                                    <option key={emp.id} value={emp.id}>
+                                      {emp.nome_fantasia || emp.razao_social}
                                     </option>
                                   ))}
                                 </select>

@@ -32,7 +32,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://ahlqzzkxuutwoepirpzr.supabase.co
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_BACKEND_URL: https://wgeasy-production.up.railway.app
+          VITE_BACKEND_URL: https://20260105-wgeasy-production.up.railway.app
           VITE_INTERNAL_API_KEY: ${{ secrets.VITE_INTERNAL_API_KEY }}
           VITE_USE_BACKEND_PROXY: true
           VITE_AI_PROVIDER: openai

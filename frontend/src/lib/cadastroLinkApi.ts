@@ -589,76 +589,62 @@ export async function marcarTodasNotificacoesComoLidas(): Promise<void> {
  * Gera mensagem completa para Especificador Master com tabelas de comissionamento
  */
 function gerarMensagemEspecificadorMaster(urlProd: string): string {
-  return `Olá! 👋
+  return `👋 Olá!
 
-Você foi convidado(a) a se cadastrar como *Especificador* no *WGEasy*, a plataforma oficial de gestão do Grupo WG Almeida.
+Você foi convidado(a) a se cadastrar como *Especificador* no *WGEasy*, a plataforma oficial do Grupo WG Almeida.
 
-Para dar continuidade, basta acessar o link abaixo e preencher seu cadastro:
-👉 ${urlProd}
+📋 Acesse o link e preencha seu cadastro:
+${urlProd}
 
-⚠️ *Importante:* este link é pessoal e tem validade de 7 dias.
-Após o envio, seu cadastro passará por análise e, sendo aprovado, você receberá as credenciais de acesso.
+⚠️ *Importante:* Link pessoal com validade de 7 dias.
 
-🔐 *Cadastro, Token e Vínculo (Especificador Master)*
+━━━━━━━━━━━━━━━━━━━━
 
-Ao se cadastrar como Especificador Master, o sistema gera automaticamente um token exclusivo para o seu perfil.
+🔑 *Como funciona o Especificador Master*
 
-Na prática funciona assim:
+Ao se cadastrar, o sistema gera um token exclusivo:
 
-✅ Após aprovação, você recebe um link exclusivo de indicação
-🔗 Esse link pode ser compartilhado para cadastrar novos especificadores
-🧩 Todo cadastro feito por esse link fica automaticamente vinculado a você
-🏷️ Esses cadastros são identificados como:
-"(Nome do Especificador) – Master"
+✅ Após aprovação, você recebe um link de indicação
+✅ Compartilhe para cadastrar novos especificadores
+✅ Todo cadastro fica vinculado a você automaticamente
 
-O WGEasy registra e controla todos os vínculos, garantindo rastreabilidade, segurança, transparência e comissionamento correto.
-Aqui, todo trabalho é reconhecido, seja na indicação direta de clientes ou na formação de uma rede de especificadores.
+O WGEasy garante rastreabilidade, segurança e comissionamento correto.
 
-💰 *COMISSIONAMENTOS – VISÃO GERAL*
+━━━━━━━━━━━━━━━━━━━━
 
-*1️⃣ ESPECIFICADOR MASTER → CLIENTE DIRETO (COMISSÃO FULL)*
+💰 *TABELA DE COMISSIONAMENTOS*
 
-┌────┬──────────────────────┬───────┐
-│Cota│Valor da Venda        │Master │
-├────┼──────────────────────┼───────┤
-│1   │R$0–R$40.000          │3,50%  │
-│2   │R$40.000–R$100.000    │4,00%  │
-│3   │R$100.000–R$160.000   │5,20%  │
-│4   │R$160.000–R$200.000   │5,80%  │
-│5   │R$200.000–R$300.000   │6,40%  │
-│6   │>R$300.000            │7,10%  │
-└────┴──────────────────────┴───────┘
+🟠 *MASTER - Cliente Direto*
+até R$ 40 mil      → 4,0%
+R$ 40 - 100 mil    → 4,7%
+R$ 100 - 160 mil   → 5,8%
+R$ 160 - 200 mil   → 6,7%
+R$ 200 - 300 mil   → 7,8%
+R$ 300 - 500 mil   → 8,2%
+acima R$ 500 mil   → 10,0%
 
-👉 Cliente direto do Master → 100% da comissão
+🔵 *MASTER - Participação*
+até R$ 40 mil      → 1,2%
+R$ 40 - 100 mil    → 1,5%
+R$ 100 - 160 mil   → 1,9%
+R$ 160 - 200 mil   → 2,3%
+R$ 200 - 300 mil   → 2,8%
+R$ 300 - 500 mil   → 3,2%
+acima R$ 500 mil   → 3,8%
 
-*2️⃣ ESPECIFICADOR MASTER → PARTICIPAÇÃO*
-*(VENDA DE ESPECIFICADOR INDICADO)*
+🟢 *ESPECIFICADOR - Comissão*
+até R$ 40 mil      → 2,8%
+R$ 40 - 100 mil    → 3,2%
+R$ 100 - 160 mil   → 3,9%
+R$ 160 - 200 mil   → 4,5%
+R$ 200 - 300 mil   → 5,0%
+R$ 300 - 500 mil   → 5,6%
+acima R$ 500 mil   → 6,2%
 
-┌────┬──────────────────────┬───────┐
-│Cota│Valor da Venda        │Master │
-├────┼──────────────────────┼───────┤
-│1   │R$0–R$40.000          │1,50%  │
-│2   │R$40.000–R$100.000    │1,80%  │
-│3   │R$100.000–R$160.000   │2,00%  │
-│4   │R$160.000–R$200.000   │2,20%  │
-│5   │R$200.000–R$300.000   │2,40%  │
-│6   │>R$300.000            │2,80%  │
-└────┴──────────────────────┴───────┘
+━━━━━━━━━━━━━━━━━━━━
 
-👉 Participação do Master pelo vínculo e indicação
-
-*3️⃣ ESPECIFICADOR INDICADO → COMISSÃO DA VENDA*
-
-┌────┬──────────────────────┬────────┐
-│Cota│Valor da Venda        │Espec.  │
-├────┼──────────────────────┼────────┤
-│1   │R$0–R$40.000          │3,00%   │
-│2   │R$40.000–R$100.000    │3,50%   │
-│3   │R$100.000–R$160.000   │4,00%   │
-│4   │R$160.000–R$200.000   │4,60%   │
-│5   │R$200.000–R$300.000   │5,00%   │
-│6   │>R$300.000            │6,00%   │
-└────┴──────────────────────┴────────┘`;
+🏢 *Grupo WG Almeida*
+Designer • Arquitetura • Marcenaria • Reformas`;
 }
 
 /**

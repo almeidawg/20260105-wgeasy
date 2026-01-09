@@ -5,7 +5,9 @@ export type PessoaTipo =
   | "CLIENTE"
   | "COLABORADOR"
   | "FORNECEDOR"
-  | "ESPECIFICADOR";
+  | "ESPECIFICADOR"
+  | "PRESTADOR"
+  | "EMPRESA_GRUPO";  // Empresas do grupo WG (para centro de custo e lançamentos virtuais)
 
 // Status da pessoa (para filtrar concluídos das buscas)
 export type PessoaStatus = "ativo" | "concluido" | "inativo" | "suspenso";

@@ -506,33 +506,33 @@ export default function CadastroPublicoPage() {
             </div>
 
             {/* Form otimizado para mobile */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
 
               {/* Dados Pessoais */}
               <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2 pt-4 px-4">
+                <CardHeader className="pb-3 pt-4 px-4">
                   <CardTitle className="text-base flex items-center gap-2">
                     <User className="w-4 h-4" style={{ color: WG_COLORS.laranja }} />
                     Dados Pessoais
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 px-4 pb-4">
+                <CardContent className="space-y-4 px-4 pb-5">
                   {/* Nome */}
                   <div>
-                    <Label htmlFor="nome" className="text-xs">Nome Completo *</Label>
+                    <Label htmlFor="nome" className="text-xs font-medium">Nome Completo *</Label>
                     <Input
                       id="nome"
                       value={formData.nome}
                       onChange={(e) => handleChange("nome", e.target.value)}
                       placeholder="Seu nome completo"
-                      className="h-11"
+                      className="h-12 text-base"
                       required
                     />
                   </div>
 
                   {/* Email */}
                   <div>
-                    <Label htmlFor="email" className="text-xs">Email *</Label>
+                    <Label htmlFor="email" className="text-xs font-medium">Email *</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -541,7 +541,7 @@ export default function CadastroPublicoPage() {
                         value={formData.email}
                         onChange={(e) => handleChange("email", e.target.value)}
                         placeholder="seu@email.com"
-                        className="pl-10 h-11"
+                        className="pl-10 h-12 text-base"
                         required
                       />
                     </div>
@@ -549,21 +549,21 @@ export default function CadastroPublicoPage() {
 
                   {/* Telefone - Com seleção de país */}
                   <div>
-                    <Label htmlFor="telefone" className="text-xs">WhatsApp</Label>
+                    <Label htmlFor="telefone" className="text-xs font-medium">WhatsApp</Label>
                     <PhoneInputInternacional
                       value={formData.telefone}
                       onChange={(value) => setFormData((prev) => ({ ...prev, telefone: value || "" }))}
                       placeholder="Telefone com DDD"
                       defaultCountry="BR"
-                      className="h-11"
+                      className="h-12 text-base"
                     />
                   </div>
 
                   {/* CPF/CNPJ com busca automática */}
                   <div>
-                    <Label htmlFor="cpf_cnpj" className="text-xs">
+                    <Label htmlFor="cpf_cnpj" className="text-xs font-medium">
                       CPF ou CNPJ
-                      {buscandoCnpj && <span className="ml-2 text-orange-500">(Buscando...)</span>}
+                      {buscandoCnpj && <span className="ml-2 text-orange-500 font-normal">(Buscando...)</span>}
                     </Label>
                     <div className="relative">
                       <Input
@@ -571,7 +571,7 @@ export default function CadastroPublicoPage() {
                         value={formData.cpf_cnpj}
                         onChange={(e) => handleChange("cpf_cnpj", e.target.value)}
                         placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                        className="h-11 pr-10"
+                        className="h-12 text-base pr-10"
                         maxLength={18}
                         inputMode="numeric"
                       />
@@ -579,8 +579,8 @@ export default function CadastroPublicoPage() {
                         <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-orange-500" />
                       )}
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">
-                      💡 CNPJ preenche empresa automaticamente
+                    <p className="text-[11px] text-gray-400 mt-1.5">
+                      CNPJ preenche empresa automaticamente
                     </p>
                   </div>
                 </CardContent>
@@ -588,16 +588,16 @@ export default function CadastroPublicoPage() {
 
               {/* Dados Profissionais */}
               <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2 pt-4 px-4">
+                <CardHeader className="pb-3 pt-4 px-4">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Briefcase className="w-4 h-4" style={{ color: WG_COLORS.engenharia }} />
                     Profissional
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 px-4 pb-4">
+                <CardContent className="space-y-4 px-4 pb-5">
                   {/* Empresa */}
                   <div>
-                    <Label htmlFor="empresa" className="text-xs">Empresa</Label>
+                    <Label htmlFor="empresa" className="text-xs font-medium">Empresa</Label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -605,20 +605,20 @@ export default function CadastroPublicoPage() {
                         value={formData.empresa}
                         onChange={(e) => handleChange("empresa", e.target.value)}
                         placeholder="Nome da empresa"
-                        className="pl-10 h-11"
+                        className="pl-10 h-12 text-base"
                       />
                     </div>
                   </div>
 
                   {/* Cargo */}
                   <div>
-                    <Label htmlFor="cargo" className="text-xs">Cargo/Função</Label>
+                    <Label htmlFor="cargo" className="text-xs font-medium">Cargo/Função</Label>
                     <Input
                       id="cargo"
                       value={formData.cargo}
                       onChange={(e) => handleChange("cargo", e.target.value)}
                       placeholder="Seu cargo"
-                      className="h-11"
+                      className="h-12 text-base"
                     />
                   </div>
                 </CardContent>
@@ -626,18 +626,18 @@ export default function CadastroPublicoPage() {
 
               {/* Endereço com busca de CEP */}
               <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2 pt-4 px-4">
+                <CardHeader className="pb-3 pt-4 px-4">
                   <CardTitle className="text-base flex items-center gap-2">
                     <MapPin className="w-4 h-4" style={{ color: WG_COLORS.arquitetura }} />
                     Endereço
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 px-4 pb-4">
+                <CardContent className="space-y-4 px-4 pb-5">
                   {/* CEP com busca automática */}
                   <div>
-                    <Label htmlFor="cep" className="text-xs">
+                    <Label htmlFor="cep" className="text-xs font-medium">
                       CEP
-                      {buscandoCep && <span className="ml-2 text-orange-500">(Buscando...)</span>}
+                      {buscandoCep && <span className="ml-2 text-orange-500 font-normal">(Buscando...)</span>}
                     </Label>
                     <div className="relative">
                       <Input
@@ -645,7 +645,7 @@ export default function CadastroPublicoPage() {
                         value={formData.cep}
                         onChange={(e) => handleChange("cep", e.target.value)}
                         placeholder="00000-000"
-                        className="h-11 pr-10"
+                        className="h-12 text-base pr-10"
                         maxLength={9}
                         inputMode="numeric"
                       />
@@ -653,71 +653,71 @@ export default function CadastroPublicoPage() {
                         <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-orange-500" />
                       )}
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">
-                      💡 CEP preenche endereço automaticamente
+                    <p className="text-[11px] text-gray-400 mt-1.5">
+                      CEP preenche endereço automaticamente
                     </p>
                   </div>
 
                   {/* Endereço (Rua) */}
                   <div>
-                    <Label htmlFor="endereco" className="text-xs">Rua/Logradouro</Label>
+                    <Label htmlFor="endereco" className="text-xs font-medium">Rua/Logradouro</Label>
                     <Input
                       id="endereco"
                       value={formData.endereco}
                       onChange={(e) => handleChange("endereco", e.target.value)}
                       placeholder="Nome da rua, avenida..."
-                      className="h-11"
+                      className="h-12 text-base"
                     />
                   </div>
 
-                  {/* Número e Complemento em linha */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Número e Complemento em linha - empilha em mobile pequeno */}
+                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="numero" className="text-xs">Número</Label>
+                      <Label htmlFor="numero" className="text-xs font-medium">Número</Label>
                       <Input
                         id="numero"
                         value={formData.numero}
                         onChange={(e) => handleChange("numero", e.target.value)}
                         placeholder="Nº"
-                        className="h-11"
+                        className="h-12 text-base"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="complemento" className="text-xs">Complemento</Label>
+                      <Label htmlFor="complemento" className="text-xs font-medium">Complemento</Label>
                       <Input
                         id="complemento"
                         value={formData.complemento}
                         onChange={(e) => handleChange("complemento", e.target.value)}
                         placeholder="Apto, Sala, Bloco..."
-                        className="h-11"
+                        className="h-12 text-base"
                       />
                     </div>
                   </div>
 
-                  {/* Cidade e Estado em linha */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Cidade e Estado em linha - empilha em mobile pequeno */}
+                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="cidade" className="text-xs">Cidade</Label>
+                      <Label htmlFor="cidade" className="text-xs font-medium">Cidade</Label>
                       <Input
                         id="cidade"
                         value={formData.cidade}
                         onChange={(e) => handleChange("cidade", e.target.value)}
                         placeholder="Cidade"
-                        className="h-11"
+                        className="h-12 text-base"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="estado" className="text-xs">Estado</Label>
+                      <Label htmlFor="estado" className="text-xs font-medium">Estado</Label>
                       <Select
                         value={formData.estado}
                         onValueChange={(value) => handleChange("estado", value)}
                       >
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="UF" />
+                        <SelectTrigger className="h-12 text-base">
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-[300px]">
                           {ESTADOS.map((estado) => (
-                            <SelectItem key={estado.uf} value={estado.uf}>
+                            <SelectItem key={estado.uf} value={estado.uf} className="text-base py-3">
                               {estado.uf} - {estado.nome}
                             </SelectItem>
                           ))}
@@ -731,75 +731,75 @@ export default function CadastroPublicoPage() {
               {/* Dados Bancários - Para COLABORADOR, FORNECEDOR e ESPECIFICADOR (não para CLIENTE) */}
               {cadastro?.tipo_solicitado !== "CLIENTE" && (
                 <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2 pt-4 px-4">
+                  <CardHeader className="pb-3 pt-4 px-4">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Landmark className="w-4 h-4" style={{ color: WG_COLORS.engenharia }} />
                       Dados Bancários
                     </CardTitle>
-                    <CardDescription className="text-xs">
+                    <CardDescription className="text-xs mt-1">
                       Para recebimento de pagamentos
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3 px-4 pb-4">
+                  <CardContent className="space-y-4 px-4 pb-5">
                     {/* Banco */}
                     <div>
-                      <Label htmlFor="banco" className="text-xs">Banco</Label>
+                      <Label htmlFor="banco" className="text-xs font-medium">Banco</Label>
                       <Input
                         id="banco"
                         value={formData.banco}
                         onChange={(e) => handleChange("banco", e.target.value)}
                         placeholder="Ex: Bradesco, Itaú, Nubank..."
-                        className="h-11"
+                        className="h-12 text-base"
                       />
                     </div>
 
-                    {/* Agência e Conta em linha */}
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Agência e Conta em linha - empilha em mobile pequeno */}
+                    <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
                       <div>
-                        <Label htmlFor="agencia" className="text-xs">Agência</Label>
+                        <Label htmlFor="agencia" className="text-xs font-medium">Agência</Label>
                         <Input
                           id="agencia"
                           value={formData.agencia}
                           onChange={(e) => handleChange("agencia", e.target.value)}
                           placeholder="0000"
-                          className="h-11"
+                          className="h-12 text-base"
                           inputMode="numeric"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="conta" className="text-xs">Conta</Label>
+                        <Label htmlFor="conta" className="text-xs font-medium">Conta</Label>
                         <Input
                           id="conta"
                           value={formData.conta}
                           onChange={(e) => handleChange("conta", e.target.value)}
                           placeholder="00000-0"
-                          className="h-11"
+                          className="h-12 text-base"
                         />
                       </div>
                     </div>
 
                     {/* Tipo de Conta */}
                     <div>
-                      <Label htmlFor="tipo_conta" className="text-xs">Tipo de Conta</Label>
+                      <Label htmlFor="tipo_conta" className="text-xs font-medium">Tipo de Conta</Label>
                       <Select
                         value={formData.tipo_conta}
                         onValueChange={(value) => handleChange("tipo_conta", value)}
                       >
-                        <SelectTrigger className="h-11">
+                        <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="corrente">Conta Corrente</SelectItem>
-                          <SelectItem value="poupanca">Conta Poupança</SelectItem>
-                          <SelectItem value="salario">Conta Salário</SelectItem>
-                          <SelectItem value="pagamento">Conta Pagamento</SelectItem>
+                          <SelectItem value="corrente" className="text-base py-3">Conta Corrente</SelectItem>
+                          <SelectItem value="poupanca" className="text-base py-3">Conta Poupança</SelectItem>
+                          <SelectItem value="salario" className="text-base py-3">Conta Salário</SelectItem>
+                          <SelectItem value="pagamento" className="text-base py-3">Conta Pagamento</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     {/* PIX */}
                     <div>
-                      <Label htmlFor="pix" className="text-xs flex items-center gap-1">
+                      <Label htmlFor="pix" className="text-xs font-medium flex items-center gap-1">
                         <QrCode className="w-3 h-3" />
                         Chave PIX
                       </Label>
@@ -808,38 +808,38 @@ export default function CadastroPublicoPage() {
                         value={formData.pix}
                         onChange={(e) => handleChange("pix", e.target.value)}
                         placeholder="CPF, CNPJ, email, telefone ou chave aleatória"
-                        className="h-11"
+                        className="h-12 text-base"
                       />
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Observações (colapsável) */}
+              {/* Observações */}
               <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2 pt-4 px-4">
+                <CardHeader className="pb-3 pt-4 px-4">
                   <CardTitle className="text-base flex items-center gap-2">
                     <FileText className="w-4 h-4" style={{ color: WG_COLORS.cinza }} />
                     Observações
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4">
+                <CardContent className="px-4 pb-5">
                   <Textarea
                     value={formData.observacoes}
                     onChange={(e) => handleChange("observacoes", e.target.value)}
                     placeholder="Alguma informação adicional..."
                     rows={3}
-                    className="resize-none"
+                    className="resize-none text-base min-h-[100px]"
                   />
                 </CardContent>
               </Card>
 
-              {/* Botão Enviar - fixo no mobile */}
-              <div className="sticky bottom-0 bg-white pt-3 pb-2 -mx-4 px-4 border-t">
+              {/* Botão Enviar - fixo no mobile com safe area */}
+              <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm pt-4 pb-safe-bottom -mx-4 px-4 border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-12 text-base font-semibold"
+                  className="w-full h-14 text-base font-semibold rounded-xl shadow-lg"
                   style={{ background: WG_COLORS.laranja }}
                 >
                   {isSubmitting ? (
@@ -851,7 +851,7 @@ export default function CadastroPublicoPage() {
                     "Enviar Cadastro"
                   )}
                 </Button>
-                <p className="text-center text-[10px] text-gray-400 mt-2">
+                <p className="text-center text-[11px] text-gray-400 mt-3 pb-2">
                   Ao enviar, você concorda com nossos termos de uso
                 </p>
               </div>

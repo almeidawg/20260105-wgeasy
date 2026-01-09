@@ -530,6 +530,60 @@ export async function marcarComoPago(id: string, dataPagamento?: string) {
 }
 
 // ============================================================
+// LISTAR EMPRESAS DO GRUPO (para Centro de Custo)
+// Busca em pessoas pelo CNPJ das empresas do grupo
+// ============================================================
+export interface EmpresaGrupo {
+  id: string; // ID da pessoa (para usar como cliente_centro_custo_id)
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj: string | null;
+  nucleo_id: string | null;
+  pessoa_id?: string; // ID correspondente em pessoas
+}
+
+export async function listarEmpresasGrupo(): Promise<EmpresaGrupo[]> {
+  // Buscar empresas do grupo
+  const { data: empresas, error: empresasError } = await supabase
+    .from("empresas_grupo")
+    .select("id, razao_social, nome_fantasia, cnpj, nucleo_id")
+    .eq("ativo", true)
+    .order("nome_fantasia");
+
+  if (empresasError) {
+    console.error("Erro ao listar empresas do grupo:", empresasError);
+    throw empresasError;
+  }
+
+  if (!empresas || empresas.length === 0) {
+    return [];
+  }
+
+  // Buscar pessoas correspondentes pelo CNPJ
+  const cnpjs = empresas.map(e => e.cnpj).filter(Boolean);
+
+  const { data: pessoas, error: pessoasError } = await supabase
+    .from("pessoas")
+    .select("id, nome, cnpj")
+    .in("cnpj", cnpjs)
+    .eq("ativo", true);
+
+  if (pessoasError) {
+    console.error("Erro ao buscar pessoas das empresas:", pessoasError);
+  }
+
+  // Mapear empresas com IDs de pessoas
+  return empresas.map(emp => {
+    const pessoa = pessoas?.find(p => p.cnpj === emp.cnpj);
+    return {
+      ...emp,
+      id: pessoa?.id || emp.id, // Usar ID da pessoa se existir
+      pessoa_id: pessoa?.id
+    };
+  });
+}
+
+// ============================================================
 // CATEGORIAS
 // ============================================================
 export interface CategoriaFinanceira {
