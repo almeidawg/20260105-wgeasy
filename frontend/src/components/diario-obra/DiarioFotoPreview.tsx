@@ -3,7 +3,7 @@
  * Com opção de legenda, exclusão e visualização em tela cheia
  */
 
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import {
   X,
   Trash2,
@@ -25,7 +25,133 @@ interface DiarioFotoPreviewProps {
   className?: string;
 }
 
-export default function DiarioFotoPreview({
+// Componente de imagem individual memoizado para evitar re-renders
+const FotoItem = memo(function FotoItem({
+  foto,
+  index,
+  isEditing,
+  editingLegenda,
+  onOpenFullscreen,
+  onStartEdit,
+  onSaveLegenda,
+  onCancelEdit,
+  onEditingLegendaChange,
+  onExcluir,
+  readOnly,
+}: {
+  foto: DiarioObraFoto;
+  index: number;
+  isEditing: boolean;
+  editingLegenda: string;
+  onOpenFullscreen: (index: number) => void;
+  onStartEdit: (foto: DiarioObraFoto) => void;
+  onSaveLegenda: () => void;
+  onCancelEdit: () => void;
+  onEditingLegendaChange: (value: string) => void;
+  onExcluir?: (fotoId: string) => void;
+  readOnly: boolean;
+}) {
+  return (
+    <div className="relative group rounded-lg overflow-hidden border bg-gray-50">
+      {/* Imagem */}
+      <div
+        className="aspect-square cursor-pointer"
+        onClick={() => onOpenFullscreen(index)}
+      >
+        <img
+          src={foto.arquivo_url}
+          alt={foto.legenda || `Foto ${index + 1}`}
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+
+      {/* Overlay com ações */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none" />
+
+      {/* Botões de ação */}
+      {!readOnly && (
+        <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStartEdit(foto);
+            }}
+            className="bg-white rounded-full p-1.5 shadow hover:bg-gray-100"
+            title="Editar legenda"
+          >
+            <Edit2 className="h-3.5 w-3.5 text-gray-700" />
+          </button>
+          {onExcluir && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm("Excluir esta foto?")) {
+                  onExcluir(foto.id);
+                }
+              }}
+              className="bg-red-500 rounded-full p-1.5 shadow hover:bg-red-600"
+              title="Excluir foto"
+            >
+              <Trash2 className="h-3.5 w-3.5 text-white" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Botão expandir */}
+      <button
+        type="button"
+        onClick={() => onOpenFullscreen(index)}
+        className="absolute bottom-1 right-1 bg-white/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Ver em tela cheia"
+      >
+        <Maximize2 className="h-4 w-4 text-gray-700" />
+      </button>
+
+      {/* Legenda */}
+      {isEditing ? (
+        <div className="p-2 flex gap-1">
+          <input
+            type="text"
+            value={editingLegenda}
+            onChange={(e) => onEditingLegendaChange(e.target.value)}
+            className="flex-1 text-xs border rounded px-2 py-1"
+            placeholder="Digite a legenda"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSaveLegenda();
+              if (e.key === "Escape") onCancelEdit();
+            }}
+          />
+          <button
+            type="button"
+            onClick={onSaveLegenda}
+            className="text-green-600 hover:text-green-700"
+          >
+            <Check className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : foto.legenda ? (
+        <div className="p-2">
+          <p className="text-xs text-gray-600 line-clamp-2">{foto.legenda}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+});
+
+function DiarioFotoPreview({
   fotos,
   onExcluir,
   onAtualizarLegenda,
@@ -52,24 +178,28 @@ export default function DiarioFotoPreview({
     }
   };
 
-  // Handler para editar legenda
-  const iniciarEdicao = (foto: DiarioObraFoto) => {
+  // Handler para editar legenda - memoizado
+  const iniciarEdicao = useCallback((foto: DiarioObraFoto) => {
     setEditingId(foto.id);
     setEditingLegenda(foto.legenda || "");
-  };
+  }, []);
 
-  const salvarLegenda = () => {
+  const salvarLegenda = useCallback(() => {
     if (editingId && onAtualizarLegenda) {
       onAtualizarLegenda(editingId, editingLegenda);
     }
     setEditingId(null);
     setEditingLegenda("");
-  };
+  }, [editingId, editingLegenda, onAtualizarLegenda]);
 
-  const cancelarEdicao = () => {
+  const cancelarEdicao = useCallback(() => {
     setEditingId(null);
     setEditingLegenda("");
-  };
+  }, []);
+
+  const handleEditingLegendaChange = useCallback((value: string) => {
+    setEditingLegenda(value);
+  }, []);
 
   // Keyboard navigation para fullscreen
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -98,106 +228,20 @@ export default function DiarioFotoPreview({
         )}
       >
         {fotos.map((foto, index) => (
-          <div
+          <FotoItem
             key={foto.id}
-            className="relative group rounded-lg overflow-hidden border bg-gray-50"
-          >
-            {/* Imagem */}
-            <div
-              className="aspect-square cursor-pointer"
-              onClick={() => abrirFullscreen(index)}
-            >
-              <img
-                src={foto.arquivo_url}
-                alt={foto.legenda || `Foto ${index + 1}`}
-                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                loading="lazy"
-              />
-            </div>
-
-            {/* Overlay com ações */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none" />
-
-            {/* Botões de ação */}
-            {!readOnly && (
-              <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    iniciarEdicao(foto);
-                  }}
-                  className="bg-white rounded-full p-1.5 shadow hover:bg-gray-100"
-                  title="Editar legenda"
-                >
-                  <Edit2 className="h-3.5 w-3.5 text-gray-700" />
-                </button>
-                {onExcluir && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm("Excluir esta foto?")) {
-                        onExcluir(foto.id);
-                      }
-                    }}
-                    className="bg-red-500 rounded-full p-1.5 shadow hover:bg-red-600"
-                    title="Excluir foto"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-white" />
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Botão expandir */}
-            <button
-              type="button"
-              onClick={() => abrirFullscreen(index)}
-              className="absolute bottom-1 right-1 bg-white/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              title="Ver em tela cheia"
-            >
-              <Maximize2 className="h-4 w-4 text-gray-700" />
-            </button>
-
-            {/* Legenda */}
-            {editingId === foto.id ? (
-              <div className="p-2 flex gap-1">
-                <input
-                  type="text"
-                  value={editingLegenda}
-                  onChange={(e) => setEditingLegenda(e.target.value)}
-                  className="flex-1 text-xs border rounded px-2 py-1"
-                  placeholder="Digite a legenda"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") salvarLegenda();
-                    if (e.key === "Escape") cancelarEdicao();
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={salvarLegenda}
-                  className="text-green-600 hover:text-green-700"
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelarEdicao}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : foto.legenda ? (
-              <div className="p-2">
-                <p className="text-xs text-gray-600 line-clamp-2">
-                  {foto.legenda}
-                </p>
-              </div>
-            ) : null}
-          </div>
+            foto={foto}
+            index={index}
+            isEditing={editingId === foto.id}
+            editingLegenda={editingLegenda}
+            onOpenFullscreen={abrirFullscreen}
+            onStartEdit={iniciarEdicao}
+            onSaveLegenda={salvarLegenda}
+            onCancelEdit={cancelarEdicao}
+            onEditingLegendaChange={handleEditingLegendaChange}
+            onExcluir={onExcluir}
+            readOnly={readOnly}
+          />
         ))}
       </div>
 
@@ -270,3 +314,6 @@ export default function DiarioFotoPreview({
     </>
   );
 }
+
+// Exportar componente memoizado para evitar re-renders desnecessários
+export default memo(DiarioFotoPreview);

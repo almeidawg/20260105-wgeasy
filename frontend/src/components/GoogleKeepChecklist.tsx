@@ -1,8 +1,22 @@
 import React, { useEffect, useState } from "react";
 
-// Exemplo de chamada ao backend para buscar notas do Keep
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+const INTERNAL_API_KEY = import.meta.env.VITE_INTERNAL_API_KEY || "";
+
+// Chamada ao backend para buscar notas do Keep
 async function fetchKeepNotes() {
-  const res = await fetch("/api/keep/notes");
+  const res = await fetch(`${BACKEND_URL}/api/keep/notes`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "x-internal-key": INTERNAL_API_KEY,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  }
+
   return res.json();
 }
 

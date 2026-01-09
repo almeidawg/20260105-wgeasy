@@ -4,6 +4,10 @@
 // Permite enviar pedido de materiais para aprovação via Email ou WhatsApp
 // ============================================================
 
+// Backend URL para chamadas de API em produção
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+const INTERNAL_API_KEY = import.meta.env.VITE_INTERNAL_API_KEY || "";
+
 import { useState, useEffect } from "react";
 import { X, Mail, MessageCircle, Send, Loader2, Copy, Check, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -146,11 +150,11 @@ export default function EnviarParaClienteModal({
       setErro("");
 
       // Chamar API de envio de email
-      const response = await fetch("/api/email/send", {
+      const response = await fetch(`${BACKEND_URL}/api/email/send`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Internal-Key": import.meta.env.VITE_INTERNAL_API_KEY || "",
+          "X-Internal-Key": INTERNAL_API_KEY,
         },
         body: JSON.stringify({
           to: email,

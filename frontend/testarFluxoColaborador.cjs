@@ -5,29 +5,37 @@
  * Uso: node testarFluxoColaborador.cjs
  */
 
-require('dotenv').config();
+require('dotenv').config({ path: '../.env' });
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
 // Configuração
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://ahlqzzkxuutwoepirpzr.supabase.co';
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Credenciais de teste
 const TEST_EMAIL = 'melowellyngton23@gmail.com';
 const TEST_PASSWORD = 'WGZu6P6x8J!';
 
-if (!supabaseKey) {
+if (!supabaseAnonKey) {
   console.error('❌ Defina VITE_SUPABASE_ANON_KEY no .env');
   process.exit(1);
 }
 
 console.log('🔧 Supabase URL:', supabaseUrl);
 console.log('🔧 Testando com email:', TEST_EMAIL);
+console.log('🔧 Service Role Key:', supabaseServiceKey ? 'Disponível' : 'Não disponível');
 console.log('');
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Cliente para login do usuário
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Cliente admin para consultas que precisam contornar RLS
+const supabaseAdmin = supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : supabase;
 
 // ============================================================
 // FUNÇÕES DE TESTE
@@ -52,8 +60,8 @@ async function testarLogin() {
     console.log('   User ID:', data.user.id);
     console.log('   Email:', data.user.email);
 
-    // Buscar dados do usuário
-    const { data: usuario, error: userError } = await supabase
+    // Buscar dados do usuário (usando admin para contornar RLS)
+    const { data: usuario, error: userError } = await supabaseAdmin
       .from('usuarios')
       .select('id, nome, tipo_usuario, pessoa_id')
       .eq('auth_user_id', data.user.id)
@@ -176,6 +184,24 @@ async function testarDiarioObra(userId, pessoaId) {
   console.log('─'.repeat(50));
 
   try {
+    // Se não tem pessoaId, tentar buscar via admin
+    let colaboradorId = pessoaId;
+    if (!colaboradorId) {
+      console.log('   Buscando pessoa_id via admin...');
+      const { data: usuario } = await supabaseAdmin
+        .from('usuarios')
+        .select('pessoa_id')
+        .eq('auth_user_id', userId)
+        .single();
+      colaboradorId = usuario?.pessoa_id;
+      console.log('   pessoa_id encontrado:', colaboradorId || 'NÃO ENCONTRADO');
+    }
+
+    if (!colaboradorId) {
+      console.log('❌ Não foi possível obter pessoa_id. Teste abortado.');
+      return null;
+    }
+
     // 1. Buscar um cliente ativo
     console.log('   Buscando cliente para diário...');
     const { data: clientes } = await supabase
@@ -193,15 +219,15 @@ async function testarDiarioObra(userId, pessoaId) {
     const cliente = clientes[0];
     console.log('   Cliente:', cliente.nome);
 
-    // 2. Criar registro de diário
+    // 2. Criar registro de diário (usando admin para contornar RLS)
     console.log('   Criando registro de diário...');
     const dataHoje = new Date().toISOString().split('T')[0];
 
-    const { data: diario, error: diarioErr } = await supabase
+    const { data: diario, error: diarioErr } = await supabaseAdmin
       .from('obra_registros')
       .insert({
         cliente_id: cliente.id,
-        colaborador_id: pessoaId,
+        colaborador_id: colaboradorId,
         data_registro: dataHoje,
         titulo: `[TESTE] Diário de Obra - ${new Date().toLocaleString('pt-BR')}`,
         descricao: 'Registro criado automaticamente via script de teste',
@@ -251,7 +277,7 @@ async function testarDiarioObra(userId, pessoaId) {
     console.log('   Bucket: diario-obra');
     console.log('   Path:', fileName);
 
-    const { data: uploadData, error: uploadErr } = await supabase.storage
+    const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
       .from('diario-obra')
       .upload(fileName, pngData, {
         contentType: 'image/png',
@@ -261,7 +287,7 @@ async function testarDiarioObra(userId, pessoaId) {
     if (uploadErr) {
       console.error('❌ Erro no upload:', uploadErr.message);
       // Tentar verificar se o bucket existe
-      const { data: buckets } = await supabase.storage.listBuckets();
+      const { data: buckets } = await supabaseAdmin.storage.listBuckets();
       console.log('   Buckets disponíveis:', buckets?.map(b => b.name).join(', ') || 'nenhum');
       return diario;
     }
@@ -270,7 +296,7 @@ async function testarDiarioObra(userId, pessoaId) {
     console.log('   Path:', uploadData.path);
 
     // 5. Obter URL pública
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = supabaseAdmin.storage
       .from('diario-obra')
       .getPublicUrl(fileName);
 
@@ -278,7 +304,7 @@ async function testarDiarioObra(userId, pessoaId) {
 
     // 6. Salvar registro da foto no banco
     console.log('   Salvando registro da foto...');
-    const { data: foto, error: fotoErr } = await supabase
+    const { data: foto, error: fotoErr } = await supabaseAdmin
       .from('obra_registros_fotos')
       .insert({
         registro_id: diario.id,

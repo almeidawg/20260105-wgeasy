@@ -16,7 +16,31 @@ import {
   Trash2,
   Save,
 } from 'lucide-react';
-import googleCalendarService, { type GoogleCalendarEvent, type EventInput } from '@/services/googleCalendarService';
+import { createCalendarSAEvent, updateCalendarSAEvent, deleteCalendarSAEvent } from '@/lib/apiSecure';
+
+// Interface para eventos do Google Calendar
+export interface GoogleCalendarEvent {
+  id?: string;
+  summary: string;
+  description?: string;
+  location?: string;
+  start: {
+    dateTime?: string;
+    date?: string;
+    timeZone?: string;
+  };
+  end: {
+    dateTime?: string;
+    date?: string;
+    timeZone?: string;
+  };
+  colorId?: string;
+  reminders?: {
+    useDefault: boolean;
+    overrides?: Array<{ method: 'email' | 'popup'; minutes: number }>;
+  };
+  htmlLink?: string;
+}
 
 interface NovoEventoModalProps {
   evento?: GoogleCalendarEvent | null;
@@ -122,19 +146,23 @@ export default function NovoEventoModal({
       const startDateTime = new Date(`${dataInicio}T${horaInicio}`).toISOString();
       const endDateTime = new Date(`${dataFim}T${horaFim}`).toISOString();
 
-      const input: EventInput = {
+      const eventData = {
         summary: titulo.trim(),
         description: descricao.trim() || undefined,
         location: local.trim() || undefined,
-        startDateTime,
-        endDateTime,
-        reminderMinutes: lembrete,
+        start: { dateTime: startDateTime, timeZone: 'America/Sao_Paulo' },
+        end: { dateTime: endDateTime, timeZone: 'America/Sao_Paulo' },
       };
 
+      let result;
       if (isEdicao && evento?.id) {
-        await googleCalendarService.updateEvent(evento.id, input);
+        result = await updateCalendarSAEvent(evento.id, eventData);
       } else {
-        await googleCalendarService.createEvent(input);
+        result = await createCalendarSAEvent(eventData);
+      }
+
+      if (result.error) {
+        throw new Error(result.error);
       }
 
       onSave();
@@ -158,7 +186,11 @@ export default function NovoEventoModal({
       setExcluindo(true);
       setErro(null);
 
-      await googleCalendarService.deleteEvent(evento.id);
+      const result = await deleteCalendarSAEvent(evento.id);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
       onSave();
     } catch (error: any) {
       console.error('[NovoEventoModal] Erro ao excluir:', error);

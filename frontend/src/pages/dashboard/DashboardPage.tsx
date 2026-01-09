@@ -4,6 +4,10 @@
 // Visão completa e em tempo real da empresa
 // ============================================================
 
+// Backend URL para chamadas de API em produção
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+const INTERNAL_API_KEY = import.meta.env.VITE_INTERNAL_API_KEY || "";
+
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
@@ -724,7 +728,9 @@ export default function DashboardPage() {
     // Carregar notas do Keep automaticamente (Service Account está sempre ativo)
     const autoConnectKeep = async () => {
       try {
-        const res = await fetch("/api/keep/notes");
+        const res = await fetch(`${BACKEND_URL}/api/keep/notes`, {
+          headers: { "x-internal-key": INTERNAL_API_KEY },
+        });
         if (res.ok) {
           const notes = await res.json();
           setKeepNotes(notes);
@@ -770,7 +776,9 @@ export default function DashboardPage() {
   const carregarNotasKeep = useCallback(async () => {
     setKeepStatus((prev) => ({ ...prev, loading: true }));
     try {
-      const res = await fetch("/api/keep/notes");
+      const res = await fetch(`${BACKEND_URL}/api/keep/notes`, {
+        headers: { "x-internal-key": INTERNAL_API_KEY },
+      });
       if (!res.ok) throw new Error("Erro ao carregar notas");
       const notes = await res.json();
       setKeepNotes(notes);
@@ -809,9 +817,12 @@ export default function DashboardPage() {
         payload.text = novaNota.texto;
       }
 
-      const res = await fetch("/api/keep/notes", {
+      const res = await fetch(`${BACKEND_URL}/api/keep/notes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-key": INTERNAL_API_KEY,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -843,7 +854,9 @@ export default function DashboardPage() {
   const handleTestarGoogleKeep = useCallback(async () => {
     setKeepStatus((prev) => ({ ...prev, testing: true, message: "" }));
     try {
-      const res = await fetch("/api/keep/test");
+      const res = await fetch(`${BACKEND_URL}/api/keep/test`, {
+        headers: { "x-internal-key": INTERNAL_API_KEY },
+      });
       const data = await res.json();
       setKeepStatus({
         configured: data.success,
@@ -955,8 +968,9 @@ export default function DashboardPage() {
       const noteId = encodeURIComponent(notaSelecionada.id);
       console.log("[Keep Save] Deletando nota antiga ID:", notaSelecionada.id);
 
-      const deleteRes = await fetch(`/api/keep/notes/${noteId}`, {
+      const deleteRes = await fetch(`${BACKEND_URL}/api/keep/notes/${noteId}`, {
         method: "DELETE",
+        headers: { "x-internal-key": INTERNAL_API_KEY },
       });
 
       if (!deleteRes.ok) {
@@ -976,9 +990,12 @@ export default function DashboardPage() {
         payload.text = notaEditada.texto;
       }
 
-      const res = await fetch("/api/keep/notes", {
+      const res = await fetch(`${BACKEND_URL}/api/keep/notes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-internal-key": INTERNAL_API_KEY,
+        },
         body: JSON.stringify(payload),
       });
 
