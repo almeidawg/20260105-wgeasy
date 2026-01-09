@@ -13,6 +13,7 @@ import driveService from "./shared/driveService";
 import { buscarImagemProduto } from "./shared/leroyImageScraper";
 import multer from "multer";
 import { uploadDiarioFoto } from "./shared/diarioFotosService";
+import { btgAuth, btgWebhooks, btgService } from "./shared/btg";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -543,7 +544,9 @@ app.get(
   rateLimitMiddleware,
   async (req: Request, res: Response) => {
     try {
-      const { timeMin, timeMax, maxResults } = req.query;
+      const { timeMin, timeMax, maxResults, userEmail } = req.query;
+
+      console.log("[Calendar SA] Buscando eventos para:", userEmail || "default");
 
       const events = await calendarService.listEventsWithServiceAccount(
         "primary",
@@ -551,7 +554,8 @@ app.get(
           timeMin: timeMin as string,
           timeMax: timeMax as string,
           maxResults: maxResults ? parseInt(maxResults as string) : 100,
-        }
+        },
+        userEmail as string | undefined
       );
 
       res.json({ events, count: events.length });
@@ -1087,7 +1091,11 @@ app.get(
     try {
       // Parâmetro ?all=true retorna todas as notas (não apenas WG-Easy)
       const includeAll = req.query.all === "true";
-      const notes = await googleKeepApi.listNotes(includeAll);
+      // Parâmetro ?userEmail=email@domain.com para buscar notas de outro usuário
+      const userEmail = req.query.userEmail as string | undefined;
+
+      console.log("[Google Keep] Buscando notas para:", userEmail || "default");
+      const notes = await googleKeepApi.listNotes(includeAll, userEmail);
       res.json(notes);
     } catch (error: any) {
       console.error("[Google Keep Error]:", error);
@@ -1102,7 +1110,7 @@ app.post(
   rateLimitMiddleware,
   async (req: Request, res: Response) => {
     try {
-      const { title, text, items, clienteId, clienteNome } = req.body;
+      const { title, text, items, clienteId, clienteNome, userEmail } = req.body;
 
       if (!title) {
         return res.status(400).json({ error: "Título é obrigatório" });
@@ -1113,11 +1121,13 @@ app.post(
         ? `[${clienteNome}] ${title}`
         : title;
 
+      console.log("[Keep Create] Criando nota para:", userEmail || "default");
+
       const result = await googleKeepApi.createNote({
         title: tituloFinal,
         text,
         items,
-      });
+      }, userEmail);
 
       res.json({
         success: true,
@@ -1443,15 +1453,18 @@ app.delete(
     try {
       // Express já decodifica params automaticamente
       const { noteId } = req.params;
+      // userEmail pode vir como query param para deleção
+      const userEmail = req.query.userEmail as string | undefined;
 
       console.log("[Google Keep Delete] Tentando deletar nota ID:", noteId);
       console.log("[Google Keep Delete] URL completa:", req.originalUrl);
+      console.log("[Google Keep Delete] userEmail:", userEmail || "default");
 
       if (!noteId) {
         return res.status(400).json({ error: "ID da nota é obrigatório" });
       }
 
-      await googleKeepApi.deleteNote(noteId);
+      await googleKeepApi.deleteNote(noteId, userEmail);
       console.log("[Google Keep Delete] Nota deletada com sucesso:", noteId);
       res.json({ success: true, message: "Nota excluída com sucesso" });
     } catch (error: any) {
@@ -1483,6 +1496,282 @@ app.delete(
   }
 );
 
+// ============================================================
+// BTG PACTUAL EMPRESAS - ROTAS DE INTEGRAÇÃO BANCÁRIA
+// ============================================================
+
+// Webhook para receber notificações do BTG (não requer autenticação)
+app.post(
+  "/api/btg/webhooks",
+  express.raw({ type: 'application/json' }),
+  async (req: Request, res: Response) => {
+    try {
+      const signature = req.headers['x-btg-signature'] as string;
+      const payload = req.body.toString();
+
+      // Validar assinatura (se configurada)
+      if (signature && !btgWebhooks.validateWebhookSignature(payload, signature)) {
+        console.warn('[BTG Webhook] Assinatura inválida');
+        return res.status(401).json({ error: 'Assinatura inválida' });
+      }
+
+      const data = JSON.parse(payload);
+      console.log('[BTG Webhook] Evento recebido:', data.event);
+
+      // Processar webhook assincronamente
+      btgWebhooks.processWebhook(data).catch(err => {
+        console.error('[BTG Webhook] Erro ao processar:', err);
+      });
+
+      // Responder rapidamente para o BTG
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('[BTG Webhook] Erro:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Callback OAuth2 - recebe código de autorização
+app.get(
+  "/api/btg/callback",
+  async (req: Request, res: Response) => {
+    try {
+      const { code, state, error } = req.query;
+
+      if (error) {
+        console.error('[BTG Auth] Erro na autorização:', error);
+        return res.redirect(`/btg/auth/error?message=${error}`);
+      }
+
+      if (!code) {
+        return res.status(400).json({ error: 'Código de autorização não fornecido' });
+      }
+
+      const redirectUri = `${req.protocol}://${req.get('host')}/api/btg/callback`;
+      const tokens = await btgAuth.exchangeCodeForTokens(code as string, redirectUri);
+
+      // TODO: Salvar tokens no banco de dados vinculado ao usuário/empresa
+      console.log('[BTG Auth] Tokens obtidos com sucesso');
+
+      // Redirecionar para página de sucesso
+      res.redirect('/btg/auth/success');
+    } catch (error: any) {
+      console.error('[BTG Auth] Erro no callback:', error);
+      res.redirect(`/btg/auth/error?message=${encodeURIComponent(error.message)}`);
+    }
+  }
+);
+
+// Iniciar fluxo de autorização
+app.get(
+  "/api/btg/auth/authorize",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const redirectUri = `${req.protocol}://${req.get('host')}/api/btg/callback`;
+      const authUrl = btgAuth.getAuthorizationUrl(redirectUri);
+      res.json({ authUrl });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Verificar status da autenticação
+app.get(
+  "/api/btg/auth/status",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    res.json({
+      authenticated: btgAuth.isAuthenticated(),
+      token: btgAuth.getCurrentToken() ? {
+        expires_at: btgAuth.getCurrentToken()?.expires_at,
+        scope: btgAuth.getCurrentToken()?.scope
+      } : null
+    });
+  }
+);
+
+// Listar empresas vinculadas
+app.get(
+  "/api/btg/empresas",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const empresas = await btgService.listarEmpresas();
+      res.json(empresas);
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao listar empresas:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Consultar saldo
+app.get(
+  "/api/btg/saldo/:accountId",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const { accountId } = req.params;
+      const companyId = req.query.companyId as string;
+      const saldo = await btgService.consultarSaldo(accountId, companyId);
+      res.json(saldo);
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao consultar saldo:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Consultar extrato
+app.get(
+  "/api/btg/extrato/:accountId",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const { accountId } = req.params;
+      const { startDate, endDate, companyId } = req.query;
+
+      if (!startDate || !endDate) {
+        return res.status(400).json({ error: 'startDate e endDate são obrigatórios' });
+      }
+
+      const extrato = await btgService.consultarExtrato(
+        accountId,
+        startDate as string,
+        endDate as string,
+        companyId as string
+      );
+      res.json(extrato);
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao consultar extrato:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Criar boleto
+app.post(
+  "/api/btg/boletos",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const boleto = await btgService.criarBoleto(req.body);
+      res.json(boleto);
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao criar boleto:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Cancelar boleto
+app.delete(
+  "/api/btg/boletos/:boletoId",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      await btgService.cancelarBoleto(req.params.boletoId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao cancelar boleto:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Criar PIX cobrança (QR Code)
+app.post(
+  "/api/btg/pix/cobranca",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const pix = await btgService.criarPixCobranca(req.body);
+      res.json(pix);
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao criar PIX cobrança:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Criar pagamento PIX
+app.post(
+  "/api/btg/pagamentos/pix",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const pagamento = await btgService.criarPagamentoPix(req.body);
+      res.json(pagamento);
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao criar pagamento PIX:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Criar pagamento TED
+app.post(
+  "/api/btg/pagamentos/ted",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const pagamento = await btgService.criarPagamentoTed(req.body);
+      res.json(pagamento);
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao criar pagamento TED:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Criar pagamento de boleto
+app.post(
+  "/api/btg/pagamentos/boleto",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const pagamento = await btgService.criarPagamentoBoleto(req.body);
+      res.json(pagamento);
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao criar pagamento boleto:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Consultar pagamento
+app.get(
+  "/api/btg/pagamentos/:pagamentoId",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      const pagamento = await btgService.consultarPagamento(req.params.pagamentoId);
+      res.json(pagamento);
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao consultar pagamento:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Cancelar pagamento
+app.delete(
+  "/api/btg/pagamentos/:pagamentoId",
+  requireInternalKey,
+  async (req: Request, res: Response) => {
+    try {
+      await btgService.cancelarPagamento(req.params.pagamentoId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[BTG API] Erro ao cancelar pagamento:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
 app.listen(PORT, () => {
   console.log(`[Server] Backend rodando em http://localhost:${PORT}`);
   console.log(`[Server] OpenAI proxy: POST /api/openai/chat`);
@@ -1490,4 +1779,5 @@ app.listen(PORT, () => {
   console.log(`[Server] Email API: POST /api/email/send`);
   console.log(`[Server] Calendar API: GET /api/calendar/events`);
   console.log(`[Server] Google Keep API: GET/POST/DELETE /api/keep/notes`);
+  console.log(`[Server] BTG Pactual API: /api/btg/*`);
 });
