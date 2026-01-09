@@ -47,9 +47,12 @@ export async function listarOS(): Promise<OrdemServicoCompleta[]> {
       ),
       tecnico:tecnico_responsavel_id (
         id,
-        nome,
-        email,
-        telefone
+        pessoa:pessoa_id (
+          id,
+          nome,
+          email,
+          telefone
+        )
       ),
       contrato:contrato_id (
         id,
@@ -96,9 +99,12 @@ export async function listarOSComFiltros(
       ),
       tecnico:tecnico_responsavel_id (
         id,
-        nome,
-        email,
-        telefone
+        pessoa:pessoa_id (
+          id,
+          nome,
+          email,
+          telefone
+        )
       ),
       contrato:contrato_id (
         id,
@@ -186,9 +192,12 @@ export async function buscarOS(
       ),
       tecnico:tecnico_responsavel_id (
         id,
-        nome,
-        email,
-        telefone
+        pessoa:pessoa_id (
+          id,
+          nome,
+          email,
+          telefone
+        )
       ),
       contrato:contrato_id (
         id,
@@ -232,9 +241,12 @@ export async function buscarOSPorContrato(
       ),
       tecnico:tecnico_responsavel_id (
         id,
-        nome,
-        email,
-        telefone
+        pessoa:pessoa_id (
+          id,
+          nome,
+          email,
+          telefone
+        )
       )
     `
     )
@@ -695,7 +707,9 @@ export async function listarHistoricoOS(
       *,
       usuario:usuario_id (
         id,
-        nome
+        pessoa:pessoa_id (
+          nome
+        )
       )
     `
     )
@@ -816,9 +830,12 @@ export async function listarOSAtrasadas(): Promise<OrdemServicoCompleta[]> {
       ),
       tecnico:tecnico_responsavel_id (
         id,
-        nome,
-        email,
-        telefone
+        pessoa:pessoa_id (
+          id,
+          nome,
+          email,
+          telefone
+        )
       )
     `
     )
