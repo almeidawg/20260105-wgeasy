@@ -24,9 +24,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20.x"
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
 
       - name: Instalar dependências
-        run: npm install
+        run: npm ci
 
       - name: Build do projeto
         env:
