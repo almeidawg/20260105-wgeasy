@@ -286,17 +286,20 @@ export async function getCalendarSAStatus(): Promise<{ configured: boolean; cale
 
 /**
  * Busca eventos do Calendar via Service Account
+ * @param options Opções de filtro (timeMin, timeMax, maxResults, userEmail)
  */
 export async function getCalendarSAEvents(options?: {
   timeMin?: string;
   timeMax?: string;
   maxResults?: number;
+  userEmail?: string;
 }): Promise<{ events?: any[]; error?: string }> {
   try {
     const params = new URLSearchParams();
     if (options?.timeMin) params.append("timeMin", options.timeMin);
     if (options?.timeMax) params.append("timeMax", options.timeMax);
     if (options?.maxResults) params.append("maxResults", String(options.maxResults));
+    if (options?.userEmail) params.append("userEmail", options.userEmail);
 
     const response = await fetch(`${BACKEND_URL}/api/calendar/sa/events?${params}`, {
       method: "GET",

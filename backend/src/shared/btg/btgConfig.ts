@@ -125,3 +125,4 @@ export type BTGWebhookEvent =
 
 console.log(`[BTG] Configurado para ambiente: ${btgConfig.useSandbox ? 'SANDBOX' : 'PRODUÇÃO'}`);
 console.log(`[BTG] API URL: ${btgConfig.apiUrl}`);
+console.log(`[BTG] Client ID: ${btgConfig.clientId ? btgConfig.clientId.substring(0, 8) + '...' : 'NÃO CONFIGURADO'}`);

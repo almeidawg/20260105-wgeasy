@@ -227,10 +227,17 @@ export default function ContratoDetalhePage() {
     );
   }
 
+  // Permitir ativação para contratos assinados ou aguardando assinatura
+  // Se já tem assinaturas, não precisa de ativação automática
   const podeAtivar =
-    contrato.assinatura_cliente_base64 &&
-    contrato.assinatura_responsavel_base64 &&
-    contrato.status === "aguardando_assinatura";
+    (contrato.status === "aguardando_assinatura" &&
+     contrato.assinatura_cliente_base64 &&
+     contrato.assinatura_responsavel_base64) ||
+    contrato.status === "assinado" ||
+    contrato.status === "rascunho";
+
+  // Mostrar botões de Financeiro/Cronograma para contratos ativo, em_execucao, assinado ou concluido
+  const mostrarBotoesAcao = ["ativo", "em_execucao", "assinado", "concluido", "finalizado"].includes(contrato.status);
 
   return (
     <div className="p-6 space-y-6">
@@ -257,9 +264,9 @@ export default function ContratoDetalhePage() {
             Voltar
           </button>
           <h1 className="text-2xl font-bold text-[#2E2E2E]">
-            {contrato.numero}
+            {contrato.numero || (contrato as any).numero_contrato || `Contrato ${contrato.id.substring(0, 8)}`}
           </h1>
-          <p className="text-sm text-gray-600 mt-1">{contrato.descricao}</p>
+          <p className="text-sm text-gray-600 mt-1">{contrato.descricao || (contrato as any).titulo || ""}</p>
         </div>
         <div className="flex items-center gap-3">
           <span
@@ -319,8 +326,9 @@ export default function ContratoDetalhePage() {
                   console.error("Erro ao gerar PDF para WhatsApp:", err);
                 }
 
+                const numeroContrato = contrato.numero || (contrato as any).numero_contrato || contrato.id.substring(0, 8);
                 const valorTexto = formatarValor(contrato.valor_total || 0);
-                const texto = `Ola! Segue o contrato ${contrato.numero} no valor de ${valorTexto}. O PDF foi gerado para envio.`;
+                const texto = `Ola! Segue o contrato ${numeroContrato} no valor de ${valorTexto}. O PDF foi gerado para envio.`;
                 const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
                 window.open(url, "_blank");
               }}
@@ -334,8 +342,9 @@ export default function ContratoDetalhePage() {
             <button
               type="button"
               onClick={() => {
-                const assunto = `Contrato ${contrato.numero}`;
-                const corpo = `Prezado(a),\n\nSegue em anexo o contrato ${contrato.numero} no valor de R$ ${contrato.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}.\n\nAtenciosamente,\nGrupo WG Almeida`;
+                const numeroContrato = contrato.numero || (contrato as any).numero_contrato || contrato.id.substring(0, 8);
+                const assunto = `Contrato ${numeroContrato}`;
+                const corpo = `Prezado(a),\n\nSegue em anexo o contrato ${numeroContrato} no valor de R$ ${(contrato.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}.\n\nAtenciosamente,\nGrupo WG Almeida`;
                 window.location.href = `mailto:?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
               }}
               className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -349,10 +358,11 @@ export default function ContratoDetalhePage() {
               type="button"
               onClick={() => {
                 const url = window.location.href;
+                const numeroContrato = contrato.numero || (contrato as any).numero_contrato || contrato.id.substring(0, 8);
                 if (navigator.share) {
                   navigator.share({
-                    title: `Contrato ${contrato.numero}`,
-                    text: `Contrato ${contrato.numero} - R$ ${contrato.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
+                    title: `Contrato ${numeroContrato}`,
+                    text: `Contrato ${numeroContrato} - R$ ${(contrato.valor_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`,
                     url: url
                   });
                 } else {
@@ -378,7 +388,7 @@ export default function ContratoDetalhePage() {
               Ativar Contrato
             </button>
           )}
-          {contrato.status === "ativo" && (
+          {mostrarBotoesAcao && (
             <>
               <button
                 type="button"
@@ -436,14 +446,22 @@ export default function ContratoDetalhePage() {
             <div>
               <span className="text-gray-600">Data de Criação:</span>
               <p className="font-semibold text-gray-900">
-                {new Date(contrato.data_criacao).toLocaleDateString("pt-BR")}
+                {new Date((contrato as any).data_criacao || contrato.created_at || (contrato as any).data_assinatura).toLocaleDateString("pt-BR")}
               </p>
             </div>
-            {contrato.prazo_entrega_dias && (
+            {(contrato.prazo_entrega_dias || (contrato as any).dias_uteis) && (
               <div>
                 <span className="text-gray-600">Prazo de Entrega:</span>
                 <p className="font-semibold text-gray-900">
-                  {contrato.prazo_entrega_dias} dias
+                  {contrato.prazo_entrega_dias || (contrato as any).dias_uteis} dias
+                </p>
+              </div>
+            )}
+            {(contrato as any).previsao_termino && (
+              <div>
+                <span className="text-gray-600">Previsão Término:</span>
+                <p className="font-semibold text-gray-900">
+                  {new Date((contrato as any).previsao_termino).toLocaleDateString("pt-BR")}
                 </p>
               </div>
             )}
@@ -455,29 +473,45 @@ export default function ContratoDetalhePage() {
             Valores
           </h3>
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Mão de Obra:</span>
-              <span className="font-semibold text-gray-900">
-                R${" "}
-                {contrato.valor_mao_obra.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Materiais:</span>
-              <span className="font-semibold text-gray-900">
-                R${" "}
-                {contrato.valor_materiais.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            </div>
+            {(contrato.valor_mao_obra !== undefined && contrato.valor_mao_obra !== null) && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Mão de Obra:</span>
+                <span className="font-semibold text-gray-900">
+                  R${" "}
+                  {contrato.valor_mao_obra.toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            )}
+            {(contrato.valor_materiais !== undefined && contrato.valor_materiais !== null) && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Materiais:</span>
+                <span className="font-semibold text-gray-900">
+                  R${" "}
+                  {contrato.valor_materiais.toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            )}
+            {/* Valor Pago - se existir */}
+            {((contrato as any).valor_pago !== undefined && (contrato as any).valor_pago !== null && (contrato as any).valor_pago > 0) && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Valor Pago:</span>
+                <span className="font-semibold text-green-600">
+                  R${" "}
+                  {((contrato as any).valor_pago || 0).toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between items-center pt-3 border-t border-gray-200">
               <span className="text-gray-700 font-semibold">Total:</span>
               <span className="font-bold text-xl text-[#F25C26]">
                 R${" "}
-                {contrato.valor_total.toLocaleString("pt-BR", {
+                {(contrato.valor_total || 0).toLocaleString("pt-BR", {
                   minimumFractionDigits: 2,
                 })}
               </span>

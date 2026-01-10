@@ -221,6 +221,7 @@ const wgMenus: MenuSection[] = [
       { label: "Arquivos", path: "/area-cliente/arquivos", icon: "📁" },
       { label: "Cronograma", path: "/wgx/cronograma", icon: "📅" },
       { label: "Financeiro", path: "/wgx/financeiro", icon: "💰" },
+      { label: "Fornecedores", path: "/wgx/fornecedores", icon: "🔧" },
       { label: "Pós-Vendas", path: "/wgx/pos-vendas", icon: "🛠️" }
     ]
   }

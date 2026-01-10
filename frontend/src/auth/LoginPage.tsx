@@ -650,8 +650,8 @@ export default function LoginPage() {
                     }}
                     onFocus={() => setFocusedField("emailOrCpf")}
                     onBlur={() => setFocusedField(null)}
-                    className="w-full bg-transparent placeholder-gray-400 pl-12 pr-4 py-4 rounded-xl focus:outline-none"
-                    style={{ color: WG_COLORS.preto }}
+                    className="w-full bg-transparent placeholder-gray-400 pr-4 py-4 rounded-xl focus:outline-none"
+                    style={{ color: WG_COLORS.preto, paddingLeft: '3rem' }}
                     required
                   />
                   <span
@@ -703,8 +703,8 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setFocusedField("password")}
                     onBlur={() => setFocusedField(null)}
-                    className="w-full bg-transparent placeholder-gray-400 pl-12 pr-12 py-4 rounded-xl focus:outline-none"
-                    style={{ color: WG_COLORS.preto }}
+                    className="w-full bg-transparent placeholder-gray-400 pr-12 py-4 rounded-xl focus:outline-none"
+                    style={{ color: WG_COLORS.preto, paddingLeft: '3rem' }}
                     required
                   />
                   <button

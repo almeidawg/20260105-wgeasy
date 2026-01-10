@@ -290,43 +290,8 @@ export default function Topbar() {
         </div>
       </div>
 
-      {/* Mobile: apenas avatar e sino */}
-      <div className="topbar-mobile-row flex md:hidden items-center justify-end gap-3 px-4 py-2">
-        {user && <NotificationBell />}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={handleUserClick}
-            className="flex items-center gap-2"
-          >
-            {user ? (
-              avatarUrl && !avatarError ? (
-                <img
-                  src={avatarUrl}
-                  alt={nome}
-                  className="w-8 h-8 rounded-full object-cover"
-                  onError={() => setAvatarError(true)}
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold">
-                  {iniciais}
-                </div>
-              )
-            ) : (
-              <UserIcon size={20} className="text-gray-500" />
-            )}
-          </button>
-          {open && user && (
-            <div className="user-menu">
-              <div className="user-email">{user.email}</div>
-              <button type="button" onClick={handleSignOut} className="user-menu-item">
-                <LogOut size={16} />
-                Sair
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Mobile: oculto - a navegação é feita pelo MobileBottomNav */}
+      {/* Avatar e sino removidos do mobile para evitar duplicidade com o header do Dashboard */}
     </header>
   );
 }

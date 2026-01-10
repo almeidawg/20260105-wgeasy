@@ -8,8 +8,11 @@ export type UnidadeNegocio = "arquitetura" | "engenharia" | "marcenaria" | "moma
 export type StatusContrato =
   | "rascunho"
   | "aguardando_assinatura"
+  | "assinado"
+  | "em_execucao"
   | "ativo"
   | "concluido"
+  | "finalizado"
   | "cancelado";
 
 export type TipoItemContrato = "mao_obra" | "material";
@@ -228,16 +231,22 @@ export interface ContratosEstatisticas {
 export const STATUS_CONTRATO_LABELS: Record<StatusContrato, string> = {
   rascunho: "Rascunho",
   aguardando_assinatura: "Aguardando Assinatura",
+  assinado: "Assinado",
+  em_execucao: "Em Execução",
   ativo: "Ativo",
   concluido: "Concluído",
+  finalizado: "Finalizado",
   cancelado: "Cancelado",
 };
 
 export const STATUS_CONTRATO_COLORS: Record<StatusContrato, string> = {
   rascunho: "#9CA3AF", // Cinza
   aguardando_assinatura: "#F59E0B", // Amarelo
+  assinado: "#8B5CF6", // Roxo
+  em_execucao: "#3B82F6", // Azul
   ativo: "#3B82F6", // Azul
   concluido: "#10B981", // Verde
+  finalizado: "#10B981", // Verde
   cancelado: "#EF4444", // Vermelho
 };
 

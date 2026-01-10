@@ -10,6 +10,10 @@ export type TipoConta = 'corrente' | 'poupanca' | 'pagamento';
 
 export type TipoChavePix = 'cpf' | 'cnpj' | 'email' | 'telefone' | 'chave_aleatoria';
 
+export type TipoParticipacao = 'socio' | 'administrador' | 'procurador' | 'representante';
+
+export type EstadoCivil = 'solteiro' | 'casado' | 'divorciado' | 'viuvo' | 'uniao_estavel' | 'separado';
+
 // ============================================================
 // EMPRESA DO GRUPO
 // ============================================================
@@ -45,6 +49,10 @@ export interface EmpresaGrupo {
   nucleo_nome?: string; // Incluído via join
   nucleo_cor?: string;  // Incluído via join
 
+  // Google Drive - Pasta de documentos da empresa
+  google_drive_folder_id?: string;
+  google_drive_folder_url?: string;
+
   // Status
   ativo: boolean;
 
@@ -53,6 +61,141 @@ export interface EmpresaGrupo {
   atualizado_em: string;
   criado_por?: string;
   atualizado_por?: string;
+}
+
+// ============================================================
+// SÓCIO DA EMPRESA (Pessoa Física)
+// ============================================================
+
+export interface SocioEmpresa {
+  id: string;
+
+  // Dados Pessoais
+  nome: string;
+  cpf?: string;
+  rg?: string;
+  data_nascimento?: string;
+  nacionalidade?: string;
+  estado_civil?: EstadoCivil;
+  profissao?: string;
+
+  // Contato
+  email?: string;
+  telefone?: string;
+
+  // Endereço
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+
+  // Google Drive - Pasta de documentos pessoais
+  google_drive_folder_id?: string;
+  google_drive_folder_url?: string;
+
+  // Observações
+  observacoes?: string;
+
+  // Status
+  ativo: boolean;
+
+  // Auditoria
+  criado_em: string;
+  atualizado_em: string;
+  criado_por?: string;
+  atualizado_por?: string;
+
+  // Relacionamentos (incluídos via join)
+  participacoes?: SocioParticipacao[];
+}
+
+// ============================================================
+// PARTICIPAÇÃO DO SÓCIO EM EMPRESA
+// ============================================================
+
+export interface SocioParticipacao {
+  id: string;
+
+  // Vínculos
+  socio_id: string;
+  empresa_id: string;
+
+  // Dados da participação
+  tipo_participacao: TipoParticipacao;
+  percentual_participacao?: number;
+  data_entrada?: string;
+  data_saida?: string;
+
+  // Poderes
+  tem_poderes_gerencia: boolean;
+  tem_assinatura_contrato: boolean;
+  tem_representacao_legal: boolean;
+
+  // Status
+  ativo: boolean;
+
+  // Auditoria
+  criado_em: string;
+  atualizado_em: string;
+  criado_por?: string;
+  atualizado_por?: string;
+
+  // Relacionamentos (incluídos via join)
+  socio?: SocioEmpresa;
+  empresa?: EmpresaGrupo;
+}
+
+// ============================================================
+// FORM DATA (Para criação/edição de sócio)
+// ============================================================
+
+export interface SocioFormData {
+  nome: string;
+  cpf?: string;
+  rg?: string;
+  data_nascimento?: string;
+  nacionalidade?: string;
+  estado_civil?: EstadoCivil;
+  profissao?: string;
+
+  // Contato
+  email?: string;
+  telefone?: string;
+
+  // Endereço
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+
+  // Google Drive
+  google_drive_folder_id?: string;
+  google_drive_folder_url?: string;
+
+  // Observações
+  observacoes?: string;
+
+  // Status
+  ativo: boolean;
+}
+
+export interface ParticipacaoFormData {
+  socio_id: string;
+  empresa_id: string;
+  tipo_participacao: TipoParticipacao;
+  percentual_participacao?: number;
+  data_entrada?: string;
+  data_saida?: string;
+  tem_poderes_gerencia: boolean;
+  tem_assinatura_contrato: boolean;
+  tem_representacao_legal: boolean;
+  ativo: boolean;
 }
 
 // ============================================================
@@ -283,4 +426,54 @@ export function gerarDadosBancariosFormatados(
         : undefined,
     },
   };
+}
+
+// ============================================================
+// HELPERS - SÓCIOS
+// ============================================================
+
+export function getTipoParticipacaoLabel(tipo: TipoParticipacao): string {
+  const labels: Record<TipoParticipacao, string> = {
+    socio: 'Sócio',
+    administrador: 'Administrador',
+    procurador: 'Procurador',
+    representante: 'Representante Legal',
+  };
+  return labels[tipo] || tipo;
+}
+
+export function getEstadoCivilLabel(estado: EstadoCivil | undefined): string {
+  if (!estado) return '';
+  const labels: Record<EstadoCivil, string> = {
+    solteiro: 'Solteiro(a)',
+    casado: 'Casado(a)',
+    divorciado: 'Divorciado(a)',
+    viuvo: 'Viúvo(a)',
+    uniao_estavel: 'União Estável',
+    separado: 'Separado(a)',
+  };
+  return labels[estado] || estado;
+}
+
+export function formatarCPF(cpf: string | undefined): string {
+  if (!cpf) return '';
+  const cleaned = cpf.replace(/\D/g, '');
+  if (cleaned.length !== 11) return cpf;
+  return cleaned.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+}
+
+export function formatarTelefone(telefone: string | undefined): string {
+  if (!telefone) return '';
+  const cleaned = telefone.replace(/\D/g, '');
+  if (cleaned.length === 11) {
+    return cleaned.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+  } else if (cleaned.length === 10) {
+    return cleaned.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
+  }
+  return telefone;
+}
+
+export function formatarPercentual(valor: number | undefined): string {
+  if (valor === undefined || valor === null) return '';
+  return `${valor.toFixed(2)}%`;
 }

@@ -30,6 +30,8 @@ export interface UsuarioLogado {
   cargo: string | null;
   empresa: string | null;
   data_inicio_wg: string | null;
+  // Email do Google Workspace para integração com Calendar/Keep
+  google_workspace_email: string | null;
 }
 
 export function useUsuarioLogado() {
@@ -82,6 +84,9 @@ export function useUsuarioLogado() {
             const pessoa = usuarioData.pessoas as any;
             // Prioridade: avatar_url > foto_url
             const avatarFinal = pessoa?.avatar_url || pessoa?.foto_url || null;
+            // Google Workspace email: priorizar google_workspace_email, depois email da pessoa se for do domínio
+            const googleEmail = (usuarioData as any).google_workspace_email ||
+              (pessoa?.email?.endsWith("@wgalmeida.com.br") ? pessoa.email : null);
             setUsuario({
               ...usuarioData,
               nome: pessoa?.nome || null,
@@ -92,18 +97,23 @@ export function useUsuarioLogado() {
               cargo: pessoa?.cargo || null,
               empresa: pessoa?.empresa || null,
               data_inicio_wg: pessoa?.data_inicio_wg || null,
+              google_workspace_email: googleEmail,
             } as UsuarioLogado);
           }
         } else if (data) {
           // Aplicar fallback: avatar_url > foto_url
           const viewData = data as any;
           const avatarFinal = viewData.avatar_url || viewData.foto_url || null;
+          // Google Workspace email: priorizar google_workspace_email, depois email se for do domínio
+          const googleEmail = viewData.google_workspace_email ||
+            (viewData.email?.endsWith("@wgalmeida.com.br") ? viewData.email : null);
           setUsuario({
             ...viewData,
             avatar_url: avatarFinal,
             cargo: viewData.cargo || null,
             empresa: viewData.empresa || null,
             data_inicio_wg: viewData.data_inicio_wg || null,
+            google_workspace_email: googleEmail,
           } as UsuarioLogado);
         }
       } catch (e: any) {

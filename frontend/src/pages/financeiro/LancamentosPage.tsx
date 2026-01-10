@@ -23,7 +23,11 @@ import {
   MessageCircle,
   Download,
   Check,
+  ClipboardPaste,
 } from "lucide-react";
+import ImportarComprovanteModal, {
+  DadosLancamentoExtraido,
+} from "@/components/financeiro/ImportarComprovanteModal";
 import { DateInputBR, getTodayISO } from "@/components/ui/DateInputBR";
 import {
   listarFinanceiro,
@@ -100,6 +104,7 @@ export default function LancamentosPage() {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState<LancamentoFinanceiro | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipo, setFilterTipo] = useState<TipoLancamento | "">("");
@@ -1000,6 +1005,15 @@ _Sistema WG Easy - Grupo WG Almeida_
             title="Atualizar lista"
           >
             <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-3 py-1.5 border border-[#F25C26] text-[#F25C26] rounded-lg flex items-center gap-1.5 hover:bg-orange-50 text-sm"
+            title="Importar de comprovante"
+          >
+            <ClipboardPaste className="w-4 h-4" />
+            Importar
           </button>
           <button
             type="button"
@@ -2191,6 +2205,35 @@ _Sistema WG Easy - Grupo WG Almeida_
           </div>
         </div>
       )}
+
+      {/* Modal de Importar Comprovante */}
+      <ImportarComprovanteModal
+        open={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportar={async (dados: DadosLancamentoExtraido) => {
+          // Preencher formulário com dados extraídos
+          setEditing(null);
+          setFormData({
+            tipo: dados.tipo,
+            status: "confirmado",
+            valor: dados.valor,
+            data_vencimento: dados.data ? dados.data.toISOString().split("T")[0] : getTodayISO(),
+            data_pagamento: dados.data ? dados.data.toISOString().split("T")[0] : getTodayISO(),
+            descricao: dados.descricao,
+            pessoa_id: "",
+            nucleo: "" as UnidadeNegocio | "",
+            categoria_id: "",
+            contrato_id: "",
+            centro_custo: "",
+            empresa_grupo_id: "",
+            observacoes: `Importado de comprovante ${dados.formaPagamento}\nID: ${dados.idTransacao}\nFavorecido: ${dados.favorecido}\nBanco: ${dados.banco}`,
+            forma_pagamento: dados.formaPagamento.toLowerCase(),
+            projeto_id: "",
+            conta_tipo: "R",
+          });
+          setIsFormOpen(true);
+        }}
+      />
     </div>
   );
 }

@@ -54,3 +54,67 @@ ALTER TABLE contratos ADD CONSTRAINT contratos_status_check
 
 -- 6. Comentário
 COMMENT ON FUNCTION exec_sql(TEXT) IS 'Executa SQL arbitrário (apenas para service_role)';
+
+-- ============================================================
+-- 7. Adicionar coluna nucleo em financeiro_juridico
+-- ============================================================
+
+ALTER TABLE financeiro_juridico ADD COLUMN IF NOT EXISTS nucleo TEXT;
+
+-- ============================================================
+-- 8. Atualizar view vw_financeiro_juridico_detalhado
+-- ============================================================
+
+CREATE OR REPLACE VIEW vw_financeiro_juridico_detalhado AS
+SELECT
+  fj.id,
+  fj.assistencia_id,
+  fj.contrato_id,
+  fj.tipo,
+  fj.natureza,
+  fj.descricao,
+  fj.observacoes,
+  fj.valor,
+  fj.valor_pago,
+  fj.data_competencia,
+  fj.data_vencimento,
+  fj.data_pagamento,
+  fj.status,
+  fj.parcela_atual,
+  fj.total_parcelas,
+  fj.pessoa_id,
+  fj.empresa_id,
+  fj.nucleo,
+  fj.sincronizado_financeiro,
+  fj.financeiro_lancamento_id,
+  fj.criado_por,
+  fj.atualizado_por,
+  fj.created_at,
+  fj.updated_at,
+  -- Dados da pessoa
+  p.nome AS pessoa_nome,
+  p.tipo AS pessoa_tipo,
+  p.cpf AS pessoa_cpf,
+  p.cnpj AS pessoa_cnpj,
+  -- Dados da empresa (se aplicável)
+  pe.nome AS empresa_nome,
+  -- Dados da assistência jurídica
+  aj.titulo AS assistencia_titulo,
+  aj.numero_processo,
+  -- Dados do contrato
+  c.numero AS contrato_numero,
+  -- Cálculo de dias de atraso
+  CASE
+    WHEN fj.status IN ('PENDENTE', 'ATRASADO') AND fj.data_vencimento < CURRENT_DATE
+    THEN (CURRENT_DATE - fj.data_vencimento::date)::integer
+    ELSE 0
+  END AS dias_atraso
+FROM financeiro_juridico fj
+LEFT JOIN pessoas p ON fj.pessoa_id = p.id
+LEFT JOIN pessoas pe ON fj.empresa_id = pe.id
+LEFT JOIN assistencia_juridica aj ON fj.assistencia_id = aj.id
+LEFT JOIN contratos c ON fj.contrato_id = c.id;
+
+-- Grant permissões
+GRANT SELECT ON vw_financeiro_juridico_detalhado TO authenticated;
+GRANT SELECT ON vw_financeiro_juridico_detalhado TO anon;

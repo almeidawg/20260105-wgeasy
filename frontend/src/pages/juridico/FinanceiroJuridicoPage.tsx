@@ -26,6 +26,10 @@ import {
   Banknote,
   CreditCard,
   XCircle,
+  Scale,
+  Wallet,
+  PiggyBank,
+  Award,
 } from "lucide-react";
 import {
   listarFinanceiroJuridico,
@@ -65,12 +69,49 @@ const STATUS_CONFIG: Record<StatusFinanceiro, { label: string; cor: string }> = 
   CANCELADO: { label: "Cancelado", cor: "#6B7280" },
 };
 
+// Abas de classificação financeira jurídica
+type AbaFinanceiro = "todos" | "recebido" | "custas" | "a_pagar" | "recebiveis";
+
+const ABAS_CONFIG: Record<AbaFinanceiro, { label: string; descricao: string; icone: typeof DollarSign; cor: string }> = {
+  todos: {
+    label: "Todos",
+    descricao: "Todos os lançamentos",
+    icone: FileText,
+    cor: "#6B7280"
+  },
+  recebido: {
+    label: "Recebido pelo Escritório",
+    descricao: "Honorários e mensalidades recebidas",
+    icone: Banknote,
+    cor: "#10B981"
+  },
+  custas: {
+    label: "Custas e Perícias",
+    descricao: "Custas processuais, taxas e perícias",
+    icone: Receipt,
+    cor: "#3B82F6"
+  },
+  a_pagar: {
+    label: "A Pagar",
+    descricao: "Acordos, processos e pagamentos pendentes",
+    icone: Wallet,
+    cor: "#F59E0B"
+  },
+  recebiveis: {
+    label: "Processos Ganhos / Recebíveis",
+    descricao: "Valores a receber de processos ganhos",
+    icone: Award,
+    cor: "#8B5CF6"
+  },
+};
+
 /* ==================== COMPONENTE PRINCIPAL ==================== */
 
 export default function FinanceiroJuridicoPage() {
   // Estados
   const [lancamentos, setLancamentos] = useState<FinanceiroJuridicoDetalhado[]>([]);
   const [loading, setLoading] = useState(true);
+  const [abaAtiva, setAbaAtiva] = useState<AbaFinanceiro>("todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<StatusFinanceiro | "">("");
   const [filtroTipo, setFiltroTipo] = useState<TipoLancamento | "">("");
@@ -170,22 +211,55 @@ export default function FinanceiroJuridicoPage() {
     carregarEmpresas();
   }, [currentPage, filtroStatus, filtroTipo, filtroNatureza, filtroMes]);
 
-  // Estatísticas calculadas
+  // Estatísticas por classificação (separando receitas escritório vs despesas)
+  const statsGerais = {
+    // Receitas do escritório: Honorários + Mensalidades PAGOS
+    recebidoEscritorio: lancamentos
+      .filter((l) =>
+        (l.tipo === "HONORARIO" || l.tipo === "MENSALIDADE") &&
+        l.natureza === "RECEITA" &&
+        l.status === "PAGO"
+      )
+      .reduce((acc, l) => acc + (l.valor_pago || 0), 0),
+
+    // Custas e despesas operacionais jurídicas
+    custasProcessuais: lancamentos
+      .filter((l) =>
+        (l.tipo === "CUSTAS" || l.tipo === "TAXA" || l.tipo === "OUTROS") &&
+        l.natureza === "DESPESA"
+      )
+      .reduce((acc, l) => acc + (l.valor || 0), 0),
+
+    // Valores a pagar (despesas pendentes)
+    aPagar: lancamentos
+      .filter((l) =>
+        l.natureza === "DESPESA" &&
+        (l.status === "PENDENTE" || l.status === "ATRASADO" || l.status === "PARCIAL")
+      )
+      .reduce((acc, l) => acc + (l.valor - (l.valor_pago || 0)), 0),
+
+    // Recebíveis (valores a receber de processos ganhos)
+    recebiveis: lancamentos
+      .filter((l) =>
+        l.natureza === "RECEITA" &&
+        (l.status === "PENDENTE" || l.status === "PARCIAL") &&
+        (l.tipo === "ACORDO" || l.tipo === "HONORARIO" || l.tipo === "MULTA")
+      )
+      .reduce((acc, l) => acc + (l.valor - (l.valor_pago || 0)), 0),
+
+    // Totais gerais
+    totalLancamentos: totalCount,
+    qtdAtrasados: lancamentos.filter((l) => l.status === "ATRASADO").length,
+  };
+
+  // Stats baseado na aba para o card principal
   const stats = {
     totalLancamentos: totalCount,
-    totalReceitas: lancamentos
-      .filter((l) => l.natureza === "RECEITA")
-      .reduce((acc, l) => acc + (l.valor || 0), 0),
-    totalDespesas: lancamentos
-      .filter((l) => l.natureza === "DESPESA")
-      .reduce((acc, l) => acc + (l.valor || 0), 0),
-    totalPendente: lancamentos
-      .filter((l) => l.status === "PENDENTE" || l.status === "ATRASADO")
-      .reduce((acc, l) => acc + (l.valor - (l.valor_pago || 0)), 0),
-    totalPago: lancamentos
-      .filter((l) => l.status === "PAGO")
-      .reduce((acc, l) => acc + (l.valor_pago || 0), 0),
-    qtdAtrasados: lancamentos.filter((l) => l.status === "ATRASADO").length,
+    totalReceitas: statsGerais.recebidoEscritorio,
+    totalDespesas: statsGerais.custasProcessuais,
+    totalPendente: statsGerais.aPagar,
+    totalPago: statsGerais.recebidoEscritorio,
+    qtdAtrasados: statsGerais.qtdAtrasados,
   };
 
   // Handlers
@@ -305,8 +379,48 @@ export default function FinanceiroJuridicoPage() {
   const formatarData = (data: string) =>
     data ? new Date(data).toLocaleDateString("pt-BR") : "-";
 
-  // Filtrar local
+  // Filtrar por aba (classificação de negócio)
+  function filtrarPorAba(item: FinanceiroJuridicoDetalhado): boolean {
+    switch (abaAtiva) {
+      case "todos":
+        return true;
+      case "recebido":
+        // Receitas do escritório: Honorários e Mensalidades PAGOS
+        return (
+          (item.tipo === "HONORARIO" || item.tipo === "MENSALIDADE") &&
+          item.natureza === "RECEITA" &&
+          item.status === "PAGO"
+        );
+      case "custas":
+        // Despesas operacionais: Custas, Taxas, perícias
+        return (
+          (item.tipo === "CUSTAS" || item.tipo === "TAXA" || item.tipo === "OUTROS") &&
+          item.natureza === "DESPESA"
+        );
+      case "a_pagar":
+        // Valores pendentes de pagamento (qualquer tipo)
+        return (
+          item.natureza === "DESPESA" &&
+          (item.status === "PENDENTE" || item.status === "ATRASADO" || item.status === "PARCIAL")
+        );
+      case "recebiveis":
+        // Receitas a receber: Acordos de processos ganhos ou honorários pendentes
+        return (
+          item.natureza === "RECEITA" &&
+          (item.status === "PENDENTE" || item.status === "PARCIAL") &&
+          (item.tipo === "ACORDO" || item.tipo === "HONORARIO" || item.tipo === "MULTA")
+        );
+      default:
+        return true;
+    }
+  }
+
+  // Filtrar local com busca e aba
   const lancamentosFiltrados = lancamentos.filter((item) => {
+    // Primeiro filtra pela aba
+    if (!filtrarPorAba(item)) return false;
+
+    // Depois filtra pela busca textual
     if (!searchTerm) return true;
     const termo = searchTerm.toLowerCase();
     return (
@@ -354,80 +468,203 @@ export default function FinanceiroJuridicoPage() {
         </button>
       </div>
 
-      {/* CARDS DE ESTATÍSTICAS */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gray-50 rounded-lg">
-              <FileText className="h-5 w-5 text-gray-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalLancamentos}</div>
-              <div className="text-xs text-gray-500">Total</div>
-            </div>
-          </div>
-        </div>
+      {/* NAVEGAÇÃO POR ABAS */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-gray-100">
+          {(Object.keys(ABAS_CONFIG) as AbaFinanceiro[]).map((aba) => {
+            const config = ABAS_CONFIG[aba];
+            const Icone = config.icone;
+            const isAtiva = abaAtiva === aba;
 
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-50 rounded-lg">
-              <ArrowUpCircle className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <div className="text-lg font-bold text-green-600">{formatarMoeda(stats.totalReceitas)}</div>
-              <div className="text-xs text-gray-500">Receitas</div>
-            </div>
-          </div>
-        </div>
+            // Valor exibido em cada aba
+            let valorAba = 0;
+            let labelValor = "";
+            switch (aba) {
+              case "todos":
+                valorAba = stats.totalLancamentos;
+                labelValor = "lançamentos";
+                break;
+              case "recebido":
+                valorAba = statsGerais.recebidoEscritorio;
+                labelValor = formatarMoeda(valorAba);
+                break;
+              case "custas":
+                valorAba = statsGerais.custasProcessuais;
+                labelValor = formatarMoeda(valorAba);
+                break;
+              case "a_pagar":
+                valorAba = statsGerais.aPagar;
+                labelValor = formatarMoeda(valorAba);
+                break;
+              case "recebiveis":
+                valorAba = statsGerais.recebiveis;
+                labelValor = formatarMoeda(valorAba);
+                break;
+            }
 
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-50 rounded-lg">
-              <ArrowDownCircle className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <div className="text-lg font-bold text-red-600">{formatarMoeda(stats.totalDespesas)}</div>
-              <div className="text-xs text-gray-500">Despesas</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-50 rounded-lg">
-              <Clock className="h-5 w-5 text-yellow-600" />
-            </div>
-            <div>
-              <div className="text-lg font-bold text-yellow-600">{formatarMoeda(stats.totalPendente)}</div>
-              <div className="text-xs text-gray-500">Pendente</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <div className="text-lg font-bold text-blue-600">{formatarMoeda(stats.totalPago)}</div>
-              <div className="text-xs text-gray-500">Pago</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-50 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-[#F25C26]" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-[#F25C26]">{stats.qtdAtrasados}</div>
-              <div className="text-xs text-gray-500">Atrasados</div>
-            </div>
-          </div>
+            return (
+              <button
+                key={aba}
+                type="button"
+                onClick={() => setAbaAtiva(aba)}
+                className={`
+                  p-4 text-left transition-all relative
+                  ${isAtiva
+                    ? "bg-gradient-to-b from-gray-50 to-white"
+                    : "hover:bg-gray-50"
+                  }
+                `}
+              >
+                {isAtiva && (
+                  <div
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t"
+                    style={{ backgroundColor: config.cor }}
+                  />
+                )}
+                <div className="flex items-center gap-3">
+                  <div
+                    className="p-2 rounded-lg"
+                    style={{
+                      backgroundColor: isAtiva ? `${config.cor}15` : "#F3F4F6",
+                    }}
+                  >
+                    <Icone
+                      className="h-5 w-5"
+                      style={{ color: isAtiva ? config.cor : "#6B7280" }}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div
+                      className={`text-sm font-semibold truncate ${
+                        isAtiva ? "text-gray-900" : "text-gray-600"
+                      }`}
+                    >
+                      {config.label}
+                    </div>
+                    <div
+                      className="text-xs font-medium"
+                      style={{ color: isAtiva ? config.cor : "#9CA3AF" }}
+                    >
+                      {aba === "todos" ? `${valorAba} ${labelValor}` : labelValor}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
+
+      {/* RESUMO DA ABA SELECIONADA */}
+      {abaAtiva !== "todos" && (
+        <div
+          className="bg-gradient-to-r from-white to-gray-50 rounded-xl border p-4 flex items-center gap-4"
+          style={{ borderColor: `${ABAS_CONFIG[abaAtiva].cor}40` }}
+        >
+          <div
+            className="p-3 rounded-xl"
+            style={{ backgroundColor: `${ABAS_CONFIG[abaAtiva].cor}15` }}
+          >
+            {(() => {
+              const Icone = ABAS_CONFIG[abaAtiva].icone;
+              return (
+                <Icone
+                  className="h-6 w-6"
+                  style={{ color: ABAS_CONFIG[abaAtiva].cor }}
+                />
+              );
+            })()}
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">
+              {ABAS_CONFIG[abaAtiva].label}
+            </h3>
+            <p className="text-sm text-gray-500">
+              {ABAS_CONFIG[abaAtiva].descricao}
+            </p>
+          </div>
+          <div className="ml-auto text-right">
+            <div
+              className="text-2xl font-bold"
+              style={{ color: ABAS_CONFIG[abaAtiva].cor }}
+            >
+              {formatarMoeda(
+                abaAtiva === "recebido"
+                  ? statsGerais.recebidoEscritorio
+                  : abaAtiva === "custas"
+                  ? statsGerais.custasProcessuais
+                  : abaAtiva === "a_pagar"
+                  ? statsGerais.aPagar
+                  : statsGerais.recebiveis
+              )}
+            </div>
+            <div className="text-xs text-gray-500">
+              {lancamentosFiltrados.length} lançamento(s)
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CARDS RÁPIDOS (somente na aba TODOS) */}
+      {abaAtiva === "todos" && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-50 rounded-lg">
+                <Banknote className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-lg font-bold text-green-600">
+                  {formatarMoeda(statsGerais.recebidoEscritorio)}
+                </div>
+                <div className="text-xs text-gray-500">Recebido</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Receipt className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-lg font-bold text-blue-600">
+                  {formatarMoeda(statsGerais.custasProcessuais)}
+                </div>
+                <div className="text-xs text-gray-500">Custas</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-50 rounded-lg">
+                <Wallet className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-lg font-bold text-yellow-600">
+                  {formatarMoeda(statsGerais.aPagar)}
+                </div>
+                <div className="text-xs text-gray-500">A Pagar</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <Award className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-lg font-bold text-purple-600">
+                  {formatarMoeda(statsGerais.recebiveis)}
+                </div>
+                <div className="text-xs text-gray-500">Recebíveis</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FILTROS */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -531,6 +768,9 @@ export default function FinanceiroJuridicoPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                     Pessoa/Empresa
                   </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                    Núcleo
+                  </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
                     Valor
                   </th>
@@ -595,6 +835,15 @@ export default function FinanceiroJuridicoPage() {
                             <Building2 className="h-3.5 w-3.5 text-gray-400" />
                             {item.empresa_nome}
                           </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {item.nucleo ? (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700 capitalize">
+                            {item.nucleo.replace(/_/g, ' ')}
+                          </span>
                         ) : (
                           <span className="text-xs text-gray-400">-</span>
                         )}
@@ -693,15 +942,16 @@ export default function FinanceiroJuridicoPage() {
       )}
 
       {/* AVISO INFORMATIVO */}
-      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-green-600 mt-0.5" />
+          <Scale className="h-5 w-5 text-blue-600 mt-0.5" />
           <div>
-            <h4 className="font-semibold text-green-800">Financeiro Jurídico</h4>
-            <p className="text-sm text-green-700 mt-1">
-              Gerencie honorários, custas processuais, taxas e demais lançamentos financeiros do
-              departamento jurídico. Os lançamentos são sincronizados automaticamente com o módulo
-              financeiro geral.
+            <h4 className="font-semibold text-blue-800">Classificação Financeira Jurídica</h4>
+            <p className="text-sm text-blue-700 mt-1">
+              <strong>Recebido pelo Escritório:</strong> Honorários e mensalidades pagos (receitas).{" "}
+              <strong>Custas:</strong> Despesas processuais, taxas e perícias.{" "}
+              <strong>A Pagar:</strong> Despesas pendentes.{" "}
+              <strong>Recebíveis:</strong> Valores a receber de processos ganhos e acordos.
             </p>
           </div>
         </div>

@@ -24,11 +24,14 @@ import {
   Bell,
   ChevronRight,
   FolderOpen,
+  MapPin,
+  Heart,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 // Componentes do cliente (versão simplificada)
-import OrcamentosPendentesCliente from "@/components/cliente/OrcamentosPendentesCliente";
+import AprovacoesPendentes from "@/components/cliente/AprovacoesPendentes";
+import AssistenciaTecnicaCliente from "@/components/cliente/AssistenciaTecnicaCliente";
 import ItensContratados from "@/components/cliente/ItensContratados";
 import InfoContratoCliente from "@/components/cliente/InfoContratoCliente";
 import ComentariosCliente from "@/components/cliente/ComentariosCliente";
@@ -42,6 +45,7 @@ import NotasCompartilhadas from "@/components/cliente/NotasCompartilhadas";
 import OnboardingArquitetura from "@/components/cliente/OnboardingArquitetura";
 import OnboardingEngenharia from "@/components/cliente/OnboardingEngenharia";
 import OnboardingMarcenaria from "@/components/cliente/OnboardingMarcenaria";
+import CronogramaCliente from "@/components/cliente/CronogramaCliente";
 
 import "@/styles/dashboard.css";
 
@@ -69,6 +73,10 @@ export default function AreaClientePage() {
     contratoId: string | null;
     pessoaId: string;
     nucleosContratados: string[];
+    dataInicioWg: string | null;
+    enderecoObra: string | null;
+    telefone: string | null;
+    email: string | null;
   } | null>(null);
 
   const [stats, setStats] = useState({
@@ -160,7 +168,7 @@ export default function AreaClientePage() {
 
       const { data: pessoa, error: pessoaError } = await supabase
         .from('pessoas')
-        .select('id, nome, genero, avatar_url')
+        .select('id, nome, genero, avatar_url, data_inicio_wg, telefone, email, obra_logradouro, obra_numero, obra_bairro, obra_cidade, obra_estado')
         .eq('id', pessoaId)
         .maybeSingle();
 
@@ -206,6 +214,19 @@ export default function AreaClientePage() {
 
       const primeiroNome = pessoa.nome.split(' ')[0];
 
+      // Montar endereço da obra
+      let enderecoObra: string | null = null;
+      if (pessoa.obra_logradouro) {
+        const partes = [
+          pessoa.obra_logradouro,
+          pessoa.obra_numero,
+          pessoa.obra_bairro,
+          pessoa.obra_cidade,
+          pessoa.obra_estado,
+        ].filter(Boolean);
+        enderecoObra = partes.join(', ');
+      }
+
       setClienteInfo({
         primeiroNome,
         nomeCompleto: pessoa.nome,
@@ -215,6 +236,10 @@ export default function AreaClientePage() {
         contratoId: contrato?.id || null,
         pessoaId: pessoa.id,
         nucleosContratados,
+        dataInicioWg: pessoa.data_inicio_wg || null,
+        enderecoObra,
+        telefone: pessoa.telefone || null,
+        email: pessoa.email || null,
       });
 
       jaCarregouRef.current = true;
@@ -448,6 +473,21 @@ export default function AreaClientePage() {
                   <p className="text-sm text-white/80 max-w-md">
                     Acompanhe o andamento do seu projeto WG Almeida em tempo real.
                   </p>
+                  {/* Informações adicionais */}
+                  <div className="flex flex-wrap gap-4 pt-2 text-sm text-white/70">
+                    {clienteInfo.enderecoObra && (
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-orange-400" />
+                        <span className="truncate max-w-[300px]">{clienteInfo.enderecoObra}</span>
+                      </div>
+                    )}
+                    {clienteInfo.dataInicioWg && (
+                      <div className="flex items-center gap-1.5">
+                        <Heart className="w-3.5 h-3.5 text-orange-400" />
+                        <span>Com a WG desde {new Date(clienteInfo.dataInicioWg + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -559,19 +599,37 @@ export default function AreaClientePage() {
           )}
 
           {/* ============================================================ */}
+          {/* ============================================================ */}
+          {/* SEÇÃO: CRONOGRAMA DO CLIENTE */}
+          {/* ============================================================ */}
+          {permissoes.podeVerCronograma && (
+            <section>
+              <CronogramaCliente
+                clienteId={clienteInfo.pessoaId}
+                contratoId={clienteInfo.contratoId || undefined}
+              />
+            </section>
+          )}
+
           {/* NOTAS COMPARTILHADAS (Google Keep) */}
           {/* ============================================================ */}
           <NotasCompartilhadas pessoaId={clienteInfo.pessoaId} />
 
           {/* ============================================================ */}
-          {/* SEÇÃO 1: DIÁRIO DE OBRA E PASTA DO PROJETO (Grid lado a lado) */}
+          {/* SEÇÃO: DIÁRIO DE OBRA */}
           {/* ============================================================ */}
-          <section className="grid gap-6 lg:grid-cols-2">
+          <section>
             <DiarioObra
               clienteId={clienteInfo.pessoaId}
               contratoId={clienteInfo.contratoId || undefined}
               oportunidadeId={clienteInfo.oportunidadeId}
             />
+          </section>
+
+          {/* ============================================================ */}
+          {/* SEÇÃO: PASTA DO PROJETO */}
+          {/* ============================================================ */}
+          <section>
             <PastasClienteDrive clienteId={clienteInfo.pessoaId} />
           </section>
 
@@ -602,15 +660,25 @@ export default function AreaClientePage() {
           )}
 
           {/* ============================================================ */}
-          {/* SEÇÃO 4: ORÇAMENTOS PENDENTES */}
+          {/* SEÇÃO 4: APROVAÇÕES PENDENTES */}
           {/* ============================================================ */}
-          <OrcamentosPendentesCliente
-            clienteId={clienteInfo.oportunidadeId.replace('CLIENTE-', '')}
+          <AprovacoesPendentes
+            clienteId={clienteInfo.pessoaId}
+            contratoId={clienteInfo.contratoId || undefined}
             onAprovar={carregarDadosCliente}
           />
 
           {/* ============================================================ */}
-          {/* SEÇÃO 5: COMENTÁRIOS (se permitido) */}
+          {/* SEÇÃO 5: ASSISTÊNCIA TÉCNICA */}
+          {/* ============================================================ */}
+          <AssistenciaTecnicaCliente
+            clienteId={clienteInfo.pessoaId}
+            contratoId={clienteInfo.contratoId || undefined}
+            clienteNome={clienteInfo.nomeCompleto}
+          />
+
+          {/* ============================================================ */}
+          {/* SEÇÃO 6: COMENTÁRIOS (se permitido) */}
           {/* ============================================================ */}
           {permissoes.podeComentarem && (
             <ComentariosCliente

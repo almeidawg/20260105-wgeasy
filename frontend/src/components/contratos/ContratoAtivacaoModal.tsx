@@ -66,6 +66,7 @@ const ContratoAtivacaoModal: React.FC<ContratoAtivacaoModalProps> = ({
         gerar_financeiro: gerarFinanceiro,
         gerar_compras: gerarCompras,
         gerar_cronograma: gerarCronograma,
+        ativacao_automatica: true, // Permite ativar mesmo sem assinaturas
       };
 
       // Adicionar configuração de parcelas se habilitado

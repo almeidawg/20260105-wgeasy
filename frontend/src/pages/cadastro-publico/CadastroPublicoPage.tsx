@@ -506,7 +506,7 @@ export default function CadastroPublicoPage() {
             </div>
 
             {/* Form otimizado para mobile */}
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5 overflow-hidden">
 
               {/* Dados Pessoais */}
               <Card className="border-0 shadow-sm">
@@ -671,49 +671,49 @@ export default function CadastroPublicoPage() {
                   </div>
 
                   {/* Número e Complemento em linha - empilha em mobile pequeno */}
-                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
-                    <div>
+                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 overflow-hidden">
+                    <div className="min-w-0">
                       <Label htmlFor="numero" className="text-xs font-medium">Número</Label>
                       <Input
                         id="numero"
                         value={formData.numero}
                         onChange={(e) => handleChange("numero", e.target.value)}
                         placeholder="Nº"
-                        className="h-12 text-base"
+                        className="h-12 text-base w-full"
                       />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <Label htmlFor="complemento" className="text-xs font-medium">Complemento</Label>
                       <Input
                         id="complemento"
                         value={formData.complemento}
                         onChange={(e) => handleChange("complemento", e.target.value)}
-                        placeholder="Apto, Sala, Bloco..."
-                        className="h-12 text-base"
+                        placeholder="Apto, Sala..."
+                        className="h-12 text-base w-full"
                       />
                     </div>
                   </div>
 
                   {/* Cidade e Estado em linha - empilha em mobile pequeno */}
-                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
-                    <div>
+                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 overflow-hidden">
+                    <div className="min-w-0">
                       <Label htmlFor="cidade" className="text-xs font-medium">Cidade</Label>
                       <Input
                         id="cidade"
                         value={formData.cidade}
                         onChange={(e) => handleChange("cidade", e.target.value)}
                         placeholder="Cidade"
-                        className="h-12 text-base"
+                        className="h-12 text-base w-full"
                       />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <Label htmlFor="estado" className="text-xs font-medium">Estado</Label>
                       <Select
                         value={formData.estado}
                         onValueChange={(value) => handleChange("estado", value)}
                       >
-                        <SelectTrigger className="h-12 text-base">
-                          <SelectValue placeholder="Selecione" />
+                        <SelectTrigger className="h-12 text-base w-full">
+                          <SelectValue placeholder="UF" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
                           {ESTADOS.map((estado) => (
@@ -754,26 +754,26 @@ export default function CadastroPublicoPage() {
                     </div>
 
                     {/* Agência e Conta em linha - empilha em mobile pequeno */}
-                    <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
-                      <div>
+                    <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 overflow-hidden">
+                      <div className="min-w-0">
                         <Label htmlFor="agencia" className="text-xs font-medium">Agência</Label>
                         <Input
                           id="agencia"
                           value={formData.agencia}
                           onChange={(e) => handleChange("agencia", e.target.value)}
                           placeholder="0000"
-                          className="h-12 text-base"
+                          className="h-12 text-base w-full"
                           inputMode="numeric"
                         />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <Label htmlFor="conta" className="text-xs font-medium">Conta</Label>
                         <Input
                           id="conta"
                           value={formData.conta}
                           onChange={(e) => handleChange("conta", e.target.value)}
                           placeholder="00000-0"
-                          className="h-12 text-base"
+                          className="h-12 text-base w-full"
                         />
                       </div>
                     </div>
@@ -873,7 +873,7 @@ export default function CadastroPublicoPage() {
 
       {/* Página de Cadastro */}
       {!showIntro && (
-        <div className="min-h-screen relative overflow-hidden">
+        <div className="min-h-screen relative overflow-x-hidden overflow-y-auto">
           {/* Vídeo de Fundo */}
           <video
             key={videoSrc}
@@ -916,8 +916,8 @@ export default function CadastroPublicoPage() {
               </motion.div>
 
               {/* Content Card com transparência */}
-              <Card className="shadow-2xl border-0 backdrop-blur-md" style={{ background: "rgba(255,255,255,0.95)" }}>
-                <CardContent className="p-4 sm:p-6">
+              <Card className="shadow-2xl border-0 backdrop-blur-md overflow-hidden" style={{ background: "rgba(255,255,255,0.95)" }}>
+                <CardContent className="p-4 sm:p-6 overflow-hidden">
                   <AnimatePresence mode="wait">
                     {renderContent()}
                   </AnimatePresence>

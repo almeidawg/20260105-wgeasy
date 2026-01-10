@@ -173,8 +173,11 @@ export default function DashboardPage() {
   }, []);
 
   const navigate = useNavigate();
-  const { usuario, loading: loadingUsuario } = useUsuarioLogado();
+  const { usuario, loading: loadingUsuario, isAdminOuMaster, isMaster, isAdmin } = useUsuarioLogado();
   const [loading, setLoading] = useState(true);
+
+  // Permissão para ver dados financeiros: Admin ou Master
+  const podeVerFinanceiro = isAdminOuMaster || isAdmin || isMaster || usuario?.tipo_usuario === "ADMIN" || usuario?.tipo_usuario === "MASTER";
 
   // Dados do financeiro pessoal do CEO
   const { data: dadosPessoais, loading: loadingPessoal } =
@@ -728,7 +731,14 @@ export default function DashboardPage() {
     // Carregar notas do Keep automaticamente (Service Account está sempre ativo)
     const autoConnectKeep = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/keep/notes`, {
+        // Passar email do usuário logado para buscar as notas dele
+        const userEmail = usuario?.google_workspace_email;
+        const url = userEmail
+          ? `${BACKEND_URL}/api/keep/notes?userEmail=${encodeURIComponent(userEmail)}`
+          : `${BACKEND_URL}/api/keep/notes`;
+
+        console.log("[Keep] Carregando notas para:", userEmail || "default");
+        const res = await fetch(url, {
           headers: { "x-internal-key": INTERNAL_API_KEY },
         });
         if (res.ok) {
@@ -747,8 +757,11 @@ export default function DashboardPage() {
       }
     };
 
-    autoConnectKeep();
-  }, []);
+    // Aguardar o usuário estar carregado antes de buscar as notas
+    if (!loadingUsuario) {
+      autoConnectKeep();
+    }
+  }, [usuario?.google_workspace_email, loadingUsuario]);
 
   // Carregar lista de clientes para o modal
   const carregarClientes = useCallback(async () => {
@@ -776,7 +789,13 @@ export default function DashboardPage() {
   const carregarNotasKeep = useCallback(async () => {
     setKeepStatus((prev) => ({ ...prev, loading: true }));
     try {
-      const res = await fetch(`${BACKEND_URL}/api/keep/notes`, {
+      // Passar email do usuário logado para buscar as notas dele
+      const userEmail = usuario?.google_workspace_email;
+      const url = userEmail
+        ? `${BACKEND_URL}/api/keep/notes?userEmail=${encodeURIComponent(userEmail)}`
+        : `${BACKEND_URL}/api/keep/notes`;
+
+      const res = await fetch(url, {
         headers: { "x-internal-key": INTERNAL_API_KEY },
       });
       if (!res.ok) throw new Error("Erro ao carregar notas");
@@ -795,7 +814,7 @@ export default function DashboardPage() {
         message: error.message || "Erro ao carregar notas",
       }));
     }
-  }, []);
+  }, [usuario?.google_workspace_email]);
 
   // Criar nova nota no Google Keep
   const handleCriarNota = useCallback(async () => {
@@ -803,10 +822,13 @@ export default function DashboardPage() {
 
     setCriandoNota(true);
     try {
+      // Usar email do Google Workspace do usuário logado para criar a nota
+      const userEmail = usuario?.google_workspace_email;
       const payload: any = {
         title: novaNota.titulo,
         clienteId: novaNota.clienteId || null,
         clienteNome: novaNota.clienteNome || null,
+        userEmail, // Email para impersonação
       };
 
       if (novaNota.tipo === "lista" && novaNota.itens.length > 0) {
@@ -816,6 +838,8 @@ export default function DashboardPage() {
       } else {
         payload.text = novaNota.texto;
       }
+
+      console.log("[Keep Create] Criando nota para:", userEmail || "default");
 
       const res = await fetch(`${BACKEND_URL}/api/keep/notes`, {
         method: "POST",
@@ -848,7 +872,7 @@ export default function DashboardPage() {
     } finally {
       setCriandoNota(false);
     }
-  }, [novaNota, carregarNotasKeep]);
+  }, [novaNota, carregarNotasKeep, usuario?.google_workspace_email]);
 
   // Testar conexão com Google Keep
   const handleTestarGoogleKeep = useCallback(async () => {
@@ -906,10 +930,18 @@ export default function DashboardPage() {
     setSalvandoNota(true);
     try {
       const noteId = encodeURIComponent(notaSelecionada.id);
+      const userEmail = usuario?.google_workspace_email;
       console.log("[Keep Delete] Deletando nota ID:", notaSelecionada.id, "-> encoded:", noteId);
+      console.log("[Keep Delete] userEmail:", userEmail || "default");
 
-      const res = await fetch(`/api/keep/notes/${noteId}`, {
+      // Incluir userEmail como query param para impersonação correta
+      const url = userEmail
+        ? `${BACKEND_URL}/api/keep/notes/${noteId}?userEmail=${encodeURIComponent(userEmail)}`
+        : `${BACKEND_URL}/api/keep/notes/${noteId}`;
+
+      const res = await fetch(url, {
         method: "DELETE",
+        headers: { "x-internal-key": INTERNAL_API_KEY },
       });
 
       if (res.ok) {
@@ -926,7 +958,7 @@ export default function DashboardPage() {
     } finally {
       setSalvandoNota(false);
     }
-  }, [notaSelecionada, handleFecharNota, carregarNotasKeep]);
+  }, [notaSelecionada, handleFecharNota, carregarNotasKeep, usuario?.google_workspace_email]);
 
   // Toggle item do checklist Keep
   const handleToggleKeepItem = useCallback((index: number) => {
@@ -964,11 +996,20 @@ export default function DashboardPage() {
 
     setSalvandoNota(true);
     try {
+      // Usar email do Google Workspace do usuário logado
+      const userEmail = usuario?.google_workspace_email;
+
       // 1. Deletar nota antiga
       const noteId = encodeURIComponent(notaSelecionada.id);
       console.log("[Keep Save] Deletando nota antiga ID:", notaSelecionada.id);
+      console.log("[Keep Save] userEmail:", userEmail || "default");
 
-      const deleteRes = await fetch(`${BACKEND_URL}/api/keep/notes/${noteId}`, {
+      // Incluir userEmail como query param para impersonação correta
+      const deleteUrl = userEmail
+        ? `${BACKEND_URL}/api/keep/notes/${noteId}?userEmail=${encodeURIComponent(userEmail)}`
+        : `${BACKEND_URL}/api/keep/notes/${noteId}`;
+
+      const deleteRes = await fetch(deleteUrl, {
         method: "DELETE",
         headers: { "x-internal-key": INTERNAL_API_KEY },
       });
@@ -982,6 +1023,7 @@ export default function DashboardPage() {
       // 2. Criar nova nota com os dados atualizados
       const payload: any = {
         title: notaEditada.titulo,
+        userEmail, // Email para impersonação
       };
 
       if (notaEditada.itens.length > 0) {
@@ -1013,7 +1055,7 @@ export default function DashboardPage() {
     } finally {
       setSalvandoNota(false);
     }
-  }, [notaSelecionada, notaEditada, handleFecharNota, carregarNotasKeep]);
+  }, [notaSelecionada, notaEditada, handleFecharNota, carregarNotasKeep, usuario?.google_workspace_email]);
 
   // Variação percentual
   const variacaoReceita = useMemo(() => {
@@ -1173,39 +1215,39 @@ export default function DashboardPage() {
         </header>
 
         {/* ====== ACESSO RÁPIDO (Logo abaixo do banner) ====== */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+        <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100">
+          <div className="grid grid-cols-4 gap-2 sm:flex sm:flex-wrap sm:gap-2 sm:justify-center lg:justify-start">
             <button
               type="button"
               onClick={() => navigate("/propostas")}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-200 rounded-lg transition-all"
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-200 rounded-lg transition-all"
             >
-              <FileText className="w-4 h-4 text-orange-500" />
-              <span className="text-sm text-gray-700">Propostas</span>
+              <FileText className="w-5 h-5 sm:w-4 sm:h-4 text-orange-500" />
+              <span className="text-[10px] sm:text-sm text-gray-700 whitespace-nowrap">Propostas</span>
             </button>
             <button
               type="button"
               onClick={() => navigate("/contratos")}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-lg transition-all"
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-lg transition-all"
             >
-              <Briefcase className="w-4 h-4 text-blue-500" />
-              <span className="text-sm text-gray-700">Contratos</span>
+              <Briefcase className="w-5 h-5 sm:w-4 sm:h-4 text-blue-500" />
+              <span className="text-[10px] sm:text-sm text-gray-700 whitespace-nowrap">Contratos</span>
             </button>
             <button
               type="button"
               onClick={() => navigate("/pessoas/clientes")}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-violet-50 border border-gray-200 hover:border-violet-200 rounded-lg transition-all"
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-50 hover:bg-violet-50 border border-gray-200 hover:border-violet-200 rounded-lg transition-all"
             >
-              <Users className="w-4 h-4 text-violet-500" />
-              <span className="text-sm text-gray-700">Clientes</span>
+              <Users className="w-5 h-5 sm:w-4 sm:h-4 text-violet-500" />
+              <span className="text-[10px] sm:text-sm text-gray-700 whitespace-nowrap">Clientes</span>
             </button>
             <button
               type="button"
               onClick={() => navigate("/cronograma")}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-cyan-50 border border-gray-200 hover:border-cyan-200 rounded-lg transition-all"
+              className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-50 hover:bg-cyan-50 border border-gray-200 hover:border-cyan-200 rounded-lg transition-all"
             >
-              <Calendar className="w-4 h-4 text-cyan-500" />
-              <span className="text-sm text-gray-700">Cronograma</span>
+              <Calendar className="w-5 h-5 sm:w-4 sm:h-4 text-cyan-500" />
+              <span className="text-[10px] sm:text-sm text-gray-700 whitespace-nowrap">Cron.</span>
             </button>
           </div>
         </div>
@@ -1306,7 +1348,7 @@ export default function DashboardPage() {
           </div>
 
           {/* COLUNA 2: Google Calendar (CENTRO) */}
-          <GoogleCalendarWidget />
+          <GoogleCalendarWidget userEmail={usuario?.google_workspace_email || undefined} />
 
           {/* COLUNA 3: Google Keep (Substituiu CEO Checklist) */}
           <div className={`rounded-2xl p-6 shadow-sm border transition-all h-full flex flex-col ${
@@ -1871,7 +1913,8 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* ====== TERCEIRA LINHA: DASHBOARD FINANCEIRO ====== */}
+        {/* ====== TERCEIRA LINHA: DASHBOARD FINANCEIRO (apenas Admin/Master) ====== */}
+        {podeVerFinanceiro && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           {/* Header com título e filtros de período */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -2121,12 +2164,14 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* ====== GRID PRINCIPAL (Gráficos e Detalhes) ====== */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* COLUNA ESQUERDA - Gráficos e Núcleos */}
           <div className="lg:col-span-8 space-y-6">
-            {/* Despesas por Núcleo */}
+            {/* Despesas por Núcleo (apenas Admin/Master) */}
+            {podeVerFinanceiro && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Despesas por Núcleo
@@ -2212,6 +2257,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Propostas */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -2263,7 +2309,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* ====== MINHAS FINANÇAS PESSOAIS ====== */}
+            {/* ====== MINHAS FINANÇAS PESSOAIS (apenas CEO/Master) ====== */}
+            {isMaster && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -2476,6 +2523,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+            )}
           </div>
 
           {/* COLUNA DIREITA - Alertas */}
@@ -2533,8 +2581,12 @@ export default function DashboardPage() {
         {/* ====== FOOTER ====== */}
         <footer className="pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-gray-100 overflow-hidden p-1">
+              <img
+                src="/imagens/logoscomfundotransparente/simbolo%20marcadores.png"
+                alt="WG"
+                className="w-full h-full object-contain"
+              />
             </div>
             <p className="text-sm text-gray-500">
               WG Easy · Dashboard Executivo

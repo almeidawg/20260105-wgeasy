@@ -300,14 +300,17 @@ export async function quickAdd(
 /**
  * Cria cliente Calendar com Service Account + Domain-wide Delegation
  * Usa chave específica do Calendar (GOOGLE_CALENDAR_SERVICE_ACCOUNT_KEY)
+ * @param userEmail Email do usuário Workspace para impersonar (opcional, usa default se não informado)
  */
-function createCalendarServiceAccountClient() {
-  if (!CALENDAR_USER_EMAIL) {
+function createCalendarServiceAccountClient(userEmail?: string) {
+  const targetEmail = userEmail || CALENDAR_USER_EMAIL;
+
+  if (!targetEmail) {
     return null;
   }
 
   // Usa chave específica do Calendar, com fallback para a chave padrão
-  const auth = createServiceAccountClientForService(CALENDAR_SCOPES, 'calendar', CALENDAR_USER_EMAIL);
+  const auth = createServiceAccountClientForService(CALENDAR_SCOPES, 'calendar', targetEmail);
   if (!auth) {
     return null;
   }
@@ -324,6 +327,9 @@ export function isServiceAccountConfigured(): boolean {
 
 /**
  * Lista eventos usando Service Account (sempre ativo, sem login)
+ * @param calendarId ID do calendário (default: 'primary')
+ * @param options Opções de filtro
+ * @param userEmail Email do usuário Workspace para impersonar (opcional)
  */
 export async function listEventsWithServiceAccount(
   calendarId: string = 'primary',
@@ -331,12 +337,15 @@ export async function listEventsWithServiceAccount(
     timeMin?: string;
     timeMax?: string;
     maxResults?: number;
-  }
+  },
+  userEmail?: string
 ): Promise<CalendarEvent[]> {
-  const auth = createCalendarServiceAccountClient();
+  const auth = createCalendarServiceAccountClient(userEmail);
   if (!auth) {
     throw new Error('Service Account não configurada para Calendar');
   }
+
+  console.log('[Calendar] Listando eventos para:', userEmail || 'default');
 
   try {
     const response = await calendar.events.list({

@@ -1,0 +1,146 @@
+{
+  "backend": [
+    {
+      "test": "Health Check",
+      "status": "PASS"
+    },
+    {
+      "test": "Email Service",
+      "status": "PASS"
+    },
+    {
+      "test": "OpenAI Proxy",
+      "status": "PASS"
+    }
+  ],
+  "frontend": [
+    {
+      "category": "LOGIN & AUTENTICAÇÃO",
+      "items": [
+        "[ ] Tela de login responsiva no mobile",
+        "[ ] Campos de email/senha alinhados corretamente",
+        "[ ] Botão de login visível e clicável",
+        "[ ] Mensagens de erro visíveis (não atrás de elementos)",
+        "[ ] Logo centralizada e proporcional",
+        "[ ] Link \"Esqueci minha senha\" funcional"
+      ]
+    },
+    {
+      "category": "DASHBOARD",
+      "items": [
+        "[ ] Cards de métricas com tamanhos consistentes",
+        "[ ] Gráficos responsivos",
+        "[ ] Widget de Calendar carregando corretamente",
+        "[ ] Widget de Keep carregando corretamente",
+        "[ ] Sidebar não sobrepõe conteúdo no mobile",
+        "[ ] Menu hamburguer funcional no mobile"
+      ]
+    },
+    {
+      "category": "NOTIFICAÇÕES",
+      "items": [
+        "[ ] Sino de notificação visível no header",
+        "[ ] Badge de contagem atualiza corretamente",
+        "[ ] Dropdown de notificações abre corretamente",
+        "[ ] TÍTULO das notificações visível (não em branco)",
+        "[ ] MENSAGEM das notificações visível (não em branco)",
+        "[ ] Clique na notificação navega para a ação",
+        "[ ] \"Marcar todas como lidas\" funciona"
+      ]
+    },
+    {
+      "category": "CALENDÁRIO",
+      "items": [
+        "[ ] Calendário carrega sem erro 500",
+        "[ ] Eventos aparecem nos dias corretos",
+        "[ ] Cores dos eventos corretas",
+        "[ ] Modal de criar evento abre",
+        "[ ] Modal de criar evento fecha corretamente",
+        "[ ] Evento criado aparece no calendário",
+        "[ ] Navegação entre meses funciona"
+      ]
+    },
+    {
+      "category": "GOOGLE KEEP",
+      "items": [
+        "[ ] Notas carregam corretamente",
+        "[ ] Checklist renderiza com checkboxes",
+        "[ ] Checkbox clicável para marcar/desmarcar",
+        "[ ] Criar nova nota funciona",
+        "[ ] Deletar nota funciona",
+        "[ ] Compartilhar nota funciona"
+      ]
+    },
+    {
+      "category": "LAYOUT & RESPONSIVIDADE",
+      "items": [
+        "[ ] Textos não ultrapassam containers",
+        "[ ] Ícones não sobrepõem textos",
+        "[ ] Botões clicáveis com tamanho adequado",
+        "[ ] Scroll funciona em todas as áreas",
+        "[ ] Modais centralizados e não cortados",
+        "[ ] Tabelas com scroll horizontal no mobile",
+        "[ ] Fontes legíveis em todas as telas"
+      ]
+    },
+    {
+      "category": "CORES & CONSISTÊNCIA",
+      "items": [
+        "[ ] Laranja WG (#F25C26) como cor primária",
+        "[ ] Botões primários com cor laranja",
+        "[ ] Links com cor consistente",
+        "[ ] Estados hover visíveis",
+        "[ ] Estados disabled distintos",
+        "[ ] Contraste adequado para leitura"
+      ]
+    },
+    {
+      "category": "FORMULÁRIOS",
+      "items": [
+        "[ ] Labels alinhados com inputs",
+        "[ ] Campos obrigatórios marcados",
+        "[ ] Validação exibe mensagens claras",
+        "[ ] Botões de submit desabilitados durante loading",
+        "[ ] Feedback de sucesso/erro após submit"
+      ]
+    }
+  ],
+  "integrations": [],
+  "security": [],
+  "mobile": [],
+  "notifications": [],
+  "calendar": [
+    {
+      "test": "SA Config",
+      "status": "PASS"
+    },
+    {
+      "test": "List Events",
+      "status": "FAIL",
+      "error": "unauthorized_client: Client is unauthorized to retrieve access tokens using this method, or client not authorized for any of the scopes requested.",
+      "solution": "Configure Domain-wide Delegation no Google Workspace Admin Console"
+    }
+  ],
+  "drive": [
+    {
+      "test": "List Files",
+      "status": "PASS",
+      "count": 23
+    },
+    {
+      "test": "Find Folder",
+      "status": "PASS"
+    }
+  ],
+  "keep": [
+    {
+      "test": "SA Config",
+      "status": "PASS"
+    },
+    {
+      "test": "List Notes",
+      "status": "PASS",
+      "count": 1
+    }
+  ]
+}

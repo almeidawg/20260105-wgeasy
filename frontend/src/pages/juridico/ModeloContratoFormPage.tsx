@@ -31,6 +31,8 @@ import { listarEmpresas as listarEmpresasGrupo } from "@/lib/empresasApi";
 
 type NucleoContrato = "arquitetura" | "engenharia" | "marcenaria" | "produtos" | "materiais" | "empreitada" | "geral";
 
+type TipoModelo = "novo_contrato" | "revisao" | "auditoria";
+
 type Clausula = {
   numero: number;
   titulo: string;
@@ -82,6 +84,12 @@ const TIPOS_CLAUSULA = [
   { value: "personalizada", label: "Cláusula Personalizada" },
 ];
 
+const TIPOS_MODELO = [
+  { value: "novo_contrato", label: "Novo Contrato", cor: "#10B981", icone: "📄" },
+  { value: "revisao", label: "Revisão", cor: "#3B82F6", icone: "🔄" },
+  { value: "auditoria", label: "Auditoria", cor: "#8B5CF6", icone: "🔍" },
+];
+
 /* ==================== COMPONENTE PRINCIPAL ==================== */
 
 export default function ModeloContratoFormPage() {
@@ -97,10 +105,14 @@ export default function ModeloContratoFormPage() {
     descricao: "",
     empresa_id: "",
     nucleo: "geral" as NucleoContrato,
+    tipo_modelo: "novo_contrato" as TipoModelo,
     conteudo_html: "",
     prazo_execucao_padrao: 90,
     prorrogacao_padrao: 30,
   });
+
+  // Modo simplificado - apenas informações básicas
+  const [modoSimplificado, setModoSimplificado] = useState(true);
 
   const [clausulas, setClausulas] = useState<Clausula[]>([]);
   const [variaveisObrigatorias, setVariaveisObrigatorias] = useState<string[]>([]);
@@ -152,7 +164,8 @@ export default function ModeloContratoFormPage() {
             descricao: modelo.descricao || "",
             empresa_id: modelo.empresa_id || "",
             nucleo: modelo.nucleo,
-            conteudo_html: modelo.conteudo_html,
+            tipo_modelo: modelo.tipo_modelo || "novo_contrato",
+            conteudo_html: modelo.conteudo_html || "",
             prazo_execucao_padrao: modelo.prazo_execucao_padrao,
             prorrogacao_padrao: modelo.prorrogacao_padrao,
           });
@@ -272,8 +285,9 @@ export default function ModeloContratoFormPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!formData.codigo || !formData.nome || !formData.conteudo_html) {
-      alert("Preencha todos os campos obrigatórios.");
+    // Validação simplificada - apenas código e nome são obrigatórios
+    if (!formData.codigo || !formData.nome) {
+      alert("Preencha o código e o nome do modelo.");
       return;
     }
 
@@ -284,6 +298,7 @@ export default function ModeloContratoFormPage() {
       const dadosModelo = {
         ...formData,
         empresa_id: formData.empresa_id || null,
+        conteudo_html: formData.conteudo_html || "",
         clausulas,
         variaveis_obrigatorias: variaveisObrigatorias,
         criado_por: user?.id,
@@ -437,6 +452,43 @@ export default function ModeloContratoFormPage() {
                   />
                 </div>
 
+                {/* CLASSIFICAÇÃO POR TIPO */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-3">Classificação do Modelo *</label>
+                  <div className="flex flex-wrap gap-3">
+                    {TIPOS_MODELO.map((tipo) => (
+                      <label
+                        key={tipo.value}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 cursor-pointer transition-all ${
+                          formData.tipo_modelo === tipo.value
+                            ? "border-[#F25C26] bg-[#F25C26]/5"
+                            : "border-gray-200 hover:border-gray-300 bg-white"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="tipo_modelo"
+                          value={tipo.value}
+                          checked={formData.tipo_modelo === tipo.value}
+                          onChange={(e) => setFormData({ ...formData, tipo_modelo: e.target.value as TipoModelo })}
+                          className="sr-only"
+                        />
+                        <span className="text-lg">{tipo.icone}</span>
+                        <span
+                          className={`font-medium text-sm ${
+                            formData.tipo_modelo === tipo.value ? "text-[#F25C26]" : "text-gray-700"
+                          }`}
+                        >
+                          {tipo.label}
+                        </span>
+                        {formData.tipo_modelo === tipo.value && (
+                          <Check className="h-4 w-4 text-[#F25C26]" />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Empresa (Contratada)</label>
                   <select
@@ -477,7 +529,31 @@ export default function ModeloContratoFormPage() {
               </div>
             </div>
 
-            {/* TABS DO EDITOR */}
+            {/* TOGGLE PARA MODO AVANÇADO */}
+            <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Code className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-700">Modo avançado (Editor de conteúdo)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModoSimplificado(!modoSimplificado)}
+                aria-label={modoSimplificado ? "Ativar modo avançado" : "Desativar modo avançado"}
+                title={modoSimplificado ? "Ativar modo avançado" : "Desativar modo avançado"}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  !modoSimplificado ? "bg-[#F25C26]" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    !modoSimplificado ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* TABS DO EDITOR - Apenas no modo avançado */}
+            {!modoSimplificado && (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="flex border-b border-gray-200">
                 {[
@@ -778,6 +854,7 @@ export default function ModeloContratoFormPage() {
                 )}
               </div>
             </div>
+            )}
           </div>
 
           {/* COLUNA LATERAL */}

@@ -377,6 +377,9 @@ const TermoAceitePage = lazy(
   () => import("@/pages/termo-aceite/TermoAceitePage")
 );
 const GarantiaPage = lazy(() => import("@/pages/garantia/GarantiaPage"));
+const FornecedoresObraPage = lazy(
+  () => import("@/pages/cliente/FornecedoresObraPage")
+);
 
 /* ===================== LAZY IMPORTS - PÚBLICO ===================== */
 const CadastroPublicoPage = lazy(
@@ -662,6 +665,7 @@ export default function App() {
             <Route path="assistencia" element={<AssistenciaPage />} />
             <Route path="termos" element={<TermoAceitePage />} />
             <Route path="garantia" element={<GarantiaPage />} />
+            <Route path="fornecedores" element={<FornecedoresObraPage />} />
           </Route>
 
           {/* ÁREA DO COLABORADOR - EXCLUSIVA PARA COLABORADORES INTERNOS WG */}

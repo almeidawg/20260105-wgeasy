@@ -22,6 +22,7 @@ import {
   Layers,
   FileUp,
   Calculator,
+  ClipboardPaste,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
@@ -35,6 +36,7 @@ import {
 } from "./components/shared/ItemMaterialCard";
 import { ResumoTotais } from "./components/shared/ResumoTotais";
 import ImportarPedidoFornecedor from "./components/wizard/ImportarPedidoFornecedor";
+import ImportarOrcamentoFornecedorModal from "@/components/planejamento/ImportarOrcamentoFornecedorModal";
 
 // APIs
 import {
@@ -184,6 +186,9 @@ export default function NovoPedidoPage() {
 
   // Envio
   const [enviando, setEnviando] = useState(false);
+
+  // Modal de importação de orçamento
+  const [modalImportarOrcamento, setModalImportarOrcamento] = useState(false);
 
   // ============================================================
   // FUNÇÕES DE BUSCA
@@ -706,24 +711,53 @@ export default function NovoPedidoPage() {
 
                   {/* IMPORTAR */}
                   {fonteSelecionada === "importar" && (
-                    <ImportarPedidoFornecedor
-                      onImportarItens={(itensImportados) => {
-                        // Adicionar itens importados ao pedido
-                        setItensPedido((prev) => [
-                          ...prev,
-                          ...itensImportados.map((item) => ({
-                            ...item,
-                            id: `imp_${Date.now()}_${Math.random()
-                              .toString(36)
-                              .substr(2, 9)}`,
-                          })),
-                        ]);
-                        toast({
-                          title: "Itens importados!",
-                          description: `${itensImportados.length} itens adicionados ao pedido.`,
-                        });
-                      }}
-                    />
+                    <div className="space-y-4">
+                      {/* Botão para colar orçamento */}
+                      <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-200">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <ClipboardPaste className="w-6 h-6 text-[#F25C26]" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 mb-1">
+                              Colar Orçamento de Fornecedor
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                              Cole o texto do orçamento (GDSUL, MARACA, ZONA SUL, SALVABRAS, etc.)
+                              e extraia automaticamente os dados para cadastrar no pricelist.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setModalImportarOrcamento(true)}
+                              className="px-4 py-2 bg-[#F25C26] text-white rounded-lg font-medium hover:bg-[#e04a1a] transition-colors flex items-center gap-2"
+                            >
+                              <ClipboardPaste className="w-4 h-4" />
+                              Colar Orçamento
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Importar PDF (funcionalidade existente) */}
+                      <ImportarPedidoFornecedor
+                        onImportarItens={(itensImportados) => {
+                          // Adicionar itens importados ao pedido
+                          setItensPedido((prev) => [
+                            ...prev,
+                            ...itensImportados.map((item) => ({
+                              ...item,
+                              id: `imp_${Date.now()}_${Math.random()
+                                .toString(36)
+                                .substr(2, 9)}`,
+                            })),
+                          ]);
+                          toast({
+                            title: "Itens importados!",
+                            description: `${itensImportados.length} itens adicionados ao pedido.`,
+                          });
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -919,6 +953,32 @@ export default function NovoPedidoPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Importação de Orçamento de Fornecedor */}
+      <ImportarOrcamentoFornecedorModal
+        open={modalImportarOrcamento}
+        onClose={() => setModalImportarOrcamento(false)}
+        onImportar={(itensImportados, fornecedorId) => {
+          // Converter itens para o formato esperado
+          const novosItens: ItemMaterial[] = itensImportados.map((item) => ({
+            id: item.id,
+            descricao: item.descricao,
+            classificacao: "INSUMO",
+            quantidade: item.quantidade,
+            unidade: item.unidade,
+            preco_unitario: item.precoUnitario,
+            valor_total: item.valorTotal,
+            origem: "importado",
+            pricelist_item_id: item.pricelistItemId,
+          }));
+
+          setItensPedido((prev) => [...prev, ...novosItens]);
+          toast({
+            title: "Itens importados!",
+            description: `${novosItens.length} itens adicionados ao pedido.`,
+          });
+        }}
+      />
     </div>
   );
 }

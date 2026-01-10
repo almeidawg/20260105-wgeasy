@@ -6,7 +6,7 @@
 // ============================================================
 
 import { google } from "googleapis";
-import { createServiceAccountClient } from "./googleAuth";
+import { createServiceAccountClientForService } from "./googleAuth";
 
 const KEEP_SCOPES = [
   "https://www.googleapis.com/auth/keep",
@@ -27,23 +27,29 @@ interface KeepListItem {
 
 /**
  * Cria cliente autenticado do Google Keep
+ * Usa Service Account com Domain-wide Delegation para impersonar o usuário
+ * @param userEmail Email do usuário Workspace para impersonar (opcional, usa default se não informado)
  */
-function createKeepClient() {
-  if (!KEEP_USER_EMAIL) {
+function createKeepClient(userEmail?: string) {
+  const targetEmail = userEmail || KEEP_USER_EMAIL;
+
+  if (!targetEmail) {
     throw new Error(
-      "GOOGLE_KEEP_USER_EMAIL não configurado. Defina o email do usuário Workspace para impersonar."
+      "Email do usuário Workspace não informado e GOOGLE_KEEP_USER_EMAIL não configurado."
     );
   }
 
-  const auth = createServiceAccountClient(KEEP_SCOPES);
+  console.log("[Keep] Criando cliente para usuário:", targetEmail);
+
+  // Usa chave específica do Keep (GOOGLE_KEEP_SERVICE_ACCOUNT_KEY)
+  // Se não existir, cai para a chave padrão (GOOGLE_SERVICE_ACCOUNT_KEY)
+  // O subject é passado na criação do JWT para impersonação correta
+  const auth = createServiceAccountClientForService(KEEP_SCOPES, 'keep', targetEmail);
   if (!auth) {
     throw new Error(
-      "Service Account não configurada. Configure GOOGLE_SERVICE_ACCOUNT_KEY no .env"
+      "Service Account não configurada para Keep. Configure GOOGLE_KEEP_SERVICE_ACCOUNT_KEY ou GOOGLE_SERVICE_ACCOUNT_KEY no .env"
     );
   }
-
-  // Definir o subject (usuário a impersonar)
-  auth.subject = KEEP_USER_EMAIL;
 
   return google.keep({ version: "v1", auth });
 }
@@ -51,9 +57,10 @@ function createKeepClient() {
 /**
  * Lista notas do Google Keep filtradas pelo prefixo WG-Easy
  * @param includeAll Se true, retorna todas as notas (para debug)
+ * @param userEmail Email do usuário Workspace para impersonar (opcional)
  */
-export async function listNotes(includeAll: boolean = false): Promise<any[]> {
-  const keep = createKeepClient();
+export async function listNotes(includeAll: boolean = false, userEmail?: string): Promise<any[]> {
+  const keep = createKeepClient(userEmail);
 
   const response = await keep.notes.list({
     pageSize: 100,
@@ -95,9 +102,11 @@ export async function listNotes(includeAll: boolean = false): Promise<any[]> {
 
 /**
  * Obtém uma nota específica por ID
+ * @param noteId ID da nota
+ * @param userEmail Email do usuário Workspace para impersonar (opcional)
  */
-export async function getNote(noteId: string): Promise<any> {
-  const keep = createKeepClient();
+export async function getNote(noteId: string, userEmail?: string): Promise<any> {
+  const keep = createKeepClient(userEmail);
 
   const response = await keep.notes.get({
     name: `notes/${noteId}`,
@@ -116,13 +125,15 @@ export async function getNote(noteId: string): Promise<any> {
 
 /**
  * Cria uma nova nota com prefixo WG-Easy
+ * @param data Dados da nota (título, texto, itens)
+ * @param userEmail Email do usuário Workspace para impersonar (opcional)
  */
 export async function createNote(data: {
   title: string;
   text?: string;
   items?: Array<{ text: string; checked?: boolean }>;
-}): Promise<any> {
-  const keep = createKeepClient();
+}, userEmail?: string): Promise<any> {
+  const keep = createKeepClient(userEmail);
 
   // Adicionar prefixo WG-Easy ao título (se ainda não tiver)
   let finalTitle = data.title || "Sem título";
@@ -168,9 +179,11 @@ export async function createNote(data: {
 
 /**
  * Deleta uma nota
+ * @param noteId ID da nota a ser deletada
+ * @param userEmail Email do usuário Workspace para impersonar (opcional)
  */
-export async function deleteNote(noteId: string): Promise<boolean> {
-  const keep = createKeepClient();
+export async function deleteNote(noteId: string, userEmail?: string): Promise<boolean> {
+  const keep = createKeepClient(userEmail);
 
   // Garantir que o noteId não tenha o prefixo "notes/" duplicado
   const cleanId = noteId.replace(/^notes\//, "");

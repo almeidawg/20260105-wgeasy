@@ -1,7 +1,7 @@
 // ============================================================
 // WIDGET: Google Calendar para Dashboard
 // Sistema WG Easy - Grupo WG Almeida
-// Calendario mensal com sincronizacao Google Calendar
+// Calendario compacto (2 semanas) com sincronizacao Google Calendar
 // Usa Service Account (sempre ativo, sem login)
 // ============================================================
 
@@ -16,6 +16,8 @@ import {
   isToday,
   addMonths,
   subMonths,
+  addWeeks,
+  subWeeks,
   startOfWeek,
   endOfWeek,
   parseISO,
@@ -33,6 +35,8 @@ import {
   Clock,
   MapPin,
   ExternalLink,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import NovoEventoModal from './NovoEventoModal';
 import { getCalendarSAStatus, getCalendarSAEvents } from '@/lib/apiSecure';
@@ -58,6 +62,7 @@ interface GoogleCalendarEvent {
 }
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+const DIAS_SEMANA_CURTO = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
 // Cores para eventos baseado no colorId do Google
 const EVENT_COLORS: Record<string, string> = {
@@ -75,9 +80,15 @@ const EVENT_COLORS: Record<string, string> = {
   default: '#F25C26', // WG Orange
 };
 
-export default function GoogleCalendarWidget() {
+interface GoogleCalendarWidgetProps {
+  userEmail?: string;
+  defaultCompact?: boolean; // Modo compacto por padrao
+}
+
+export default function GoogleCalendarWidget({ userEmail, defaultCompact = true }: GoogleCalendarWidgetProps) {
   const [mesAtual, setMesAtual] = useState(new Date());
   const [diaSelecionado, setDiaSelecionado] = useState<Date | null>(null);
+  const [modoCompacto, setModoCompacto] = useState(defaultCompact); // Modo compacto (2 semanas)
   const [eventos, setEventos] = useState<GoogleCalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [conectado, setConectado] = useState(false);
@@ -135,10 +146,13 @@ export default function GoogleCalendarWidget() {
       const inicioMes = startOfMonth(mesAtual);
       const fimMes = endOfMonth(mesAtual);
 
+      console.log('[GoogleCalendarWidget] Carregando eventos para:', userEmail || 'default');
+
       const data = await getCalendarSAEvents({
         timeMin: inicioMes.toISOString(),
         timeMax: fimMes.toISOString(),
         maxResults: 100,
+        userEmail,
       });
 
       if (data.events) {
@@ -152,7 +166,7 @@ export default function GoogleCalendarWidget() {
     } finally {
       setLoading(false);
     }
-  }, [mesAtual]);
+  }, [mesAtual, userEmail]);
 
   // Abrir modal para novo evento
   const handleNovoEvento = (data?: Date) => {
@@ -181,15 +195,39 @@ export default function GoogleCalendarWidget() {
     carregarEventos();
   };
 
-  // Gerar dias do calendario
+  // Gerar dias do calendario (compacto = 2 semanas, completo = mes inteiro)
   const diasCalendario = useMemo(() => {
-    const inicioMes = startOfMonth(mesAtual);
-    const fimMes = endOfMonth(mesAtual);
-    const inicioCalendario = startOfWeek(inicioMes, { locale: ptBR });
-    const fimCalendario = endOfWeek(fimMes, { locale: ptBR });
+    if (modoCompacto) {
+      // Modo compacto: semana atual + proxima semana
+      const inicioSemana = startOfWeek(mesAtual, { locale: ptBR });
+      const fimSegundaSemana = endOfWeek(addWeeks(mesAtual, 1), { locale: ptBR });
+      return eachDayOfInterval({ start: inicioSemana, end: fimSegundaSemana });
+    } else {
+      // Modo completo: mes inteiro
+      const inicioMes = startOfMonth(mesAtual);
+      const fimMes = endOfMonth(mesAtual);
+      const inicioCalendario = startOfWeek(inicioMes, { locale: ptBR });
+      const fimCalendario = endOfWeek(fimMes, { locale: ptBR });
+      return eachDayOfInterval({ start: inicioCalendario, end: fimCalendario });
+    }
+  }, [mesAtual, modoCompacto]);
 
-    return eachDayOfInterval({ start: inicioCalendario, end: fimCalendario });
-  }, [mesAtual]);
+  // Navegacao: avanca/retrocede 1 semana no modo compacto, 1 mes no modo completo
+  const navegarAnterior = () => {
+    if (modoCompacto) {
+      setMesAtual(subWeeks(mesAtual, 1));
+    } else {
+      setMesAtual(subMonths(mesAtual, 1));
+    }
+  };
+
+  const navegarProximo = () => {
+    if (modoCompacto) {
+      setMesAtual(addWeeks(mesAtual, 1));
+    } else {
+      setMesAtual(addMonths(mesAtual, 1));
+    }
+  };
 
   // Mapear eventos por data
   const eventosPorDia = useMemo(() => {
@@ -217,8 +255,18 @@ export default function GoogleCalendarWidget() {
   // Formatar hora do evento
   const formatarHora = (evento: GoogleCalendarEvent) => {
     const dataHora = evento.start.dateTime;
-    if (!dataHora) return 'Dia inteiro';
+    if (!dataHora) return null; // Retorna null para eventos de dia inteiro
     return format(parseISO(dataHora), 'HH:mm', { locale: ptBR });
+  };
+
+  // Formatar texto do evento para exibição no calendário
+  const formatarTextoEvento = (evento: GoogleCalendarEvent) => {
+    const hora = formatarHora(evento);
+    const titulo = evento.summary || 'Sem título';
+    if (hora) {
+      return `${hora} ${titulo}`;
+    }
+    return titulo; // Para eventos de dia inteiro, mostra só o título
   };
 
   // Obter cor do evento
@@ -295,54 +343,64 @@ export default function GoogleCalendarWidget() {
   return (
     <>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-[#F25C26] to-[#FF7A45] text-white">
+        {/* Header Compacto */}
+        <div className={`px-4 ${modoCompacto ? 'py-2.5' : 'py-4'} bg-gradient-to-r from-[#F25C26] to-[#FF7A45] text-white`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-white/20">
-                <CalendarIcon className="w-5 h-5" />
+            <div className="flex items-center gap-2">
+              <div className={`${modoCompacto ? 'p-1.5' : 'p-2'} rounded-xl bg-white/20`}>
+                <CalendarIcon className={modoCompacto ? 'w-4 h-4' : 'w-5 h-5'} />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">
-                  {format(mesAtual, 'MMMM yyyy', { locale: ptBR })}
+                <h3 className={`${modoCompacto ? 'text-sm' : 'text-lg'} font-semibold`}>
+                  {modoCompacto
+                    ? format(mesAtual, "dd MMM", { locale: ptBR }) + ' - ' + format(addWeeks(mesAtual, 1), "dd MMM", { locale: ptBR })
+                    : format(mesAtual, 'MMMM yyyy', { locale: ptBR })
+                  }
                 </h3>
-                <p className="text-sm text-white/80">Google Calendar</p>
+                {!modoCompacto && <p className="text-sm text-white/80">Google Calendar</p>}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => carregarEventos()}
                 disabled={loading}
-                className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+                className={`${modoCompacto ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-white/20 transition-colors`}
                 title="Atualizar"
               >
-                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`${modoCompacto ? 'w-4 h-4' : 'w-5 h-5'} ${loading ? 'animate-spin' : ''}`} />
               </button>
               <button
-                onClick={() => setMesAtual(subMonths(mesAtual, 1))}
-                className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+                onClick={navegarAnterior}
+                className={`${modoCompacto ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-white/20 transition-colors`}
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className={modoCompacto ? 'w-4 h-4' : 'w-5 h-5'} />
               </button>
               <button
                 onClick={() => setMesAtual(new Date())}
-                className="px-3 py-1.5 text-sm rounded-lg hover:bg-white/20 transition-colors"
+                className={`${modoCompacto ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} rounded-lg hover:bg-white/20 transition-colors`}
               >
                 Hoje
               </button>
               <button
-                onClick={() => setMesAtual(addMonths(mesAtual, 1))}
-                className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+                onClick={navegarProximo}
+                className={`${modoCompacto ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-white/20 transition-colors`}
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className={modoCompacto ? 'w-4 h-4' : 'w-5 h-5'} />
+              </button>
+              <button
+                onClick={() => setModoCompacto(!modoCompacto)}
+                className={`${modoCompacto ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-white/20 transition-colors`}
+                title={modoCompacto ? 'Expandir (mês)' : 'Compactar (2 semanas)'}
+              >
+                {modoCompacto ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-5 h-5" />}
               </button>
               <button
                 onClick={() => handleNovoEvento()}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                className={`${modoCompacto ? 'p-1.5' : 'p-2'} rounded-lg bg-white/20 hover:bg-white/30 transition-colors`}
                 title="Novo Evento"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className={modoCompacto ? 'w-4 h-4' : 'w-5 h-5'} />
               </button>
             </div>
           </div>
@@ -357,10 +415,10 @@ export default function GoogleCalendarWidget() {
 
         {/* Dias da Semana */}
         <div className="grid grid-cols-7 border-b border-gray-200">
-          {DIAS_SEMANA.map((dia) => (
+          {(modoCompacto ? DIAS_SEMANA_CURTO : DIAS_SEMANA).map((dia, idx) => (
             <div
-              key={dia}
-              className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"
+              key={idx}
+              className={`${modoCompacto ? 'px-1 py-1.5' : 'px-2 py-3'} text-center text-xs font-semibold text-gray-500 uppercase tracking-wider`}
             >
               {dia}
             </div>
@@ -375,6 +433,7 @@ export default function GoogleCalendarWidget() {
             const isMesAtual = isSameMonth(dia, mesAtual);
             const isHoje = isToday(dia);
             const isSelecionado = diaSelecionado && isSameDay(dia, diaSelecionado);
+            const maxEventos = modoCompacto ? 2 : 3;
 
             return (
               <button
@@ -383,48 +442,51 @@ export default function GoogleCalendarWidget() {
                 onClick={() => setDiaSelecionado(dia)}
                 onDoubleClick={() => handleNovoEvento(dia)}
                 className={`
-                  min-h-[90px] p-2 border-b border-r border-gray-100 text-left transition-all
+                  ${modoCompacto ? 'min-h-[60px] p-1' : 'min-h-[90px] p-2'} border-b border-r border-gray-100 text-left transition-all
                   hover:bg-gray-50
                   ${!isMesAtual ? 'bg-gray-50/50 text-gray-400' : ''}
                   ${isSelecionado ? 'bg-orange-50 ring-2 ring-[#F25C26] ring-inset' : ''}
                 `}
               >
                 {/* Numero do dia */}
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-0.5">
                   <span
                     className={`
-                      w-7 h-7 flex items-center justify-center text-sm font-medium rounded-full
+                      ${modoCompacto ? 'w-5 h-5 text-xs' : 'w-7 h-7 text-sm'} flex items-center justify-center font-medium rounded-full
                       ${isHoje ? 'bg-[#F25C26] text-white' : ''}
                       ${!isHoje && isMesAtual ? 'text-gray-900' : ''}
                     `}
                   >
                     {format(dia, 'd')}
                   </span>
+                  {modoCompacto && eventosNoDia.length > 0 && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#F25C26]" />
+                  )}
                 </div>
 
                 {/* Eventos */}
-                <div className="space-y-1">
-                  {eventosNoDia.slice(0, 3).map((evento) => (
+                <div className={modoCompacto ? 'space-y-0.5' : 'space-y-1'}>
+                  {eventosNoDia.slice(0, maxEventos).map((evento) => (
                     <div
                       key={evento.id}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEditarEvento(evento);
                       }}
-                      className="text-xs px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity"
+                      className={`${modoCompacto ? 'text-[10px] px-1 py-0' : 'text-xs px-1.5 py-0.5'} rounded truncate cursor-pointer hover:opacity-80 transition-opacity`}
                       style={{
                         backgroundColor: `${getEventColor(evento)}20`,
                         color: getEventColor(evento),
-                        borderLeft: `3px solid ${getEventColor(evento)}`,
+                        borderLeft: `2px solid ${getEventColor(evento)}`,
                       }}
-                      title={evento.summary}
+                      title={evento.summary || 'Sem título'}
                     >
-                      {formatarHora(evento)} {evento.summary}
+                      {modoCompacto ? (formatarHora(evento) || '•') : formatarTextoEvento(evento)}
                     </div>
                   ))}
-                  {eventosNoDia.length > 3 && (
-                    <div className="text-xs text-gray-500 pl-1.5">
-                      +{eventosNoDia.length - 3} mais
+                  {eventosNoDia.length > maxEventos && (
+                    <div className={`${modoCompacto ? 'text-[10px]' : 'text-xs'} text-gray-500 pl-1`}>
+                      +{eventosNoDia.length - maxEventos}
                     </div>
                   )}
                 </div>
@@ -435,60 +497,55 @@ export default function GoogleCalendarWidget() {
 
         {/* Detalhes do Dia Selecionado */}
         {diaSelecionado && (
-          <div className="border-t border-gray-200 p-4 bg-gray-50">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-gray-900">
-                {format(diaSelecionado, "EEEE, d 'de' MMMM", { locale: ptBR })}
+          <div className={`border-t border-gray-200 ${modoCompacto ? 'p-2' : 'p-4'} bg-gray-50`}>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className={`${modoCompacto ? 'text-xs' : 'text-sm'} font-semibold text-gray-900`}>
+                {format(diaSelecionado, modoCompacto ? "EEE, d MMM" : "EEEE, d 'de' MMMM", { locale: ptBR })}
               </h4>
               <button
                 onClick={() => handleNovoEvento(diaSelecionado)}
-                className="text-sm text-[#F25C26] hover:text-[#e04a1a] font-medium flex items-center gap-1"
+                className={`${modoCompacto ? 'text-xs' : 'text-sm'} text-[#F25C26] hover:text-[#e04a1a] font-medium flex items-center gap-1`}
               >
-                <Plus className="w-4 h-4" />
-                Adicionar
+                <Plus className={modoCompacto ? 'w-3 h-3' : 'w-4 h-4'} />
+                {!modoCompacto && 'Adicionar'}
               </button>
             </div>
 
             {eventosDodiaSelecionado.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">
-                Nenhum evento neste dia
+              <p className={`${modoCompacto ? 'text-xs py-2' : 'text-sm py-4'} text-gray-500 text-center`}>
+                Nenhum evento
               </p>
             ) : (
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              <div className={`space-y-1.5 ${modoCompacto ? 'max-h-[100px]' : 'max-h-[200px]'} overflow-y-auto`}>
                 {eventosDodiaSelecionado.map((evento) => (
                   <div
                     key={evento.id}
                     onClick={() => handleEditarEvento(evento)}
-                    className="p-3 bg-white rounded-xl border border-gray-200 hover:border-[#F25C26] cursor-pointer transition-colors"
+                    className={`${modoCompacto ? 'p-1.5' : 'p-3'} bg-white rounded-lg border border-gray-200 hover:border-[#F25C26] cursor-pointer transition-colors`}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-2">
                       <div
-                        className="w-3 h-3 rounded-full mt-1.5 flex-shrink-0"
+                        className={`${modoCompacto ? 'w-2 h-2 mt-1' : 'w-3 h-3 mt-1.5'} rounded-full flex-shrink-0`}
                         style={{ backgroundColor: getEventColor(evento) }}
                       />
                       <div className="flex-1 min-w-0">
-                        <h5 className="font-medium text-gray-900 truncate">
+                        <h5 className={`${modoCompacto ? 'text-xs' : 'text-sm'} font-medium text-gray-900 truncate`}>
                           {evento.summary}
                         </h5>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatarHora(evento)}
+                        <div className={`flex items-center gap-2 ${modoCompacto ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
+                          <span className="flex items-center gap-0.5">
+                            <Clock className={modoCompacto ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+                            {formatarHora(evento) || 'Dia inteiro'}
                           </span>
-                          {evento.location && (
+                          {!modoCompacto && evento.location && (
                             <span className="flex items-center gap-1 truncate">
                               <MapPin className="w-3 h-3" />
                               {evento.location}
                             </span>
                           )}
                         </div>
-                        {evento.description && (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                            {evento.description}
-                          </p>
-                        )}
                       </div>
-                      {evento.htmlLink && (
+                      {!modoCompacto && evento.htmlLink && (
                         <a
                           href={evento.htmlLink}
                           target="_blank"

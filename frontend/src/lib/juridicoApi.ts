@@ -78,6 +78,7 @@ export interface FinanceiroJuridico {
   total_parcelas: number;
   pessoa_id: string | null;
   empresa_id: string | null;
+  nucleo: string | null;
   sincronizado_financeiro: boolean;
   financeiro_lancamento_id: string | null;
   criado_por: string | null;

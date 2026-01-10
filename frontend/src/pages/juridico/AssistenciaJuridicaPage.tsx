@@ -28,6 +28,8 @@ import {
   AlertCircle,
   ArrowUpCircle,
   ArrowDownCircle,
+  Folder,
+  X,
 } from "lucide-react";
 import {
   listarAssistencias,
@@ -41,6 +43,7 @@ import {
   type TipoSolicitante,
 } from "@/lib/juridicoApi";
 import { supabaseRaw as supabase } from "@/lib/supabaseClient";
+import DocumentosJuridicosCliente from "@/components/juridico/DocumentosJuridicosCliente";
 
 /* ==================== CONSTANTES ==================== */
 
@@ -90,6 +93,7 @@ export default function AssistenciaJuridicaPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<AssistenciaJuridica | null>(null);
   const [pessoas, setPessoas] = useState<Array<{ id: string; nome: string; tipo: string }>>([]);
+  const [clienteDocumentos, setClienteDocumentos] = useState<{ id: string; nome: string } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -585,7 +589,26 @@ export default function AssistenciaJuridicaPage() {
                           ))}
                         </select>
 
+                        {/* Botão Ver Documentos - apenas para clientes */}
+                        {item.tipo_solicitante === "CLIENTE" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const pessoa = pessoas.find(p => p.id === item.solicitante_id);
+                              setClienteDocumentos({
+                                id: item.solicitante_id,
+                                nome: pessoa?.nome || "Cliente"
+                              });
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-purple-600 transition-colors"
+                            title="Ver Documentos Jurídicos"
+                          >
+                            <Folder className="h-4 w-4" />
+                          </button>
+                        )}
+
                         <button
+                          type="button"
                           onClick={() => handleEdit(item)}
                           className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
                           title="Editar"
@@ -594,6 +617,7 @@ export default function AssistenciaJuridicaPage() {
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => handleDelete(item.id)}
                           className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
                           title="Excluir"
@@ -607,6 +631,29 @@ export default function AssistenciaJuridicaPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* DOCUMENTOS JURÍDICOS DO CLIENTE */}
+      {clienteDocumentos && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Documentos Jurídicos - {clienteDocumentos.nome}
+            </h3>
+            <button
+              type="button"
+              onClick={() => setClienteDocumentos(null)}
+              className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            >
+              <X className="h-4 w-4" />
+              Fechar
+            </button>
+          </div>
+          <DocumentosJuridicosCliente
+            clienteId={clienteDocumentos.id}
+            clienteNome={clienteDocumentos.nome}
+          />
         </div>
       )}
 

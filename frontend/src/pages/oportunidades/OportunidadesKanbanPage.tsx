@@ -116,18 +116,28 @@ export default function OportunidadesKanbanPage() {
       }
     }
 
-    // Query 3: Buscar núcleos para cada oportunidade
+    // Query 3: Buscar núcleos para cada oportunidade (tabela de junção)
     const { data: nucleosData } = await supabase
       .from("oportunidades_nucleos")
       .select("oportunidade_id, nucleo, valor");
 
     // Combinar todos os dados no código
-    const oportunidadesComDados = (oportData || []).map((op: any) => ({
-      ...op,
-      clientes: op.cliente_id ? clientesMap[op.cliente_id] : null,
-      nucleos: nucleosData?.filter((n: any) => n.oportunidade_id === op.id) || [],
-      checklist_resumo: checklistMap[op.id] || null,
-    }));
+    // IMPORTANTE: Se não houver dados em oportunidades_nucleos, usar o campo 'nucleo' da oportunidade
+    const oportunidadesComDados = (oportData || []).map((op: any) => {
+      const nucleosFromJunction = nucleosData?.filter((n: any) => n.oportunidade_id === op.id) || [];
+
+      // Fallback: se não há dados na tabela de junção, usar o campo nucleo da oportunidade
+      const nucleosFinal = nucleosFromJunction.length > 0
+        ? nucleosFromJunction
+        : (op.nucleo ? [{ nucleo: op.nucleo, valor: op.valor || 0 }] : []);
+
+      return {
+        ...op,
+        clientes: op.cliente_id ? clientesMap[op.cliente_id] : null,
+        nucleos: nucleosFinal,
+        checklist_resumo: checklistMap[op.id] || null,
+      };
+    });
 
     setOportunidades(oportunidadesComDados as Oportunidade[]);
     setLoading(false);
@@ -238,26 +248,39 @@ export default function OportunidadesKanbanPage() {
   // Copiar cards para Kanbans dos núcleos quando oportunidade chega em Fechamento
   async function copiarParaKanbansNucleos(oportunidadeId: string) {
     try {
-      console.log(`🎯 Copiando oportunidade ${oportunidadeId} para Kanbans dos núcleos...`);
+      console.log(`Copiando oportunidade ${oportunidadeId} para Kanbans dos nucleos...`);
 
-      // Buscar núcleos da oportunidade
+      // Buscar núcleos da oportunidade - primeiro da tabela de junção
+      let nucleosList: { nucleo: string }[] = [];
+
       const { data: nucleosData, error: nucleosError } = await supabase
         .from("oportunidades_nucleos")
         .select("nucleo")
         .eq("oportunidade_id", oportunidadeId);
 
-      if (nucleosError) {
-        console.error("Erro ao buscar núcleos:", nucleosError);
-        return;
+      if (!nucleosError && nucleosData && nucleosData.length > 0) {
+        nucleosList = nucleosData;
+      } else {
+        // Fallback: buscar do campo nucleo na tabela oportunidades
+        const { data: oportData } = await supabase
+          .from("oportunidades")
+          .select("nucleo")
+          .eq("id", oportunidadeId)
+          .single();
+
+        if (oportData?.nucleo) {
+          nucleosList = [{ nucleo: oportData.nucleo }];
+          console.log(`Usando nucleo da tabela principal: ${oportData.nucleo}`);
+        }
       }
 
-      if (!nucleosData || nucleosData.length === 0) {
-        console.log("⚠️ Oportunidade sem núcleos, não será copiada");
+      if (nucleosList.length === 0) {
+        console.log("Oportunidade sem nucleos, nao sera copiada");
         return;
       }
 
       // Para cada núcleo, criar posição na primeira coluna
-      for (const { nucleo } of nucleosData) {
+      for (const { nucleo } of nucleosList) {
         // Verificar se já existe posição para este núcleo
         const { data: posicaoExistente } = await supabase
           .from("nucleos_oportunidades_posicoes")
@@ -302,7 +325,7 @@ export default function OportunidadesKanbanPage() {
         }
       }
 
-      console.log(`🎉 Oportunidade copiada para ${nucleosData.length} núcleo(s)!`);
+      console.log(`Oportunidade copiada para ${nucleosList.length} nucleo(s)!`);
     } catch (error) {
       console.error("❌ Erro ao copiar para Kanbans dos núcleos:", error);
     }

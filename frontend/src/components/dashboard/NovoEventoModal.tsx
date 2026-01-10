@@ -3,8 +3,9 @@
 // Sistema WG Easy - Grupo WG Almeida
 // ============================================================
 
-import { useState, useEffect } from 'react';
-import { format, addHours, parseISO } from 'date-fns';
+import { useState, useEffect, useCallback } from 'react';
+import { format, addHours, parseISO, parse, isValid } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   X,
   Calendar,
@@ -82,6 +83,73 @@ export default function NovoEventoModal({
   const [excluindo, setExcluindo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  // Funções para formatar data brasileira (dd/mm/yyyy)
+  const formatarDataBR = useCallback((dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const date = parseISO(dateStr);
+      return format(date, 'dd/MM/yyyy', { locale: ptBR });
+    } catch {
+      return dateStr;
+    }
+  }, []);
+
+  const parseDataBR = useCallback((dataBR: string): string => {
+    // Converte dd/mm/yyyy para yyyy-MM-dd
+    if (!dataBR) return '';
+    const parts = dataBR.replace(/\D/g, '');
+    if (parts.length !== 8) return '';
+    const dia = parts.substring(0, 2);
+    const mes = parts.substring(2, 4);
+    const ano = parts.substring(4, 8);
+    return `${ano}-${mes}-${dia}`;
+  }, []);
+
+  const handleDataChange = useCallback((value: string, setter: (v: string) => void) => {
+    // Remove caracteres não numéricos
+    let numeros = value.replace(/\D/g, '');
+
+    // Limita a 8 dígitos
+    numeros = numeros.substring(0, 8);
+
+    // Formata como dd/mm/yyyy
+    let formatted = '';
+    if (numeros.length > 0) {
+      formatted = numeros.substring(0, 2);
+      if (numeros.length > 2) {
+        formatted += '/' + numeros.substring(2, 4);
+        if (numeros.length > 4) {
+          formatted += '/' + numeros.substring(4, 8);
+        }
+      }
+    }
+    setter(formatted);
+  }, []);
+
+  const handleHoraChange = useCallback((value: string, setter: (v: string) => void) => {
+    // Remove caracteres não numéricos
+    let numeros = value.replace(/\D/g, '');
+
+    // Limita a 4 dígitos
+    numeros = numeros.substring(0, 4);
+
+    // Formata como HH:mm
+    let formatted = '';
+    if (numeros.length > 0) {
+      let horas = numeros.substring(0, 2);
+      // Limita horas a 23
+      if (parseInt(horas) > 23) horas = '23';
+      formatted = horas;
+      if (numeros.length > 2) {
+        let minutos = numeros.substring(2, 4);
+        // Limita minutos a 59
+        if (parseInt(minutos) > 59) minutos = '59';
+        formatted += ':' + minutos;
+      }
+    }
+    setter(formatted);
+  }, []);
+
   // Preencher formulario ao abrir
   useEffect(() => {
     if (evento) {
@@ -93,9 +161,10 @@ export default function NovoEventoModal({
       const inicio = evento.start.dateTime ? parseISO(evento.start.dateTime) : new Date();
       const fim = evento.end.dateTime ? parseISO(evento.end.dateTime) : addHours(inicio, 1);
 
-      setDataInicio(format(inicio, 'yyyy-MM-dd'));
+      // Formato brasileiro: dd/mm/yyyy
+      setDataInicio(format(inicio, 'dd/MM/yyyy'));
       setHoraInicio(format(inicio, 'HH:mm'));
-      setDataFim(format(fim, 'yyyy-MM-dd'));
+      setDataFim(format(fim, 'dd/MM/yyyy'));
       setHoraFim(format(fim, 'HH:mm'));
 
       // Lembrete
@@ -110,32 +179,50 @@ export default function NovoEventoModal({
       const horaAtual = format(agora, 'HH:00');
       const proximaHora = format(addHours(agora, 1), 'HH:00');
 
-      setDataInicio(format(dataBase, 'yyyy-MM-dd'));
+      // Formato brasileiro: dd/mm/yyyy
+      setDataInicio(format(dataBase, 'dd/MM/yyyy'));
       setHoraInicio(horaAtual);
-      setDataFim(format(dataBase, 'yyyy-MM-dd'));
+      setDataFim(format(dataBase, 'dd/MM/yyyy'));
       setHoraFim(proximaHora);
     }
   }, [evento, dataPadrao]);
 
   // Ajustar data/hora fim quando inicio mudar
   useEffect(() => {
-    if (!isEdicao && dataInicio && horaInicio) {
-      const inicio = new Date(`${dataInicio}T${horaInicio}`);
-      const fim = addHours(inicio, 1);
-      setDataFim(format(fim, 'yyyy-MM-dd'));
-      setHoraFim(format(fim, 'HH:mm'));
+    if (!isEdicao && dataInicio && horaInicio && dataInicio.length === 10 && horaInicio.length === 5) {
+      // Converter data brasileira para Date
+      const dataISO = parseDataBR(dataInicio);
+      if (dataISO) {
+        const inicio = new Date(`${dataISO}T${horaInicio}`);
+        if (isValid(inicio)) {
+          const fim = addHours(inicio, 1);
+          setDataFim(format(fim, 'dd/MM/yyyy'));
+          setHoraFim(format(fim, 'HH:mm'));
+        }
+      }
     }
-  }, [dataInicio, horaInicio, isEdicao]);
+  }, [dataInicio, horaInicio, isEdicao, parseDataBR]);
 
   // Salvar evento
   const handleSalvar = async () => {
     if (!titulo.trim()) {
-      setErro('O titulo e obrigatorio');
+      setErro('O título é obrigatório');
       return;
     }
 
     if (!dataInicio || !horaInicio || !dataFim || !horaFim) {
-      setErro('Preencha as datas e horarios');
+      setErro('Preencha as datas e horários');
+      return;
+    }
+
+    // Validar formato das datas
+    if (dataInicio.length !== 10 || dataFim.length !== 10) {
+      setErro('Formato de data inválido. Use dd/mm/aaaa');
+      return;
+    }
+
+    if (horaInicio.length !== 5 || horaFim.length !== 5) {
+      setErro('Formato de hora inválido. Use hh:mm');
       return;
     }
 
@@ -143,8 +230,16 @@ export default function NovoEventoModal({
       setSalvando(true);
       setErro(null);
 
-      const startDateTime = new Date(`${dataInicio}T${horaInicio}`).toISOString();
-      const endDateTime = new Date(`${dataFim}T${horaFim}`).toISOString();
+      // Converter data brasileira para ISO
+      const dataInicioISO = parseDataBR(dataInicio);
+      const dataFimISO = parseDataBR(dataFim);
+
+      if (!dataInicioISO || !dataFimISO) {
+        throw new Error('Data inválida');
+      }
+
+      const startDateTime = new Date(`${dataInicioISO}T${horaInicio}`).toISOString();
+      const endDateTime = new Date(`${dataFimISO}T${horaFim}`).toISOString();
 
       const eventData = {
         summary: titulo.trim(),
@@ -259,24 +354,28 @@ export default function NovoEventoModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <Calendar className="w-4 h-4 inline mr-1" />
-                Data Inicio
+                Data Início
               </label>
               <input
-                type="date"
+                type="text"
                 value={dataInicio}
-                onChange={(e) => setDataInicio(e.target.value)}
+                onChange={(e) => handleDataChange(e.target.value, setDataInicio)}
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#F25C26] focus:border-[#F25C26] outline-none transition-all"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <Clock className="w-4 h-4 inline mr-1" />
-                Hora Inicio
+                Hora Início
               </label>
               <input
-                type="time"
+                type="text"
                 value={horaInicio}
-                onChange={(e) => setHoraInicio(e.target.value)}
+                onChange={(e) => handleHoraChange(e.target.value, setHoraInicio)}
+                placeholder="hh:mm"
+                maxLength={5}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#F25C26] focus:border-[#F25C26] outline-none transition-all"
               />
             </div>
@@ -290,9 +389,11 @@ export default function NovoEventoModal({
                 Data Fim
               </label>
               <input
-                type="date"
+                type="text"
                 value={dataFim}
-                onChange={(e) => setDataFim(e.target.value)}
+                onChange={(e) => handleDataChange(e.target.value, setDataFim)}
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#F25C26] focus:border-[#F25C26] outline-none transition-all"
               />
             </div>
@@ -302,9 +403,11 @@ export default function NovoEventoModal({
                 Hora Fim
               </label>
               <input
-                type="time"
+                type="text"
                 value={horaFim}
-                onChange={(e) => setHoraFim(e.target.value)}
+                onChange={(e) => handleHoraChange(e.target.value, setHoraFim)}
+                placeholder="hh:mm"
+                maxLength={5}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#F25C26] focus:border-[#F25C26] outline-none transition-all"
               />
             </div>

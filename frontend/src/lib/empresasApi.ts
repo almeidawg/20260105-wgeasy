@@ -10,6 +10,10 @@ import type {
   EmpresaComContas,
   EmpresaFormData,
   ContaBancariaFormData,
+  SocioEmpresa,
+  SocioFormData,
+  SocioParticipacao,
+  ParticipacaoFormData,
 } from "@/types/empresas";
 
 // ============================================================
@@ -450,6 +454,341 @@ export async function cnpjJaCadastrado(cnpj: string, excludeId?: string): Promis
 
   if (error) {
     console.error("Erro ao verificar CNPJ:", error);
+    return false;
+  }
+
+  return (count || 0) > 0;
+}
+
+/**
+ * Atualizar pasta do Google Drive de uma empresa
+ */
+export async function atualizarPastaDriveEmpresa(
+  empresaId: string,
+  folderId: string,
+  folderUrl: string
+): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("empresas_grupo")
+    .update({
+      google_drive_folder_id: folderId,
+      google_drive_folder_url: folderUrl,
+      atualizado_por: user?.id,
+    })
+    .eq("id", empresaId);
+
+  if (error) {
+    console.error("Erro ao atualizar pasta Drive:", error);
+    throw new Error(`Erro ao atualizar pasta Drive: ${error.message}`);
+  }
+}
+
+// ============================================================
+// SÓCIOS DAS EMPRESAS
+// ============================================================
+
+/**
+ * Listar todos os sócios
+ */
+export async function listarSocios(): Promise<SocioEmpresa[]> {
+  const { data, error } = await supabase
+    .from("socios_empresas")
+    .select("*")
+    .eq("ativo", true)
+    .order("nome");
+
+  if (error) {
+    console.error("Erro ao listar sócios:", error);
+    throw new Error(`Erro ao listar sócios: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Buscar sócio por ID (com participações)
+ */
+export async function buscarSocioPorId(id: string): Promise<SocioEmpresa | null> {
+  const { data, error } = await supabase
+    .from("socios_empresas")
+    .select(`
+      *,
+      participacoes:socios_participacoes(
+        *,
+        empresa:empresa_id(id, razao_social, nome_fantasia, cnpj)
+      )
+    `)
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Erro ao buscar sócio:", error);
+    throw new Error(`Erro ao buscar sócio: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Criar novo sócio
+ */
+export async function criarSocio(dados: SocioFormData): Promise<SocioEmpresa> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("socios_empresas")
+    .insert({
+      ...dados,
+      criado_por: user?.id,
+      atualizado_por: user?.id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao criar sócio:", error);
+    throw new Error(`Erro ao criar sócio: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Atualizar sócio
+ */
+export async function atualizarSocio(
+  id: string,
+  dados: Partial<SocioFormData>
+): Promise<SocioEmpresa> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("socios_empresas")
+    .update({
+      ...dados,
+      atualizado_por: user?.id,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao atualizar sócio:", error);
+    throw new Error(`Erro ao atualizar sócio: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Excluir sócio (soft delete)
+ */
+export async function excluirSocio(id: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("socios_empresas")
+    .update({
+      ativo: false,
+      atualizado_por: user?.id,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Erro ao excluir sócio:", error);
+    throw new Error(`Erro ao excluir sócio: ${error.message}`);
+  }
+}
+
+/**
+ * Excluir sócio permanentemente
+ */
+export async function excluirSocioPermanente(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("socios_empresas")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Erro ao excluir sócio permanentemente:", error);
+    throw new Error(`Erro ao excluir sócio: ${error.message}`);
+  }
+}
+
+// ============================================================
+// PARTICIPAÇÕES DOS SÓCIOS
+// ============================================================
+
+/**
+ * Listar participações de um sócio
+ */
+export async function listarParticipacoesPorSocio(socioId: string): Promise<SocioParticipacao[]> {
+  const { data, error } = await supabase
+    .from("socios_participacoes")
+    .select(`
+      *,
+      empresa:empresa_id(id, razao_social, nome_fantasia, cnpj)
+    `)
+    .eq("socio_id", socioId)
+    .eq("ativo", true)
+    .order("data_entrada", { ascending: false });
+
+  if (error) {
+    console.error("Erro ao listar participações:", error);
+    throw new Error(`Erro ao listar participações: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Listar sócios de uma empresa
+ */
+export async function listarSociosPorEmpresa(empresaId: string): Promise<SocioParticipacao[]> {
+  const { data, error } = await supabase
+    .from("socios_participacoes")
+    .select(`
+      *,
+      socio:socio_id(*)
+    `)
+    .eq("empresa_id", empresaId)
+    .eq("ativo", true)
+    .order("percentual_participacao", { ascending: false });
+
+  if (error) {
+    console.error("Erro ao listar sócios da empresa:", error);
+    throw new Error(`Erro ao listar sócios: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Criar participação de sócio em empresa
+ */
+export async function criarParticipacao(dados: ParticipacaoFormData): Promise<SocioParticipacao> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("socios_participacoes")
+    .insert({
+      ...dados,
+      criado_por: user?.id,
+      atualizado_por: user?.id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao criar participação:", error);
+    throw new Error(`Erro ao criar participação: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Atualizar participação
+ */
+export async function atualizarParticipacao(
+  id: string,
+  dados: Partial<ParticipacaoFormData>
+): Promise<SocioParticipacao> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("socios_participacoes")
+    .update({
+      ...dados,
+      atualizado_por: user?.id,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao atualizar participação:", error);
+    throw new Error(`Erro ao atualizar participação: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Excluir participação
+ */
+export async function excluirParticipacao(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("socios_participacoes")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Erro ao excluir participação:", error);
+    throw new Error(`Erro ao excluir participação: ${error.message}`);
+  }
+}
+
+/**
+ * Atualizar pasta do Google Drive de um sócio
+ */
+export async function atualizarPastaDriveSocio(
+  socioId: string,
+  folderId: string,
+  folderUrl: string
+): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("socios_empresas")
+    .update({
+      google_drive_folder_id: folderId,
+      google_drive_folder_url: folderUrl,
+      atualizado_por: user?.id,
+    })
+    .eq("id", socioId);
+
+  if (error) {
+    console.error("Erro ao atualizar pasta Drive do sócio:", error);
+    throw new Error(`Erro ao atualizar pasta Drive: ${error.message}`);
+  }
+}
+
+/**
+ * Verificar se CPF já está cadastrado
+ */
+export async function cpfJaCadastrado(cpf: string, excludeId?: string): Promise<boolean> {
+  const cpfLimpo = cpf.replace(/\D/g, "");
+
+  let query = supabase
+    .from("socios_empresas")
+    .select("id", { count: "exact", head: true })
+    .eq("cpf", cpfLimpo);
+
+  if (excludeId) {
+    query = query.neq("id", excludeId);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error("Erro ao verificar CPF:", error);
     return false;
   }
 

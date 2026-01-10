@@ -189,12 +189,19 @@ export default function MobileBottomNav() {
   }, [usuario?.tipo_usuario]);
 
   const isActive = useCallback((item: NavItem) => {
-    if (item.exact) {
+    // Dashboard (/) deve ter match exato
+    if (item.path === "/" || item.exact) {
       return location.pathname === item.path;
     }
-    // Verificar se esta na secao ou em algum subitem
-    if (location.pathname.startsWith(item.path)) return true;
-    return item.items.some((subitem) => location.pathname.startsWith(subitem.path));
+    // Para outras seções, verificar se a rota atual começa com o path da seção
+    // Mas garantir que não é apenas "/" que está sendo comparado
+    if (item.path && item.path !== "/" && location.pathname.startsWith(item.path)) {
+      return true;
+    }
+    // Verificar subitens
+    return item.items.some((subitem) =>
+      subitem.path && location.pathname.startsWith(subitem.path)
+    );
   }, [location.pathname]);
 
   // Handler para clique no item do menu

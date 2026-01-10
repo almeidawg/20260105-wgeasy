@@ -12,17 +12,22 @@ import Avatar from "@/components/common/Avatar";
 import { formatarData, formatarValor } from "@/types/contratos";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
+// Status do banco de dados (status reais usados no sistema)
 type StatusContrato =
   | "rascunho"
   | "aguardando_assinatura"
+  | "assinado"
+  | "em_execucao"
   | "ativo"
   | "concluido"
-  | "cancelado";
+  | "cancelado"
+  | "finalizado";
 
 const ESTAGIOS: StatusContrato[] = [
   "rascunho",
   "aguardando_assinatura",
-  "ativo",
+  "assinado",
+  "em_execucao",
   "concluido",
   "cancelado",
 ];
@@ -30,22 +35,29 @@ const ESTAGIOS: StatusContrato[] = [
 const ESTAGIOS_LABELS: Record<StatusContrato, string> = {
   rascunho: "Rascunho",
   aguardando_assinatura: "Aguardando",
+  assinado: "Assinado",
+  em_execucao: "Em Execução",
   ativo: "Ativo",
   concluido: "Concluído",
   cancelado: "Cancelado",
+  finalizado: "Finalizado",
 };
 
 const ESTAGIOS_CORES: Record<StatusContrato, string> = {
   rascunho: "#9CA3AF",
   aguardando_assinatura: "#F59E0B",
+  assinado: "#8B5CF6",
+  em_execucao: "#3B82F6",
   ativo: "#3B82F6",
   concluido: "#10B981",
   cancelado: "#EF4444",
+  finalizado: "#10B981",
 };
 
 type Contrato = {
   id: string;
-  numero: string;
+  numero: string | null;
+  numero_contrato: string | null;
   cliente_id: string | null;
   cliente_nome?: string;
   cliente_avatar_url?: string | null;
@@ -55,6 +67,8 @@ type Contrato = {
   unidade_negocio: string;
   data_inicio: string | null;
   data_previsao_termino: string | null;
+  previsao_termino: string | null;
+  descricao: string | null;
   created_at: string;
 };
 
@@ -352,9 +366,9 @@ export default function ContratosKanbanPage() {
                                   onClick={() => navigate(`/contratos/${contrato.id}`)}
                                   className="w-full text-left p-3"
                                 >
-                                  {/* Número do Contrato */}
-                                  <div className="text-sm font-bold text-[#1A1A1A] mb-1">
-                                    {contrato.numero}
+                                  {/* Número/Título do Contrato */}
+                                  <div className="text-sm font-bold text-[#1A1A1A] mb-1 line-clamp-2">
+                                    {contrato.numero_contrato || contrato.numero || contrato.descricao || "Sem título"}
                                   </div>
 
                                   {/* Data e Hora de Criação */}
@@ -378,10 +392,11 @@ export default function ContratosKanbanPage() {
                                           contrato.unidade_negocio?.toLowerCase() === 'arquitetura' ? '#5E9B94' :
                                           contrato.unidade_negocio?.toLowerCase() === 'engenharia' ? '#2B4580' :
                                           contrato.unidade_negocio?.toLowerCase() === 'marcenaria' ? '#8B5E3C' :
+                                          contrato.unidade_negocio?.toLowerCase()?.includes('moma') ? '#10B981' :
                                           '#6B7280'
                                       }}
                                     >
-                                      {contrato.unidade_negocio || 'Não definido'}
+                                      {contrato.unidade_negocio?.replace('_', ' ') || 'Não definido'}
                                     </span>
                                   </div>
 
@@ -390,9 +405,9 @@ export default function ContratosKanbanPage() {
                                     <div className="font-bold text-[#1A1A1A]">
                                       {formatarValor(contrato.valor_total)}
                                     </div>
-                                    {contrato.data_previsao_termino && (
+                                    {(contrato.data_previsao_termino || contrato.previsao_termino) && (
                                       <div className="text-gray-500 text-[10px]">
-                                        📅 {formatarData(contrato.data_previsao_termino)}
+                                        {formatarData(contrato.data_previsao_termino || contrato.previsao_termino)}
                                       </div>
                                     )}
                                   </div>
@@ -478,9 +493,9 @@ export default function ContratosKanbanPage() {
                     onClick={() => navigate(`/contratos/${contrato.id}`)}
                     className="w-full text-left p-4"
                   >
-                    {/* Número do Contrato */}
-                    <h3 className="text-base font-bold text-[#1A1A1A] mb-2">
-                      {contrato.numero}
+                    {/* Número/Título do Contrato */}
+                    <h3 className="text-base font-bold text-[#1A1A1A] mb-2 line-clamp-2">
+                      {contrato.numero_contrato || contrato.numero || contrato.descricao || "Sem título"}
                     </h3>
 
                     {/* Data de Criação */}
@@ -501,10 +516,11 @@ export default function ContratosKanbanPage() {
                             contrato.unidade_negocio?.toLowerCase() === 'arquitetura' ? '#5E9B94' :
                             contrato.unidade_negocio?.toLowerCase() === 'engenharia' ? '#2B4580' :
                             contrato.unidade_negocio?.toLowerCase() === 'marcenaria' ? '#8B5E3C' :
+                            contrato.unidade_negocio?.toLowerCase()?.includes('moma') ? '#10B981' :
                             '#6B7280'
                         }}
                       >
-                        {contrato.unidade_negocio || 'Não definido'}
+                        {contrato.unidade_negocio?.replace('_', ' ') || 'Não definido'}
                       </span>
                     </div>
 
@@ -513,9 +529,9 @@ export default function ContratosKanbanPage() {
                       <div className="text-lg font-bold text-[#1A1A1A]">
                         {formatarValor(contrato.valor_total)}
                       </div>
-                      {contrato.data_previsao_termino && (
+                      {(contrato.data_previsao_termino || contrato.previsao_termino) && (
                         <div className="text-xs text-gray-500">
-                          📅 {formatarData(contrato.data_previsao_termino)}
+                          {formatarData(contrato.data_previsao_termino || contrato.previsao_termino)}
                         </div>
                       )}
                     </div>
@@ -532,7 +548,7 @@ export default function ContratosKanbanPage() {
         <ConfirmDialog
           isOpen={true}
           title="Excluir Contrato?"
-          message={`Deseja realmente excluir o contrato "${contratoParaExcluir.numero}"? Esta ação não poderá ser desfeita e todos os dados relacionados serão perdidos.`}
+          message={`Deseja realmente excluir o contrato "${contratoParaExcluir.numero_contrato || contratoParaExcluir.numero || contratoParaExcluir.descricao || 'Sem título'}"? Esta ação não poderá ser desfeita e todos os dados relacionados serão perdidos.`}
           confirmLabel="Excluir"
           cancelLabel="Cancelar"
           type="danger"

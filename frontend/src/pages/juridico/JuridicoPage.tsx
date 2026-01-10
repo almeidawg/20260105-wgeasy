@@ -128,18 +128,52 @@ export default function JuridicoPage() {
         return;
       }
 
-      // Verificar permissão de visualização no módulo JURIDICO
-      const podeVisualizar = await verificarPermissaoModulo(user.id, "JURIDICO", "pode_visualizar");
-      const podeCriar = await verificarPermissaoModulo(user.id, "JURIDICO", "pode_criar");
-      const podeEditar = await verificarPermissaoModulo(user.id, "JURIDICO", "pode_editar");
-      const podeExcluir = await verificarPermissaoModulo(user.id, "JURIDICO", "pode_excluir");
+      // Primeiro verificar se é MASTER ou ADMIN (sempre tem acesso)
+      const { data: usuarioData } = await supabase
+        .from("usuarios")
+        .select("tipo_usuario")
+        .eq("auth_user_id", user.id)
+        .single();
 
-      setUsuarioPermitido(podeVisualizar);
-      setPermissoes({
-        podeCriar,
-        podeEditar,
-        podeExcluir,
-      });
+      // MASTER, ADMIN e JURIDICO sempre têm acesso total ao módulo jurídico
+      if (usuarioData?.tipo_usuario === "MASTER" || usuarioData?.tipo_usuario === "ADMIN" || usuarioData?.tipo_usuario === "JURIDICO") {
+        setUsuarioPermitido(true);
+        setPermissoes({
+          podeCriar: true,
+          podeEditar: true,
+          podeExcluir: usuarioData?.tipo_usuario !== "JURIDICO", // JURIDICO pode criar/editar mas não excluir
+        });
+        return;
+      }
+
+      // Para outros tipos, verificar permissão no módulo JURIDICO
+      try {
+        const podeVisualizar = await verificarPermissaoModulo(user.id, "JURIDICO", "pode_visualizar");
+        const podeCriar = await verificarPermissaoModulo(user.id, "JURIDICO", "pode_criar");
+        const podeEditar = await verificarPermissaoModulo(user.id, "JURIDICO", "pode_editar");
+        const podeExcluir = await verificarPermissaoModulo(user.id, "JURIDICO", "pode_excluir");
+
+        setUsuarioPermitido(podeVisualizar);
+        setPermissoes({
+          podeCriar,
+          podeEditar,
+          podeExcluir,
+        });
+      } catch (rpcError) {
+        // Se a função RPC falhar, verificar diretamente na tabela
+        console.warn("Erro na função RPC, usando fallback:", rpcError);
+
+        // Verificar tipo de usuário e conceder acesso baseado no tipo
+        const tiposPermitidos = ["MASTER", "ADMIN", "JURIDICO", "FINANCEIRO"];
+        const temAcesso = tiposPermitidos.includes(usuarioData?.tipo_usuario || "");
+
+        setUsuarioPermitido(temAcesso);
+        setPermissoes({
+          podeCriar: temAcesso,
+          podeEditar: temAcesso,
+          podeExcluir: usuarioData?.tipo_usuario === "MASTER",
+        });
+      }
     } catch (error) {
       console.error("Erro ao verificar permissão:", error);
       // Fallback: permitir acesso se houver erro (para não bloquear sistema)
