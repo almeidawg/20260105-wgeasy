@@ -107,6 +107,27 @@ export function hasServiceAccount(): boolean {
   return Boolean(loadServiceAccountKey());
 }
 
+/**
+ * Retorna informações do Service Account para debug (sem expor dados sensíveis)
+ */
+export function getServiceAccountInfo(serviceType: ServiceType): {
+  hasKey: boolean;
+  clientId?: string;
+  clientEmail?: string;
+  projectId?: string;
+} {
+  const key = loadServiceAccountKeyForService(serviceType);
+  if (!key) {
+    return { hasKey: false };
+  }
+  return {
+    hasKey: true,
+    clientId: key.client_id,
+    clientEmail: key.client_email,
+    projectId: key.project_id,
+  };
+}
+
 export function hasServiceAccountForService(serviceType: ServiceType): boolean {
   return Boolean(loadServiceAccountKeyForService(serviceType));
 }

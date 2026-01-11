@@ -1045,21 +1045,31 @@ app.get(
 // GOOGLE KEEP API
 // ============================================================
 import * as googleKeepApi from "./shared/googleKeepApi";
+import { getServiceAccountInfo } from "./shared/googleAuth";
 
-// Status da configuração do Google Keep
+// Status da configuração do Google Keep (com debug info)
 app.get(
   "/api/keep/status",
   rateLimitMiddleware,
   async (_req: Request, res: Response) => {
     const hasUserEmail = Boolean(process.env.GOOGLE_KEEP_USER_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_SUBJECT);
-    const hasServiceAccount = Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH);
+    const hasServiceAccount = Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH || process.env.GOOGLE_KEEP_SERVICE_ACCOUNT_KEY);
 
     const configured = hasUserEmail && hasServiceAccount;
+
+    // Info do Service Account para debug
+    const keepSA = getServiceAccountInfo('keep');
+    const defaultSA = getServiceAccountInfo('default');
 
     res.json({
       configured,
       hasUserEmail,
       hasServiceAccount,
+      defaultUserEmail: process.env.GOOGLE_KEEP_USER_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_SUBJECT || null,
+      serviceAccount: {
+        keep: keepSA.hasKey ? { clientId: keepSA.clientId, email: keepSA.clientEmail } : null,
+        default: defaultSA.hasKey ? { clientId: defaultSA.clientId, email: defaultSA.clientEmail } : null,
+      },
       message: configured
         ? "Google Keep configurado"
         : "Configure GOOGLE_KEEP_USER_EMAIL e GOOGLE_SERVICE_ACCOUNT_KEY no .env"
